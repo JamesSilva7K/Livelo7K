@@ -9,8 +9,9 @@ import os
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "SEU_TOKEN_AQUI")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI")
 
-# Lista de IDs de Admins de Suporte (que só verão os leads)
-SUPPORT_ADMINS = ["ID_SUPORTE_1", "ID_SUPORTE_2"] 
+# Lista de IDs de Admins de Suporte (que só verão os leads, sem métricas financeiras)
+suporte_raw = os.environ.get("BASIC_ADMIN_IDS", "")
+SUPPORT_ADMINS = [x.strip() for x in suporte_raw.split(",")] if suporte_raw else ["ID_SUPORTE_1"]
 
 # ATENÇÃO: Web Apps do Telegram EXIGEM HTTPS. 
 # Se estiver rodando local, use o ngrok (ex: ngrok http 5050) e cole o link HTTPS aqui:

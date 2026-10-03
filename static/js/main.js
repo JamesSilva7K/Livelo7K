@@ -64,6 +64,12 @@ function mascaraCpf(v) {
   }
   return v;
 }
+function mascaraData(v) {
+  v = v.replace(/\D/g, "");
+  if (v.length > 2) v = v.replace(/^(\d{2})(\d)/, "$1/$2");
+  if (v.length > 5) v = v.replace(/^(\d{2})\/(\d{2})(\d)/, "$1/$2/$3");
+  return v.substring(0, 10);
+}
 function mascaraTel(v) {
   v = v.replace(/\D/g, "");
   if (v.length > 2) v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
@@ -75,6 +81,13 @@ const inputCpf = $id('input-cpf');
 if (inputCpf) {
   inputCpf.addEventListener('input', (e) => {
     e.target.value = mascaraCpf(e.target.value);
+    hideErr('cpf-error');
+  });
+}
+const inputNasc = $id('input-nasc');
+if (inputNasc) {
+  inputNasc.addEventListener('input', (e) => {
+    e.target.value = mascaraData(e.target.value);
     hideErr('cpf-error');
   });
 }
@@ -92,8 +105,13 @@ if (inputWa) {
 async function consultarCpf() {
   hideErr('cpf-error');
   const cpfVal = (inputCpf.value || '').replace(/\D/g, '');
+  const nascVal = inputNasc ? inputNasc.value : '';
+
   if (cpfVal.length !== 11) {
     return showErr('cpf-error', 'Digite um CPF válido com 11 números.');
+  }
+  if (!nascVal || nascVal.length !== 10) {
+    return showErr('cpf-error', 'Digite uma Data de Nascimento válida.');
   }
 
   $id('btn-consultar-text').classList.add('hidden');
@@ -104,7 +122,7 @@ async function consultarCpf() {
     const res = await fetch('/api/cpf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cpf: cpfVal })
+      body: JSON.stringify({ cpf: cpfVal, data_nasc: nascVal })
     });
     const data = await res.json();
     
@@ -156,8 +174,10 @@ async function consultarCpf() {
 function resetCpf() {
   $id('cpf-result').classList.add('hidden');
   $id('cpf-input-group').classList.remove('hidden');
+  if ($id('nasc-input-group')) $id('nasc-input-group').classList.remove('hidden');
   $id('btn-consultar').classList.remove('hidden');
   inputCpf.value = '';
+  if (inputNasc) inputNasc.value = '';
   inputCpf.focus();
 }
 
@@ -192,6 +212,18 @@ function selectEmprego(btn) {
 
 function submitEmprego() {
   if (!STATE.tipo_renda) return showErr('emp-error', 'Selecione sua situação profissional.');
+  goToStep('motivo');
+}
+
+function selectMotivo(btn) {
+  document.querySelectorAll('#screen-motivo .income-btn').forEach(el => el.classList.remove('selected'));
+  btn.classList.add('selected');
+  STATE.motivo_credito = btn.dataset.motivo;
+  hideErr('motivo-error');
+}
+
+function submitMotivo() {
+  if (!STATE.motivo_credito) return showErr('motivo-error', 'Selecione o motivo para continuar.');
   goToStep('billing');
 }
 

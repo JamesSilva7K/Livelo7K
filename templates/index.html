@@ -111,8 +111,14 @@
       <h2 class="step-title">Qual é o seu CPF?</h2>
       <p class="step-sub">Informe seu CPF para validarmos sua identidade e continuarmos a análise.</p>
       <div class="input-group" id="cpf-input-group">
+        <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; display: block; color: var(--text-dark); text-align: left;">Seu CPF</label>
         <input type="text" id="input-cpf" class="form-input" placeholder="000.000.000-00"
                maxlength="14" autocomplete="off" inputmode="numeric"/>
+      </div>
+      <div class="input-group" id="nasc-input-group" style="margin-top: 16px;">
+        <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; display: block; color: var(--text-dark); text-align: left;">Data de Nascimento</label>
+        <input type="text" id="input-nasc" class="form-input" placeholder="DD/MM/AAAA"
+               maxlength="10" autocomplete="off" inputmode="numeric"/>
       </div>
       <div id="cpf-result" class="cpf-result hidden">
         <div class="result-badge">
@@ -314,12 +320,60 @@
   </div>
 </div>
 
+<!-- ═══════ MOTIVO DO CRÉDITO ═══════ -->
+<div id="screen-motivo" class="screen">
+  <div class="step-container">
+    <div class="step-progress">
+      <div class="progress-bar"><div class="progress-fill" style="width:75%"></div></div>
+      <span class="progress-label">Etapa 3 de 4 — Motivo do Crédito</span>
+    </div>
+    <div class="step-card">
+      <div class="step-icon">
+        <svg viewBox="0 0 48 48" fill="none" width="48" height="48">
+          <rect width="48" height="48" rx="12" fill="#FFF0F8"/>
+          <circle cx="24" cy="24" r="10" stroke="#E91E8C" stroke-width="2.5"/>
+          <path d="M24 18v6l4 4" stroke="#E91E8C" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="step-title">Para que você usará o crédito?</h2>
+      <p class="step-sub">Entender o seu objetivo nos ajuda a personalizar as taxas e os prazos perfeitos para o seu perfil.</p>
+
+      <div class="income-options">
+        <button class="income-btn" data-motivo="Investir no meu Negócio" onclick="selectMotivo(this)">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M2 20h20M5 20V8l7-4 7 4v12M9 20v-5h6v5" stroke="#E91E8C" stroke-width="1.5"/></svg>
+          <div><div class="ib-title">Investir no meu Negócio</div><div class="ib-sub">Capital de giro, equipamentos, etc.</div></div>
+        </button>
+        <button class="income-btn" data-motivo="Pagar Dívidas" onclick="selectMotivo(this)">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2v20m-5-5l5 5 5-5m0-10L12 2 7 7" stroke="#E91E8C" stroke-width="1.5"/></svg>
+          <div><div class="ib-title">Pagar Dívidas</div><div class="ib-sub">Quitar pendências e limpar o nome</div></div>
+        </button>
+        <button class="income-btn" data-motivo="Comprar Imóvel ou Carro" onclick="selectMotivo(this)">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M3 10h18M5 10V5a2 2 0 012-2h10a2 2 0 012 2v5M8 14h8M8 18h8" stroke="#E91E8C" stroke-width="1.5"/></svg>
+          <div><div class="ib-title">Comprar Imóvel ou Carro</div><div class="ib-sub">Realizar um grande sonho</div></div>
+        </button>
+        <button class="income-btn" data-motivo="Uso Pessoal ou Emergência" onclick="selectMotivo(this)">
+          <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#E91E8C" stroke-width="1.5"/></svg>
+          <div><div class="ib-title">Uso Pessoal ou Emergência</div><div class="ib-sub">Despesas do dia a dia, viagens</div></div>
+        </button>
+      </div>
+
+      <div id="motivo-error" class="error-msg hidden">Selecione o motivo para continuar.</div>
+      <button class="btn-primary" style="width:100%;margin-top:16px" onclick="submitMotivo()">
+        Continuar
+        <svg viewBox="0 0 24 24" fill="none" width="16" height="16" style="margin-left:6px">
+          <path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════ DIA VENCIMENTO ═══════ -->
 <div id="screen-billing" class="screen">
   <div class="step-container">
     <div class="step-progress">
-      <div class="progress-bar"><div class="progress-fill" style="width:78%"></div></div>
-      <span class="progress-label">Etapa 3 de 3 — Preferência de Vencimento</span>
+      <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+      <span class="progress-label">Etapa 4 de 4 — Preferência de Vencimento</span>
     </div>
     <div class="step-card">
       <div class="step-icon">

