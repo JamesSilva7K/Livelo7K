@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Livelo - WebApp</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Pega as cores nativas do tema do Telegram do usuário */
+      --bg-color: var(--tg-theme-bg-color, #ffffff);
+      --text-color: var(--tg-theme-text-color, #222222);
+      --hint-color: var(--tg-theme-hint-color, #999999);
+      --link-color: var(--tg-theme-link-color, #2481cc);
+      --button-color: var(--tg-theme-button-color, #E91E8C);
+      --button-text-color: var(--tg-theme-button-text-color, #ffffff);
+      --secondary-bg-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+      
+      --pink: #E91E8C;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(150, 150, 150, 0.2);
+    }
+    .header h2 { font-weight: 700; font-size: 1.4rem; color: var(--pink); }
+    .header p { font-size: 0.9rem; color: var(--hint-color); margin-top: 4px; }
+
+    .card {
+      background-color: var(--secondary-bg-color);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .preview-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .preview-img {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--pink);
+    }
+    .preview-info h3 { font-size: 1.1rem; margin-bottom: 2px; }
+    .preview-info p { font-size: 0.85rem; color: var(--hint-color); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-color);
+      opacity: 0.8;
+    }
+    .form-input {
+      width: 100%;
+      background-color: var(--bg-color);
+      border: 1px solid rgba(150, 150, 150, 0.3);
+      color: var(--text-color);
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--pink); }
+    
+    .loading { display: none; text-align: center; color: var(--hint-color); font-weight: 500; margin-top: 20px; }
+    
+    #status-msg {
+      text-align: center; margin-top: 16px; font-weight: 600; font-size: 0.9rem;
+    }
+    .success { color: #10B981; }
+    .error { color: #EF4444; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h2>Painel Admin Livelo</h2>
+    <p>Gestão de Gerente em Tempo Real</p>
+  </div>
+
+  <div class="card">
+    <div class="preview-section">
+      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" id="preview-img" class="preview-img" alt="Gerente">
+      <div class="preview-info">
+        <h3 id="preview-name">{{ mgr.name or 'Gerente Livelo' }}</h3>
+        <p id="preview-wa">{{ mgr.whatsapp or 'Não configurado' }}</p>
+        <p style="font-size: 0.75rem; color: var(--pink); margin-top: 4px;">Desde <span id="preview-year">{{ mgr.since_year or '2025' }}</span></p>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="inp-name">Nome do Gerente</label>
+      <input type="text" id="inp-name" class="form-input" value="{{ mgr.name }}" title="Nome do Gerente" placeholder="Nome do Gerente">
+    </div>
+
+    <div class="form-group">
+      <label for="inp-wa">WhatsApp (com DDD)</label>
+      <input type="tel" id="inp-wa" class="form-input" value="{{ mgr.whatsapp }}" title="WhatsApp (com DDD)" placeholder="5511999999999">
+    </div>
+
+    <div class="form-group">
+      <label for="inp-year">Ano de Destaque</label>
+      <input type="number" id="inp-year" class="form-input" value="{{ mgr.since_year or '2025' }}" title="Ano de Destaque" placeholder="2025">
+    </div>
+
+    <div class="form-group">
+      <label for="inp-photo">Foto do Gerente (Upload ou URL)</label>
+      <input type="file" id="inp-photo-file" accept="image/*" style="display:none;" onchange="handleFileUpload(this, 'preview-img', 'inp-photo')">
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="document.getElementById('inp-photo-file').click()" style="background:var(--pink); color:white; border:none; border-radius:8px; padding: 0 12px; font-size: 0.85rem; cursor: pointer;">📂 Escolher Foto</button>
+        <input type="text" id="inp-photo" class="form-input" value="{{ mgr.photo_url }}" title="URL da Foto ou Base64" placeholder="https://... ou Arquivo" style="flex: 1; min-width: 0;">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="inp-favicon">Favicon do Site (Upload ou URL)</label>
+      <input type="file" id="inp-favicon-file" accept="image/*" style="display:none;" onchange="handleFileUpload(this, null, 'inp-favicon')">
+      <div style="display: flex; gap: 8px;">
+        <button type="button" onclick="document.getElementById('inp-favicon-file').click()" style="background:var(--pink); color:white; border:none; border-radius:8px; padding: 0 12px; font-size: 0.85rem; cursor: pointer;">📂 Escolher Ícone</button>
+        <input type="text" id="inp-favicon" class="form-input" value="{{ sys_config.get('favicon_url', '') }}" title="URL do Favicon ou Base64" placeholder="https://... ou Arquivo" style="flex: 1; min-width: 0;">
+      </div>
+    </div>
+  </div>
+  
+  <div class="loading" id="loading">Sincronizando com o sistema...</div>
+  <div id="status-msg"></div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // Expande o WebApp para tela cheia
+    tg.MainButton.setText('SALVAR ALTERAÇÕES');
+    tg.MainButton.show();
+    tg.MainButton.color = '#E91E8C';
+
+    // Live Preview update
+    document.getElementById('inp-name').addEventListener('input', e => document.getElementById('preview-name').textContent = e.target.value);
+    document.getElementById('inp-wa').addEventListener('input', e => document.getElementById('preview-wa').textContent = e.target.value);
+    document.getElementById('inp-year').addEventListener('input', e => document.getElementById('preview-year').textContent = e.target.value);
+    document.getElementById('inp-photo').addEventListener('input', e => {
+      const val = e.target.value;
+      if(val.startsWith('http') || val.startsWith('data:image')) {
+        document.getElementById('preview-img').src = val;
+      }
+    });
+
+    function handleFileUpload(input, previewId, textInputId) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById(textInputId).value = e.target.result;
+          if(previewId) document.getElementById(previewId).src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    tg.onEvent('mainButtonClicked', async () => {
+      const name = document.getElementById('inp-name').value;
+      const wa = document.getElementById('inp-wa').value;
+      const year = document.getElementById('inp-year').value;
+      const photo = document.getElementById('inp-photo').value;
+      const favicon = document.getElementById('inp-favicon').value;
+
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('status-msg').textContent = '';
+      tg.MainButton.showProgress();
+
+      try {
+        const response = await fetch('/api/tg_webapp/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            initData: tg.initData, // Manda o hash de validação do Telegram! (Blindagem)
+            name: name,
+            whatsapp: wa,
+            since_year: year,
+            photo_url: photo,
+            favicon_url: favicon
+          })
+        });
+
+        const data = await response.json();
+        tg.MainButton.hideProgress();
+        document.getElementById('loading').style.display = 'none';
+
+        if(data.ok) {
+          tg.HapticFeedback.notificationOccurred('success');
+          const status = document.getElementById('status-msg');
+          status.textContent = 'Salvo com sucesso! Atualizado no site.';
+          status.className = 'success';
+          setTimeout(() => { tg.close(); }, 2000);
+        } else {
+          tg.HapticFeedback.notificationOccurred('error');
+          const status = document.getElementById('status-msg');
+          status.textContent = 'Erro: ' + data.error;
+          status.className = 'error';
+        }
+      } catch (err) {
+        tg.MainButton.hideProgress();
+        document.getElementById('loading').style.display = 'none';
+        tg.HapticFeedback.notificationOccurred('error');
+        document.getElementById('status-msg').textContent = 'Erro de conexão.';
+        document.getElementById('status-msg').className = 'error';
+      }
+    });
+  </script>
+</body>
+</html>

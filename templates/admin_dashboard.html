@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dashboard — Livelo Admin</title>
+  <meta name="robots" content="noindex, nofollow"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --pink: #E91E8C;
+      --pink-dark: #C2185B;
+      --navy: #111827;
+      --gray: #6B7280;
+      --light: #F3F4F6;
+      --border: #E5E7EB;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #F9FAFB; color: var(--navy); }
+    
+    .topbar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
+    .brand svg { height: 24px; }
+    .user-menu { display: flex; align-items: center; gap: 16px; font-size: 0.9rem; }
+    .btn-logout { color: #DC2626; text-decoration: none; font-weight: 500; }
+    
+    .container {
+      max-width: 1200px;
+      margin: 32px auto;
+      padding: 0 24px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .stat-title { font-size: 0.85rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+    .stat-val { font-size: 2rem; font-weight: 700; color: var(--navy); margin-top: 8px; }
+    
+    .panel {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      background: #F9FAFB;
+      font-weight: 600;
+    }
+    .panel-body {
+      padding: 24px;
+    }
+    
+    /* Config form */
+    .form-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
+    .form-group { flex: 1; min-width: 200px; }
+    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: #374151; }
+    input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; }
+    input:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px rgba(233,30,140,0.1); }
+    
+    .btn {
+      background: var(--pink); color: white; border: none; padding: 10px 20px; border-radius: 6px;
+      font-weight: 500; cursor: pointer; transition: 0.2s;
+    }
+    .btn:hover { background: var(--pink-dark); }
+    
+    .manager-preview { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+    .manager-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+    
+    /* Table */
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th { padding: 12px 24px; background: #F9FAFB; border-bottom: 1px solid var(--border); color: var(--gray); font-weight: 500; }
+    td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    
+    .badge {
+      padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge.pending { background: #FEF3C7; color: #92400E; }
+    .badge.paid, .badge.authorized, .badge.completed { background: #D1FAE5; color: #065F46; }
+    
+    #toast {
+      position: fixed; bottom: 24px; right: 24px; background: #10B981; color: white;
+      padding: 12px 24px; border-radius: 8px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateY(100px); opacity: 0; transition: 0.3s;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 120 36" fill="none">
+        <path d="M10 4L4 18l6 14" stroke="#E91E8C" stroke-width="3" stroke-linecap="round"/>
+        <text x="18" y="26" font-family="Inter" font-weight="800" font-size="22" fill="#111827">livelo admin</text>
+      </svg>
+    </div>
+    <div class="user-menu">
+      <span>Olá, <strong>{{ admin_user }}</strong></span>
+      <a href="/admin/logout" class="btn-logout">Sair</a>
+    </div>
+  </div>
+
+  <div class="container">
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">Total de Leads</div>
+        <div class="stat-val">{{ total_leads }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">PIX Pagos</div>
+        <div class="stat-val">{{ total_paid }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">Receita Total</div>
+        <div class="stat-val" style="color:#10B981">{{ total_rev }}</div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">Configurações do Gerente (WhatsApp)</div>
+      <div class="panel-body">
+        <form id="manager-form" onsubmit="saveManager(event)">
+          <div class="manager-preview">
+            <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" id="mgr-img-preview" class="manager-img" alt="Gerente">
+            <div>
+              <div style="font-weight:600">{{ mgr.name or 'Gerente Livelo' }}</div>
+              <div style="font-size:0.85rem;color:#6B7280">{{ mgr.whatsapp or 'Não configurado' }}</div>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mgr_name">Nome do Gerente</label>
+              <input type="text" id="mgr_name" name="name" value="{{ mgr.name }}" required title="Nome do Gerente" placeholder="Nome do Gerente">
+            </div>
+            <div class="form-group">
+              <label for="mgr_wa">WhatsApp (com DDD)</label>
+              <input type="text" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" required title="WhatsApp (com DDD)" placeholder="Ex: 11999999999">
+            </div>
+            <div class="form-group">
+              <label for="mgr_since">Desde o ano</label>
+              <input type="number" id="mgr_since" name="since_year" value="{{ mgr.since_year or '2025' }}" required title="Desde o ano" placeholder="2025">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mgr_photo_url">Foto do Gerente (Link ou Upload)</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="mgr_photo_url" name="photo_url" value="{{ mgr.photo_url }}" placeholder="https://..." oninput="document.getElementById('mgr-img-preview').src = this.value">
+                <input type="file" id="mgr_photo" name="photo" accept="image/*" style="display:none;" onchange="previewImg(this, 'mgr-img-preview', 'mgr_photo_url')">
+                <button type="button" onclick="document.getElementById('mgr_photo').click()" class="btn" style="padding: 0 12px; font-size: 0.85rem;">📁 Anexar</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="sys_favicon_url">Favicon do Site (Link ou Upload)</label>
+              <div style="display:flex;gap:8px">
+                <input type="text" id="sys_favicon_url" name="favicon_url" value="{{ sys_favicon }}" placeholder="https://...">
+                <input type="file" id="sys_favicon" name="favicon" accept="image/*,.ico" style="display:none;" onchange="previewImg(this, null, 'sys_favicon_url')">
+                <button type="button" onclick="document.getElementById('sys_favicon').click()" class="btn" style="padding: 0 12px; font-size: 0.85rem;">📁 Anexar</button>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn">Salvar Configurações</button>
+        </form>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">Últimos Pagamentos PIX</div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Sessão Lead</th>
+              <th>Nome</th>
+              <th>Valor (Frete)</th>
+              <th>Status</th>
+              <th>Data</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in pays %}
+            <tr>
+              <td><span style="font-family:monospace;font-size:0.8rem;color:#6B7280">{{ p.payment_id[:12] }}...</span></td>
+              <td><span style="font-family:monospace;font-size:0.8rem">{{ p.session_id[:8] }}</span></td>
+              <td style="font-weight:500">{{ p.payer_name }}</td>
+              <td>R$ {{ "%.2f"|format(p.amount) }}</td>
+              <td><span class="badge {{ p.status }}">{{ p.status|upper }}</span></td>
+              <td style="font-size:0.8rem;color:#6B7280">
+                <script>document.write(new Date(Number("{{ p.created_at }}") * 1000).toLocaleString('pt-BR'))</script>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:#6B7280">Nenhum pagamento registrado.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+  </div>
+  
+  <div id="toast">Salvo com sucesso!</div>
+
+  <script>
+    function previewImg(input, previewId, textInputId) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          if(previewId) document.getElementById(previewId).src = e.target.result;
+          if(textInputId) document.getElementById(textInputId).value = ""; // limpa URL se upou
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+    
+    async function saveManager(e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      btn.innerText = 'Salvando...';
+      
+      try {
+        const res = await fetch('/admin/manager', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          showToast('Configurações salvas!');
+          if (data.photo_url) {
+            document.getElementById('mgr-img-preview').src = data.photo_url;
+            form.querySelector('input[type="file"]').value = '';
+          }
+        } else {
+          alert('Erro: ' + data.error);
+        }
+      } catch (err) {
+        alert('Erro de conexão.');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Salvar Configurações';
+      }
+    }
+    
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>
