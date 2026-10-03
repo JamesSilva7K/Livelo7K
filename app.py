@@ -46,6 +46,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
+    TEMPLATES_AUTO_RELOAD=True,
 )
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -537,11 +538,17 @@ def _guard():
 # ══════════════════════════════════════════════════════════════════════════════
 @app.route("/")
 def index():
-    return render_template("index.html")
+    resp = app.make_response(render_template("index.html"))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
 
 @app.route("/s/<slug>")
 def slug_page(slug):
-    return render_template("index.html", slug=slug)
+    resp = app.make_response(render_template("index.html", slug=slug))
+    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    return resp
 
 
 # ── 1. Consulta CPF ───────────────────────────────────────────────────────────
@@ -1056,6 +1063,9 @@ def admin_dashboard():
     sys_favicon = db.execute("SELECT value FROM sys_config WHERE key='favicon_url'").fetchone()
     sys_favicon_val = sys_favicon["value"] if sys_favicon else ""
 
+    sys_logo = db.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
+    sys_logo_val = sys_logo["value"] if sys_logo else ""
+
     return render_template(
         "admin_dashboard.html",
         mgr=dict(mgr) if mgr else {},
@@ -1065,8 +1075,10 @@ def admin_dashboard():
         total_paid=total_paid,
         total_rev=f"R$ {total_rev:,.2f}".replace(",","X").replace(".",",").replace("X","."),
         admin_user=session.get("admin_user"),
-        sys_favicon=sys_favicon_val
+        sys_favicon=sys_favicon_val,
+        sys_logo=sys_logo_val,
     )
+
 
 
 @app.route("/admin/manager", methods=["POST"])
@@ -1115,6 +1127,78 @@ def admin_update_manager():
     db.commit()
 
     return jsonify({"ok": True, "photo_url": photo_url, "favicon_url": favicon_url})
+
+
+# ── LOGO DO SISTEMA ────────────────────────────────────────────────────────────
+@app.route("/admin/logo", methods=["POST"])
+@require_admin
+def admin_update_logo():
+    """Atualiza a logo exibida para os leads. Aceita upload de arquivo ou URL."""
+    logo_url = sanitize(request.form.get("logo_url", ""), 500)
+
+    logo_file = request.files.get("logo_file")
+    if logo_file and logo_file.filename:
+        ext = Path(secure_filename(logo_file.filename)).suffix.lower().lstrip(".")
+        if ext not in ALLOWED_IMG_EXT:
+            return jsonify({"ok": False, "error": "Formato inválido. Use PNG, JPG, WEBP ou SVG."}), 422
+        fname = f"logo_{uuid.uuid4().hex[:10]}.{ext}"
+        logo_file.save(UPLOAD_DIR / fname)
+        logo_url = f"/static/uploads/{fname}"
+
+    if not logo_url:
+        return jsonify({"ok": False, "error": "Forneça uma URL ou faça upload de uma imagem."}), 422
+
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('system_logo_url', ?)", (logo_url,))
+    db.commit()
+    log.info("[ADMIN] Logo atualizada: %s", logo_url)
+    return jsonify({"ok": True, "logo_url": logo_url})
+
+
+@app.route("/admin/logo", methods=["GET"])
+@require_admin
+def admin_get_logo():
+    db = get_db()
+    row = db.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
+    return jsonify({"ok": True, "logo_url": row["value"] if row else ""})
+
+
+@app.route("/api/internal/set-logo", methods=["POST"])
+def bot_set_logo():
+    """Endpoint interno para o bot Telegram atualizar a logo via X-Bot-Secret."""
+    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+    if request.headers.get("X-Bot-Secret", "") != secret:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    logo_url = (request.get_json(silent=True) or {}).get("logo_url", "")
+    if not logo_url:
+        return jsonify({"ok": False, "error": "logo_url required"}), 422
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('system_logo_url', ?)", (logo_url,))
+    db.commit()
+    log.info("[BOT] Logo via Telegram: %s", logo_url)
+    return jsonify({"ok": True, "logo_url": logo_url})
+
+
+@app.route("/api/internal/set-logo-file", methods=["POST"])
+def bot_set_logo_file():
+    """Permite que o bot Telegram envie um arquivo de imagem para usar como logo."""
+    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+    if request.headers.get("X-Bot-Secret", "") != secret:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    logo_file = request.files.get("logo_file")
+    if not logo_file or not logo_file.filename:
+        return jsonify({"ok": False, "error": "logo_file required"}), 422
+    ext = Path(secure_filename(logo_file.filename)).suffix.lower().lstrip(".")
+    if ext not in ALLOWED_IMG_EXT:
+        return jsonify({"ok": False, "error": "Formato invalido"}), 422
+    fname = f"logo_bot_{uuid.uuid4().hex[:10]}.{ext}"
+    logo_file.save(UPLOAD_DIR / fname)
+    logo_url = f"/static/uploads/{fname}"
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('system_logo_url', ?)", (logo_url,))
+    db.commit()
+    log.info("[BOT] Logo arquivo via Telegram: %s", logo_url)
+    return jsonify({"ok": True, "logo_url": logo_url})
 
 
 @app.route("/admin/change-password", methods=["POST"])

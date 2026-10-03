@@ -216,7 +216,7 @@ function submitEmprego() {
 }
 
 function selectMotivo(btn) {
-  document.querySelectorAll('#screen-motivo .income-btn').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#screen-motivo .income-btn, #screen-motivo .option-tile').forEach(el => el.classList.remove('selected'));
   btn.classList.add('selected');
   STATE.motivo_credito = btn.dataset.motivo;
   hideErr('motivo-error');

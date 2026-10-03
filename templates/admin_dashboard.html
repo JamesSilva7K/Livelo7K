@@ -1,285 +1,771 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Dashboard — Livelo Admin</title>
-  <meta name="robots" content="noindex, nofollow"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <title>Livelo Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
   <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    /* Monitor dot — color driven by data-pstatus on parent */
+    .monitor-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--red)}
+    [data-pstatus="paid"] .status-dot-clr,
+    [data-pstatus="authorized"] .status-dot-clr,
+    [data-pstatus="completed"] .status-dot-clr{background:var(--green)}
+    [data-pstatus="pending"] .status-dot-clr{background:var(--orange)}
+
+    [data-pstatus="paid"] .status-amount-clr,
+    [data-pstatus="authorized"] .status-amount-clr,
+    [data-pstatus="completed"] .status-amount-clr{color:var(--green)}
+    [data-pstatus="pending"] .status-amount-clr{color:var(--orange)}
+    .status-amount-clr{color:var(--red)}
+    
+    /* LIGHT THEME (Default) */
     :root {
-      --pink: #E91E8C;
-      --pink-dark: #C2185B;
-      --navy: #111827;
-      --gray: #6B7280;
-      --light: #F3F4F6;
+      --bg: #F3F4F6;
+      --bg2: #FFFFFF;
+      --bg3: #F9FAFB;
+      --card: #FFFFFF;
+      --card2: #F9FAFB;
       --border: #E5E7EB;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #F9FAFB; color: var(--navy); }
-    
-    .topbar {
-      background: white;
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      height: 64px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
-    .brand svg { height: 24px; }
-    .user-menu { display: flex; align-items: center; gap: 16px; font-size: 0.9rem; }
-    .btn-logout { color: #DC2626; text-decoration: none; font-weight: 500; }
-    
-    .container {
-      max-width: 1200px;
-      margin: 32px auto;
-      padding: 0 24px;
+      --text: #111827;
+      --text2: #4B5563;
+      --text3: #6B7280;
+      
+      --pink: #E5147A;
+      --purple: #7C3AED;
+      --green: #10B981;
+      --orange: #F59E0B;
+      --red: #EF4444;
+      
+      --radius: 14px;
+      --nav-h: 68px;
+      --top-h: 60px;
     }
     
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 24px;
-      margin-bottom: 32px;
+    /* DARK THEME (Modern Gray/Blue) */
+    [data-theme="dark"] {
+      --bg: #0F111A;
+      --bg2: #161925;
+      --bg3: #1C1F2E;
+      --card: #161925;
+      --card2: #1C1F2E;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #F3F4F6;
+      --text2: #9CA3AF;
+      --text3: #6B7280;
     }
-    .stat-card {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    .stat-title { font-size: 0.85rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-    .stat-val { font-size: 2rem; font-weight: 700; color: var(--navy); margin-top: 8px; }
+
+    html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color 0.3s, color 0.3s}
     
-    .panel {
-      background: white;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      margin-bottom: 32px;
-      overflow: hidden;
-    }
-    .panel-header {
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border);
-      background: #F9FAFB;
-      font-weight: 600;
-    }
-    .panel-body {
-      padding: 24px;
-    }
+    /* SVGs */
+    svg{display:inline-block;vertical-align:middle}
+    .svg-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
     
-    /* Config form */
-    .form-row { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 20px; }
-    .form-group { flex: 1; min-width: 200px; }
-    label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: #374151; }
-    input { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; }
-    input:focus { outline: none; border-color: var(--pink); box-shadow: 0 0 0 3px rgba(233,30,140,0.1); }
+    .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);transition:background-color 0.3s, border-color 0.3s}
+    .top-bar-left{display:flex;align-items:center;gap:10px}
+    .top-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--pink),var(--purple));display:flex;align-items:center;justify-content:center}
+    .top-title{font-size:1rem;font-weight:700;letter-spacing:-0.01em}
+    .top-actions{display:flex;align-items:center;gap:6px}
+    .top-btn{width:36px;height:36px;border-radius:8px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s, color 0.2s;text-decoration:none}
+    .top-btn:hover{background:var(--border);color:var(--text)}
     
-    .btn {
-      background: var(--pink); color: white; border: none; padding: 10px 20px; border-radius: 6px;
-      font-weight: 500; cursor: pointer; transition: 0.2s;
-    }
-    .btn:hover { background: var(--pink-dark); }
+    .main-scroll{padding-top:calc(var(--top-h) + 16px);padding-bottom:calc(var(--nav-h) + 24px);min-height:100vh}
+    .tab-pane{display:none;padding:0 16px;max-width:800px;margin:0 auto}
+    .tab-pane.active{display:block;animation:fadeIn 0.3s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
     
-    .manager-preview { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
-    .manager-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border); }
+    .profile-card{background:var(--card);border:1px solid var(--purple);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05)}
+    .profile-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--pink))}
+    .profile-avatar{width:56px;height:56px;border-radius:14px;overflow:hidden;background:var(--bg3);flex-shrink:0;border:2px solid var(--border)}
+    .profile-avatar img{width:100%;height:100%;object-fit:cover}
+    .profile-info{flex:1}
+    .profile-name{font-size:1.05rem;font-weight:700;margin-bottom:4px}
+    .profile-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,0.15);color:var(--purple);font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.05em;text-transform:uppercase}
+    .profile-status{display:flex;align-items:center;gap:6px;margin-top:6px}
+    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pdot 2s infinite}
+    @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
+    .status-text{font-size:0.8rem;color:var(--green);font-weight:600}
     
-    /* Table */
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-    th { padding: 12px 24px; background: #F9FAFB; border-bottom: 1px solid var(--border); color: var(--gray); font-weight: 500; }
-    td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
-    tr:last-child td { border-bottom: none; }
+    .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:8px}
+    .section-hdr-title{font-size:0.85rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:6px}
+    .section-hdr-action{font-size:0.8rem;color:var(--purple);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+    .section-hdr-action:hover{text-decoration:underline}
     
-    .badge {
-      padding: 4px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600;
-    }
-    .badge.pending { background: #FEF3C7; color: #92400E; }
-    .badge.paid, .badge.authorized, .badge.completed { background: #D1FAE5; color: #065F46; }
+    .stats-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:16px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.02)}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+    .stat-card.s-green::before{background:var(--green)}
+    .stat-card.s-orange::before{background:var(--orange)}
+    .stat-card.s-purple::before{background:var(--purple)}
+    .stat-card.s-pink::before{background:var(--pink)}
+    .stat-label{font-size:0.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px}
+    .stat-value{font-size:1.7rem;font-weight:800;line-height:1;margin-bottom:6px;color:var(--text)}
+    .stat-sub{font-size:0.75rem;color:var(--text3)}
+    .stat-icon{position:absolute;bottom:12px;right:16px;opacity:0.1}
+    .stat-icon svg{width:40px;height:40px}
     
-    #toast {
-      position: fixed; bottom: 24px; right: 24px; background: #10B981; color: white;
-      padding: 12px 24px; border-radius: 8px; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transform: translateY(100px); opacity: 0; transition: 0.3s;
-    }
-    #toast.show { transform: translateY(0); opacity: 1; }
+    .balance-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 4px rgba(0,0,0,0.02)}
+    .balance-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),#34D399)}
+    .balance-label{font-size:0.75rem;font-weight:700;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
+    .balance-value{font-size:2.2rem;font-weight:800;margin-bottom:16px;letter-spacing:-0.02em;color:var(--text)}
+    .balance-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .balance-sub-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+    .balance-sub-label{font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:600}
+    .balance-sub-val{font-size:1rem;font-weight:700;color:var(--text)}
+    
+    .event-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;transition:transform 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
+    .event-icon{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+    .ev-green{background:rgba(16,185,129,0.15);color:var(--green)}
+    .ev-orange{background:rgba(245,158,11,0.15);color:var(--orange)}
+    .ev-red{background:rgba(239,68,68,0.15);color:var(--red)}
+    .event-info{flex:1;min-width:0}
+    .event-title{font-size:0.9rem;font-weight:600;margin-bottom:4px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .event-sub{font-size:0.8rem;color:var(--text2);display:flex;align-items:center;gap:4px}
+    
+    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase}
+    .badge-green{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
+    .badge-orange{background:rgba(245,158,11,0.15);color:var(--orange);border:1px solid rgba(245,158,11,0.3)}
+    .badge-red{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
+    
+    .data-table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
+    table{width:100%;border-collapse:collapse;font-size:0.85rem}
+    thead{background:var(--bg3)}
+    th{padding:12px 16px;text-align:left;font-weight:600;color:var(--text2);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em;white-space:nowrap;border-bottom:1px solid var(--border)}
+    td{padding:12px 16px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:var(--bg3)}
+    
+    .cfg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
+    .cfg-card-header{padding:16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:0.95rem;font-weight:700;color:var(--text)}
+    .cfg-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+    .cfg-card-body{padding:20px}
+    
+    .field-group{margin-bottom:16px}
+    .field-group:last-child{margin-bottom:0}
+    .field-label{display:block;font-size:0.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
+    .field-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:0.9rem;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s, box-shadow 0.2s}
+    .field-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,0.15)}
+    .field-input::placeholder{color:var(--text3)}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    
+    .upload-row{display:flex;gap:10px;align-items:center}
+    .upload-row .field-input{flex:1}
+    .upload-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:12px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px}
+    .upload-btn:hover{background:var(--purple);border-color:var(--purple);color:#FFF}
+    
+    .logo-preview-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;min-height:100px;display:flex;align-items:center;justify-content:center}
+    .logo-preview-box img{max-height:60px;max-width:240px;object-fit:contain}
+    
+    .btn-primary{width:100%;padding:14px;background:var(--purple);color:white;font-size:0.95rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:opacity 0.2s,transform 0.1s;font-family:'Inter',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+    .btn-primary:active{transform:translateY(1px)}
+    .btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+    
+    .btn-secondary{width:100%;padding:14px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.95rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-secondary:hover{background:var(--border);color:var(--text)}
+    
+    .btn-danger{width:100%;padding:14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);font-size:0.95rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:background 0.2s;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
+    .btn-danger:hover{background:rgba(239,68,68,0.2)}
+    
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 -1px 3px rgba(0,0,0,0.05);transition:background-color 0.3s, border-color 0.3s}
+    .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:8px 4px;border:none;background:transparent;color:var(--text3);font-family:'Inter',sans-serif;transition:color 0.2s;position:relative}
+    .nav-item:hover{color:var(--text2)}
+    .nav-item.active{color:var(--purple)}
+    .nav-item.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--purple);border-radius:0 0 3px 3px}
+    .nav-item svg{width:22px;height:22px}
+    .nav-label{font-size:0.65rem;font-weight:600}
+    .nav-badge{position:absolute;top:8px;right:calc(50% - 20px);background:var(--pink);color:white;font-size:0.6rem;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+    
+    .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--text);color:var(--bg);padding:12px 24px;border-radius:30px;font-size:0.9rem;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s,transform 0.3s;white-space:nowrap;pointer-events:none;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    
+    .empty-state{text-align:center;padding:48px 20px;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+    .empty-state svg{width:48px;height:48px;margin-bottom:16px;opacity:0.5}
+    .empty-state-text{font-size:0.95rem;font-weight:500}
+    
+    .mgr-photo-wrap{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+    .mgr-photo{width:64px;height:64px;border-radius:16px;object-fit:cover;border:2px solid var(--border)}
+    .mgr-name{font-size:1.1rem;font-weight:700;color:var(--text)}
+    .mgr-wa{font-size:0.85rem;color:var(--text2);margin-top:4px}
+    
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+    ::-webkit-scrollbar-track{background:transparent}
   </style>
 </head>
 <body>
 
-  <div class="topbar">
-    <div class="brand">
-      <svg viewBox="0 0 120 36" fill="none">
-        <path d="M10 4L4 18l6 14" stroke="#E91E8C" stroke-width="3" stroke-linecap="round"/>
-        <text x="18" y="26" font-family="Inter" font-weight="800" font-size="22" fill="#111827">livelo admin</text>
-      </svg>
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="top-bar-left">
+    <div class="top-logo">
+      <svg viewBox="0 0 20 20" fill="none" width="18" height="18"><path d="M5 2L2 10l3 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h7" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
     </div>
-    <div class="user-menu">
-      <span>Olá, <strong>{{ admin_user }}</strong></span>
-      <a href="/admin/logout" class="btn-logout">Sair</a>
+    <span class="top-title">Livelo Admin</span>
+  </div>
+  <div class="top-actions">
+    <button class="top-btn" id="theme-toggle" onclick="toggleTheme()" title="Alternar Tema">
+      <svg class="svg-icon" id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+    </button>
+    <button class="top-btn" onclick="location.reload()" title="Atualizar">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+    </button>
+    <a href="/admin/logout" class="top-btn" title="Sair">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    </a>
+  </div>
+</div>
+
+<div class="main-scroll">
+
+<!-- ====== DASHBOARD ====== -->
+<div id="tab-dashboard" class="tab-pane active">
+  <div class="profile-card">
+    <div class="profile-avatar">
+      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Admin" onerror="this.src='/static/images/manager_default.svg'">
+    </div>
+    <div class="profile-info">
+      <div class="profile-name">{{ admin_user or mgr.name or 'Admin' }}</div>
+      <div class="profile-badge">
+        <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> SUPREME ADMIN
+      </div>
+      <div class="profile-status"><div class="status-dot"></div><span class="status-text">Online e Autenticado</span></div>
     </div>
   </div>
 
-  <div class="container">
-    
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-title">Total de Leads</div>
-        <div class="stat-val">{{ total_leads }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">PIX Pagos</div>
-        <div class="stat-val">{{ total_paid }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Receita Total</div>
-        <div class="stat-val" style="color:#10B981">{{ total_rev }}</div>
-      </div>
-    </div>
-    
-    <div class="panel">
-      <div class="panel-header">Configurações do Gerente (WhatsApp)</div>
-      <div class="panel-body">
-        <form id="manager-form" onsubmit="saveManager(event)">
-          <div class="manager-preview">
-            <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" id="mgr-img-preview" class="manager-img" alt="Gerente">
-            <div>
-              <div style="font-weight:600">{{ mgr.name or 'Gerente Livelo' }}</div>
-              <div style="font-size:0.85rem;color:#6B7280">{{ mgr.whatsapp or 'Não configurado' }}</div>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="mgr_name">Nome do Gerente</label>
-              <input type="text" id="mgr_name" name="name" value="{{ mgr.name }}" required title="Nome do Gerente" placeholder="Nome do Gerente">
-            </div>
-            <div class="form-group">
-              <label for="mgr_wa">WhatsApp (com DDD)</label>
-              <input type="text" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" required title="WhatsApp (com DDD)" placeholder="Ex: 11999999999">
-            </div>
-            <div class="form-group">
-              <label for="mgr_since">Desde o ano</label>
-              <input type="number" id="mgr_since" name="since_year" value="{{ mgr.since_year or '2025' }}" required title="Desde o ano" placeholder="2025">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="mgr_photo_url">Foto do Gerente (Link ou Upload)</label>
-              <div style="display:flex;gap:8px">
-                <input type="text" id="mgr_photo_url" name="photo_url" value="{{ mgr.photo_url }}" placeholder="https://..." oninput="document.getElementById('mgr-img-preview').src = this.value">
-                <input type="file" id="mgr_photo" name="photo" accept="image/*" style="display:none;" onchange="previewImg(this, 'mgr-img-preview', 'mgr_photo_url')">
-                <button type="button" onclick="document.getElementById('mgr_photo').click()" class="btn" style="padding: 0 12px; font-size: 0.85rem;">📁 Anexar</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="sys_favicon_url">Favicon do Site (Link ou Upload)</label>
-              <div style="display:flex;gap:8px">
-                <input type="text" id="sys_favicon_url" name="favicon_url" value="{{ sys_favicon }}" placeholder="https://...">
-                <input type="file" id="sys_favicon" name="favicon" accept="image/*,.ico" style="display:none;" onchange="previewImg(this, null, 'sys_favicon_url')">
-                <button type="button" onclick="document.getElementById('sys_favicon').click()" class="btn" style="padding: 0 12px; font-size: 0.85rem;">📁 Anexar</button>
-              </div>
-            </div>
-          </div>
-          <button type="submit" class="btn">Salvar Configurações</button>
-        </form>
-      </div>
-    </div>
-    
-    <div class="panel">
-      <div class="panel-header">Últimos Pagamentos PIX</div>
-      <div style="overflow-x:auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Sessão Lead</th>
-              <th>Nome</th>
-              <th>Valor (Frete)</th>
-              <th>Status</th>
-              <th>Data</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in pays %}
-            <tr>
-              <td><span style="font-family:monospace;font-size:0.8rem;color:#6B7280">{{ p.payment_id[:12] }}...</span></td>
-              <td><span style="font-family:monospace;font-size:0.8rem">{{ p.session_id[:8] }}</span></td>
-              <td style="font-weight:500">{{ p.payer_name }}</td>
-              <td>R$ {{ "%.2f"|format(p.amount) }}</td>
-              <td><span class="badge {{ p.status }}">{{ p.status|upper }}</span></td>
-              <td style="font-size:0.8rem;color:#6B7280">
-                <script>document.write(new Date(Number("{{ p.created_at }}") * 1000).toLocaleString('pt-BR'))</script>
-              </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="6" style="text-align:center;padding:32px;color:#6B7280">Nenhum pagamento registrado.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    
+  <div class="section-hdr">
+    <span class="section-hdr-title">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg> Métricas
+    </span>
+    <span class="section-hdr-action" onclick="location.reload()">
+      <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Atualizar
+    </span>
   </div>
   
-  <div id="toast">Salvo com sucesso!</div>
+  <div class="stats-grid">
+    <div class="stat-card s-green">
+      <div class="stat-label">Leads Total</div>
+      <div class="stat-value">{{ total_leads }}</div>
+      <div class="stat-sub">Dados coletados</div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+    </div>
+    <div class="stat-card s-orange">
+      <div class="stat-label">Pix Pagos</div>
+      <div class="stat-value">{{ total_paid }}</div>
+      <div class="stat-sub">Taxa: {{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></div>
+    </div>
+    <div class="stat-card s-purple">
+      <div class="stat-label">Receita (R$)</div>
+      <div class="stat-value" style="font-size:1.3rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ total_rev }}</div>
+      <div class="stat-sub">PIX confirmados</div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+    </div>
+    <div class="stat-card s-pink">
+      <div class="stat-label">Abandonos</div>
+      <div class="stat-value">{{ total_leads - total_paid }}</div>
+      <div class="stat-sub">Sem conversão</div>
+      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-9 5 18 3-10 2 3h4"></path></svg></div>
+    </div>
+  </div>
 
-  <script>
-    function previewImg(input, previewId, textInputId) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          if(previewId) document.getElementById(previewId).src = e.target.result;
-          if(textInputId) document.getElementById(textInputId).value = ""; // limpa URL se upou
-        }
-        reader.readAsDataURL(input.files[0]);
-      }
+  <div class="balance-card">
+    <div class="balance-label">Carteira — Saldo Total</div>
+    <div class="balance-value">{{ total_rev }}</div>
+    <div class="balance-row">
+      <div class="balance-sub-card">
+        <div class="balance-sub-label">Ticket Médio</div>
+        <div class="balance-sub-val" id="ticket-medio">—</div>
+      </div>
+      <div class="balance-sub-card">
+        <div class="balance-sub-label">Conversão Global</div>
+        <div class="balance-sub-val">{{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-hdr">
+    <span class="section-hdr-title">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Últimos Leads
+    </span>
+    <span class="section-hdr-action" onclick="switchTab('eventos')">Ver todos &rarr;</span>
+  </div>
+  
+  {% for l in leads[:5] %}
+  <div class="event-item">
+    <div class="event-icon {% if l.pix_status in ['paid','authorized','completed'] %}ev-green{% elif l.pix_status == 'pending' %}ev-orange{% else %}ev-red{% endif %}">
+      {% if l.pix_status in ['paid','authorized','completed'] %}
+        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      {% elif l.pix_status == 'pending' %}
+        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      {% else %}
+        <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      {% endif %}
+    </div>
+    <div class="event-info">
+      <div class="event-title">{{ l.nome or l.cpf or 'Lead Anônimo' }}</div>
+      <div class="event-sub">
+        <svg class="svg-icon" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        {{ l.whatsapp or 'Não informado' }}
+      </div>
+    </div>
+    <span class="badge {% if l.pix_status in ['paid','authorized','completed'] %}badge-green{% elif l.pix_status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">
+      {{ l.pix_status or 'novo' }}
+    </span>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+    <div class="empty-state-text">Nenhum lead capturado ainda.</div>
+  </div>
+  {% endfor %}
+</div>
+
+
+<!-- ====== EVENTOS ====== -->
+<div id="tab-eventos" class="tab-pane">
+  <div class="section-hdr">
+    <span class="section-hdr-title">
+      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Todos os Leads
+    </span>
+    <span class="section-hdr-action">{{ total_leads }} leads</span>
+  </div>
+  <div class="data-table-wrap">
+    <table>
+      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>Valor</th></tr></thead>
+      <tbody>
+        {% for l in leads %}
+        <tr>
+          <td style="font-weight:600">{{ l.nome or '—' }}</td>
+          <td style="font-family:monospace">{{ l.cpf or '—' }}</td>
+          <td>{% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none">{{ l.whatsapp }}</a>{% else %}—{% endif %}</td>
+          <td><span class="badge {% if l.pix_status in ['paid','authorized','completed'] %}badge-green{% elif l.pix_status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">{{ l.pix_status or 'novo' }}</span></td>
+          <td style="font-weight:600">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Nenhum registro encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="section-hdr" style="margin-top:24px">
+    <span class="section-hdr-title">
+      <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Histórico de Pagamentos
+    </span>
+    <span class="section-hdr-action">{{ total_paid }} pagos</span>
+  </div>
+  <div class="data-table-wrap">
+    <table>
+      <thead><tr><th>Transação</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+      <tbody>
+        {% for p in pays %}
+        <tr>
+          <td style="font-family:monospace;font-size:0.75rem">{{ p.payment_id or p.id }}</td>
+          <td style="color:var(--green);font-weight:700">R$ {{ '%.2f'|format(p.amount|float) if p.amount else '—' }}</td>
+          <td><span class="badge {% if p.status in ['paid','authorized','completed'] %}badge-green{% elif p.status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">{{ p.status }}</span></td>
+          <td style="color:var(--text2);font-size:0.75rem">{{ p.created_at or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma transação financeira.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ====== CONFIG ====== -->
+<div id="tab-config" class="tab-pane">
+
+  <!-- Logo -->
+  <div class="cfg-card">
+    <div class="cfg-card-header">
+      <div class="cfg-icon" style="background:rgba(229,20,122,0.1);color:var(--pink)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+      </div>
+      Logo do Sistema
+    </div>
+    <div class="cfg-card-body">
+      <div class="logo-preview-box">
+        <img id="logo-preview-img" src="{{ sys_logo or '/static/images/manager_default.svg' }}" alt="Logo" onerror="this.src='/static/images/manager_default.svg'">
+      </div>
+      <form id="logo-form" onsubmit="saveLogo(event)" enctype="multipart/form-data">
+        <div class="field-group">
+          <label class="field-label">URL Externa da Imagem</label>
+          <input type="text" class="field-input" id="logo_url_input" name="logo_url" placeholder="https://exemplo.com/logo.png" oninput="if(this.value)document.getElementById('logo-preview-img').src=this.value">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Upload Direto</label>
+          <div class="upload-row">
+            <input type="file" id="logo_file_input" name="logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="previewLogoFile(this)">
+            <button type="button" class="upload-btn" onclick="document.getElementById('logo_file_input').click()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Procurar
+            </button>
+            <span id="logo-filename" style="font-size:0.85rem;color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis">Nenhum arquivo</span>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="logo-save-btn">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Salvar Nova Logo
+        </button>
+        <button type="button" class="btn-secondary" onclick="resetLogo()">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
+          Restaurar Padrão
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Gerente -->
+  <div class="cfg-card">
+    <div class="cfg-card-header">
+      <div class="cfg-icon" style="background:rgba(124,58,237,0.1);color:var(--purple)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </div>
+      Configurações do Gerente
+    </div>
+    <div class="cfg-card-body">
+      <div class="mgr-photo-wrap">
+        <img class="mgr-photo" id="mgr-img-preview" src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Gerente" onerror="this.src='/static/images/manager_default.svg'">
+        <div>
+          <div class="mgr-name">{{ mgr.name or 'Gerente Livelo' }}</div>
+          <div class="mgr-wa">{{ mgr.whatsapp or 'Sem WhatsApp configurado' }}</div>
+        </div>
+      </div>
+      <form id="manager-form" onsubmit="saveManager(event)" enctype="multipart/form-data">
+        <div class="field-row" style="margin-bottom:16px">
+          <div class="field-group" style="margin-bottom:0">
+            <label class="field-label">Nome Completo</label>
+            <input type="text" class="field-input" id="mgr_name" name="name" value="{{ mgr.name }}" placeholder="Ex: Roberto Silva" required>
+          </div>
+          <div class="field-group" style="margin-bottom:0">
+            <label class="field-label">Atuando Desde</label>
+            <input type="number" class="field-input" id="mgr_since" name="since_year" value="{{ mgr.since_year or '2025' }}" required>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Número do WhatsApp</label>
+          <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Foto do Gerente</label>
+          <div class="upload-row">
+            <input type="text" class="field-input" id="mgr_photo_url" name="photo_url" value="{{ mgr.photo_url }}" placeholder="URL ou faça upload ->" oninput="document.getElementById('mgr-img-preview').src=this.value">
+            <input type="file" id="mgr_photo" name="photo" accept="image/*" style="display:none" onchange="previewMgrPhoto(this)">
+            <button type="button" class="upload-btn" onclick="document.getElementById('mgr_photo').click()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Favicon da Página</label>
+          <div class="upload-row">
+            <input type="text" class="field-input" id="sys_favicon_url" name="favicon_url" value="{{ sys_favicon }}" placeholder="URL do ícone da aba do navegador">
+            <input type="file" id="sys_favicon" name="favicon" accept="image/*,.ico" style="display:none">
+            <button type="button" class="upload-btn" onclick="document.getElementById('sys_favicon').click()">
+              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="mgr-save-btn">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Salvar Dados do Gerente
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Senha -->
+  <div class="cfg-card">
+    <div class="cfg-card-header">
+      <div class="cfg-icon" style="background:rgba(239,68,68,0.1);color:var(--red)">
+        <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      </div>
+      Segurança de Acesso
+    </div>
+    <div class="cfg-card-body">
+      <form id="pw-form" onsubmit="changePw(event)">
+        <div class="field-group">
+          <label class="field-label">Senha Atual</label>
+          <input type="password" class="field-input" id="pw-current" name="current_password" placeholder="••••••••" required>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Nova Senha</label>
+            <input type="password" class="field-input" id="pw-new" name="new_password" placeholder="••••••••" required minlength="6">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Confirmar Senha</label>
+            <input type="password" class="field-input" id="pw-confirm" name="confirm_password" placeholder="••••••••" required minlength="6">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="pw-save-btn" style="margin-top:16px">
+          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+          Alterar Senha de Admin
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<!-- ====== PERFIL ====== -->
+<div id="tab-perfil" class="tab-pane">
+  <div class="profile-card" style="flex-direction:column;text-align:center;padding:32px;margin-bottom:16px">
+    <div class="profile-avatar" style="width:80px;height:80px;border-radius:20px;margin:0 auto 16px;border-width:3px">
+      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Perfil" style="width:100%;height:100%;object-fit:cover" onerror="this.src='/static/images/manager_default.svg'">
+    </div>
+    <div class="profile-name" style="font-size:1.2rem;margin-bottom:8px">{{ admin_user or 'Admin Supremo' }}</div>
+    <div class="profile-badge" style="margin:0 auto">
+      <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> SUPREME ADMIN
+    </div>
+    <div class="profile-status" style="justify-content:center;margin-top:12px"><div class="status-dot"></div><span class="status-text">Sessão protegida ativa</span></div>
+  </div>
+  
+  <div class="cfg-card">
+    <div class="cfg-card-body">
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
+          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Usuário
+        </span>
+        <span style="font-weight:600;font-size:0.9rem">{{ admin_user }}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
+          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Nível de Acesso
+        </span>
+        <span style="font-weight:600;font-size:0.9rem;color:var(--purple)">Supreme Admin</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:12px 0">
+        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
+          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Receita Administrada
+        </span>
+        <span style="font-weight:600;font-size:0.9rem;color:var(--green)">{{ total_rev }}</span>
+      </div>
+    </div>
+  </div>
+  
+  <a href="/admin/logout" class="btn-danger">
+    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    Encerrar Sessão e Sair
+  </a>
+</div>
+
+
+<!-- ====== MONITOR ====== -->
+<div id="tab-monitor" class="tab-pane">
+  <div class="section-hdr">
+    <span class="section-hdr-title">
+      <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Monitor em Tempo Real
+    </span>
+    <span class="section-hdr-action" style="color:var(--green);display:flex;align-items:center;gap:4px">
+      <div class="status-dot"></div> Live Activity
+    </span>
+  </div>
+  
+  {% for p in pays[:20] %}
+  {% set status_color = 'var(--red)' %}
+  {% if p.status in ['paid','authorized','completed'] %}
+    {% set status_color = 'var(--green)' %}
+  {% elif p.status == 'pending' %}
+    {% set status_color = 'var(--orange)' %}
+  {% endif %}
+  <div class="event-item" style="align-items:center" data-pstatus="{{ p.status }}">
+    <div class="monitor-dot status-dot-clr"></div>
+    <div class="event-info">
+      <div class="event-title" style="font-family:monospace">{{ p.payment_id or ('PIX #' ~ p.id) }}</div>
+      <div class="event-sub">{{ p.status|upper }} &middot; {{ p.created_at or '' }}</div>
+    </div>
+    <div class="status-amount-clr" style="font-size:0.95rem;font-weight:700">
+      R$ {{ '%.2f'|format(p.amount|float) if p.amount else '0,00' }}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+    <div class="empty-state-text">Monitorando... nenhuma atividade ainda.</div>
+  </div>
+  {% endfor %}
+</div>
+
+</div><!-- /main-scroll -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span class="nav-label">Dashboard</span>
+  </button>
+  <button class="nav-item" id="nav-eventos" onclick="switchTab('eventos')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    <span class="nav-label">Leads</span>
+    {% if total_leads > 0 %}<span class="nav-badge">{{ total_leads if total_leads < 100 else '99+' }}</span>{% endif %}
+  </button>
+  <button class="nav-item" id="nav-config" onclick="switchTab('config')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="nav-label">Config</span>
+  </button>
+  <button class="nav-item" id="nav-perfil" onclick="switchTab('perfil')">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span class="nav-label">Perfil</span>
+  </button>
+  <button class="nav-item" id="nav-monitor" onclick="switchTab('monitor')">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <span class="nav-label">Live</span>
+    {% if total_paid > 0 %}<span class="nav-badge" style="background:var(--green)">{{ total_paid }}</span>{% endif %}
+  </button>
+</nav>
+
+<div class="toast" id="toast">
+  <svg class="svg-icon" id="toast-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+  // THEME MANAGEMENT
+  const htmlEl = document.documentElement;
+  const themeIcon = document.getElementById('theme-icon');
+  
+  function getTheme() {
+    return localStorage.getItem('adminTheme') || 'dark';
+  }
+  
+  function applyTheme(theme) {
+    htmlEl.setAttribute('data-theme', theme);
+    localStorage.setItem('adminTheme', theme);
+    
+    if (theme === 'dark') {
+      themeIcon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
+    } else {
+      themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+    }
+  }
+  
+  function toggleTheme() {
+    applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
+  }
+  
+  // INIT THEME
+  applyTheme(getTheme());
+
+  // NAVIGATION
+  function switchTab(name) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('nav-' + name).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  // TOASTS
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    const msgEl = document.getElementById('toast-msg');
+    const iconEl = document.getElementById('toast-icon');
+    
+    msgEl.innerText = msg;
+    
+    if (type === 'success') {
+      t.style.background = 'var(--green)';
+      t.style.color = '#FFF';
+      iconEl.innerHTML = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>';
+    } else {
+      t.style.background = 'var(--red)';
+      t.style.color = '#FFF';
+      iconEl.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>';
     }
     
-    async function saveManager(e) {
-      e.preventDefault();
-      const form = e.target;
-      const formData = new FormData(form);
-      const btn = form.querySelector('button');
-      btn.disabled = true;
-      btn.innerText = 'Salvando...';
-      
-      try {
-        const res = await fetch('/admin/manager', {
-          method: 'POST',
-          body: formData
-        });
-        const data = await res.json();
-        
-        if (data.ok) {
-          showToast('Configurações salvas!');
-          if (data.photo_url) {
-            document.getElementById('mgr-img-preview').src = data.photo_url;
-            form.querySelector('input[type="file"]').value = '';
-          }
-        } else {
-          alert('Erro: ' + data.error);
-        }
-      } catch (err) {
-        alert('Erro de conexão.');
-      } finally {
-        btn.disabled = false;
-        btn.innerText = 'Salvar Configurações';
-      }
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // INIT TICKET MEDIO
+  (function() {
+    const totalPaid = parseInt("{{ total_paid }}") || 0;
+    const revStr = "{{ total_rev }}".replace('R$','').trim().replace(/\./g,'').replace(',','.');
+    const revNum = parseFloat(revStr) || 0;
+    document.getElementById('ticket-medio').textContent = totalPaid > 0
+      ? 'R$ ' + (revNum / totalPaid).toFixed(2).replace('.',',')
+      : 'R$ 0,00';
+  })();
+
+  // LOGO UPLOAD
+  function previewLogoFile(input) {
+    if (!input.files || !input.files[0]) return;
+    document.getElementById('logo-filename').textContent = input.files[0].name;
+    const r = new FileReader();
+    r.onload = e => { document.getElementById('logo-preview-img').src = e.target.result; };
+    r.readAsDataURL(input.files[0]);
+  }
+  
+  async function saveLogo(e) {
+    e.preventDefault();
+    const btn = document.getElementById('logo-save-btn');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = 'Salvando...';
+    try {
+      const fd = new FormData(e.target);
+      const res = await fetch('/admin/logo', { method: 'POST', body: fd });
+      const d = await res.json();
+      if (d.ok) {
+        showToast('Logo atualizada com sucesso!');
+        document.getElementById('logo-preview-img').src = d.logo_url + '?t=' + Date.now();
+        e.target.reset(); document.getElementById('logo-filename').textContent = 'Nenhum arquivo selecionado';
+      } else showToast(d.error || 'Erro ao salvar', 'error');
+    } catch { showToast('Erro de conexão', 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+  }
+  
+  async function resetLogo() {
+    if (!confirm('Deseja restaurar a logo para o padrão da Livelo?')) return;
+    const fd = new FormData(); fd.append('logo_url', '/static/images/manager_default.svg');
+    const d = await (await fetch('/admin/logo', { method: 'POST', body: fd })).json();
+    if (d.ok) {
+      document.getElementById('logo-preview-img').src = '/static/images/manager_default.svg?t=' + Date.now();
+      showToast('Logo padrão restaurada!');
     }
-    
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.innerText = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
-    }
-  </script>
+  }
+
+  // MGR UPLOAD
+  function previewMgrPhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    const r = new FileReader();
+    r.onload = e => { document.getElementById('mgr-img-preview').src = e.target.result; document.getElementById('mgr_photo_url').value = ''; };
+    r.readAsDataURL(input.files[0]);
+  }
+  
+  async function saveManager(e) {
+    e.preventDefault();
+    const btn = document.getElementById('mgr-save-btn');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = 'Salvando...';
+    try {
+      const d = await (await fetch('/admin/manager', { method: 'POST', body: new FormData(e.target) })).json();
+      if (d.ok) { showToast('Configurações do gerente salvas!'); if (d.photo_url) document.getElementById('mgr-img-preview').src = d.photo_url; }
+      else showToast(d.error || 'Erro', 'error');
+    } catch { showToast('Erro de conexão', 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+  }
+
+  // PW CHANGE
+  async function changePw(e) {
+    e.preventDefault();
+    const btn = document.getElementById('pw-save-btn');
+    const origHTML = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = 'Alterando...';
+    try {
+      const body = { current_password: document.getElementById('pw-current').value, new_password: document.getElementById('pw-new').value, confirm_password: document.getElementById('pw-confirm').value };
+      const d = await (await fetch('/admin/change-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
+      if (d.ok) { showToast('Senha de administrador alterada!'); e.target.reset(); }
+      else showToast(d.error || 'Erro', 'error');
+    } catch { showToast('Erro de conexão', 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+  }
+</script>
 </body>
 </html>
