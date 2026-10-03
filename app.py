@@ -755,14 +755,15 @@ def api_status_pix(payment_id: str):
 # ── Webhook C7 ────────────────────────────────────────────────────────────────
 @app.route("/api/webhook/c7", methods=["POST"])
 def webhook_c7():
-    """Recebe notificações de pagamento da C7 API."""
+    """Recebe notificações de pagamento da C7 API (V2)."""
     body    = request.get_data(as_text=True)
     sig_raw = request.headers.get("X-C7-Signature", "")
+    ts_raw  = request.headers.get("X-C7-Timestamp", "")
 
     if C7_API_SECRET:
         expected = hmac.new(
             C7_API_SECRET.encode("utf-8"),
-            body.encode("utf-8"),
+            f"{ts_raw}.{body}".encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         if not hmac.compare_digest(sig_raw, expected):
@@ -770,8 +771,14 @@ def webhook_c7():
             abort(403)
 
     data   = json.loads(body) if body else {}
-    ext_id = data.get("externalId") or data.get("external_id", "")
-    status = data.get("status", "")
+    event_data = data.get("data", {})
+    ext_id = event_data.get("correlationID") or data.get("externalId", "")
+    status = event_data.get("status") or data.get("status", "")
+
+    if status.upper() == "APPROVED":
+        status = "paid"
+    else:
+        status = status.lower()
 
     if ext_id and status:
         db = get_db()
@@ -780,7 +787,7 @@ def webhook_c7():
             (status, ext_id)
         )
         db.execute(
-        "UPDATE leads SET pix_status=?, updated_at=unixepoch() WHERE payment_id=?",
+            "UPDATE leads SET pix_status=?, updated_at=unixepoch() WHERE payment_id=?",
             (status, ext_id)
         )
         db.commit()
@@ -900,7 +907,10 @@ def api_tg_auth():
 
     leads_raw = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 50").fetchall()
     leads = [dict(l) for l in leads_raw]
-    frete_atual = os.environ.get("FRETE_VALOR", "Dinâmico")
+    
+    mgr_row = db.execute("SELECT freight_price, whatsapp FROM manager WHERE id=1").fetchone()
+    frete_atual = mgr_row["freight_price"] if mgr_row and mgr_row["freight_price"] else os.environ.get("FRETE_VALOR", "29.90")
+    mgr_whatsapp = mgr_row["whatsapp"] if mgr_row else ""
 
     return jsonify({
         "ok": True,
@@ -908,8 +918,30 @@ def api_tg_auth():
         "status": status,
         "stats": stats,
         "leads": leads,
-        "frete_atual": frete_atual
+        "frete_atual": frete_atual,
+        "mgr_whatsapp": mgr_whatsapp
     })
+
+@app.route("/api/tg_admin_update_settings", methods=["POST"])
+def api_tg_admin_update_settings():
+    data = request.get_json() or {}
+    supreme_id = str(data.get("supreme_id", ""))
+    if supreme_id != os.environ.get("ADMIN_CHAT_ID", ""):
+        return jsonify({"ok": False}), 403
+    
+    freight_price = data.get("freight_price")
+    whatsapp = data.get("whatsapp")
+    
+    db = get_db()
+    if freight_price is not None:
+        db.execute("UPDATE manager SET freight_price=? WHERE id=1", (freight_price,))
+    if whatsapp is not None:
+        # Validate/Clean whatsapp
+        whatsapp = re.sub(r"\D", "", whatsapp)
+        db.execute("UPDATE manager SET whatsapp=? WHERE id=1", (whatsapp,))
+        
+    db.commit()
+    return jsonify({"ok": True, "whatsapp": whatsapp})
 
 @app.route("/api/tg_admin_action", methods=["POST"])
 def api_tg_admin_action():
