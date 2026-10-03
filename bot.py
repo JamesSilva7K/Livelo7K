@@ -5,8 +5,9 @@ import sqlite3
 # ==========================================
 # CONFIGURAÇÕES DO BOT
 # ==========================================
-BOT_TOKEN = "SEU_TOKEN_AQUI"
-ADMIN_CHAT_ID = "SEU_ID_AQUI"
+import os
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "SEU_TOKEN_AQUI")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI")
 
 # Lista de IDs de Admins de Suporte (que só verão os leads)
 SUPPORT_ADMINS = ["ID_SUPORTE_1", "ID_SUPORTE_2"] 

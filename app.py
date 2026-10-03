@@ -832,6 +832,19 @@ def admin_login():
     if request.method == "POST":
         username = sanitize(request.form.get("username", ""), 60)
         password = request.form.get("password", "")
+        env_user = os.environ.get("ADMIN_USER")
+        env_pass = os.environ.get("ADMIN_PASS")
+
+        # Prioriza login via variáveis de ambiente se configurado (ideal para o Render)
+        if env_user and env_pass and username == env_user and password == env_pass:
+            reset_auth_fail(ip)
+            session.permanent = True
+            session["admin_id"]   = 999
+            session["admin_user"] = username
+            log.info("[ADMIN ENV] Login: %s @ %s", username, ip)
+            return redirect(url_for("admin_dashboard"))
+
+        # Fallback para o Banco de Dados
         db  = get_db()
         row = db.execute("SELECT * FROM admin WHERE username=?", (username,)).fetchone()
         if row and check_password_hash(row["password"], password):
@@ -839,7 +852,7 @@ def admin_login():
             session.permanent = True
             session["admin_id"]   = row["id"]
             session["admin_user"] = row["username"]
-            log.info("[ADMIN] Login: %s @ %s", username, ip)
+            log.info("[ADMIN DB] Login: %s @ %s", username, ip)
             return redirect(url_for("admin_dashboard"))
         record_auth_fail(ip)
         return render_template("admin_login.html", error="Credenciais inválidas.")
@@ -1008,8 +1021,21 @@ def too_many(_):
     return jsonify({"ok": False, "error": "Limite de requisições excedido."}), 429
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  BOOT
+#  BOOT E BOT BACKGROUND
 # ══════════════════════════════════════════════════════════════════════════════
+def start_bot():
+    try:
+        import bot
+        if bot.BOT_TOKEN and bot.BOT_TOKEN != "SEU_TOKEN_AQUI":
+            import threading
+            threading.Thread(target=bot.bot.infinity_polling, daemon=True).start()
+            log.info("Telegram Bot iniciado em background.")
+    except Exception as e:
+        log.error("Falha ao iniciar bot: %s", e)
+
+# Inicia o bot mesmo se rodado via Gunicorn
+start_bot()
+
 if __name__ == "__main__":
     init_db()
     debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
