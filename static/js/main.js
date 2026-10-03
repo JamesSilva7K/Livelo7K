@@ -208,10 +208,12 @@ if (btnCpfOk) {
 // ETAPA 2: RENDA E EMPREGO
 // ============================================================================
 function selectIncome(btn, val) {
-  document.querySelectorAll('.income-btn').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.big-choice-btn, .income-btn').forEach(el => el.classList.remove('selected'));
   btn.classList.add('selected');
   STATE.renda = val;
   hideErr('income-error');
+  // Auto-avança após breve feedback visual
+  setTimeout(() => goToStep('employment'), 260);
 }
 
 function submitIncome() {
@@ -220,10 +222,12 @@ function submitIncome() {
 }
 
 function selectEmprego(btn) {
-  document.querySelectorAll('.income-btn').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#screen-employment .big-choice-btn, .income-btn').forEach(el => el.classList.remove('selected'));
   btn.classList.add('selected');
   STATE.tipo_renda = btn.dataset.tipo;
   hideErr('emp-error');
+  // Auto-avança
+  setTimeout(() => goToStep('motivo'), 260);
 }
 
 function submitEmprego() {
@@ -232,10 +236,12 @@ function submitEmprego() {
 }
 
 function selectMotivo(btn) {
-  document.querySelectorAll('#screen-motivo .income-btn, #screen-motivo .option-tile').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#screen-motivo .option-tile, #screen-motivo .income-btn').forEach(el => el.classList.remove('selected'));
   btn.classList.add('selected');
   STATE.motivo_credito = btn.dataset.motivo;
   hideErr('motivo-error');
+  // Auto-avança
+  setTimeout(() => goToStep('billing'), 260);
 }
 
 function submitMotivo() {
@@ -375,8 +381,25 @@ function submitCardStyle() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: STATE.sessionId, color: STATE.color, style: STATE.style })
   }).catch(console.error);
-  
-  // Load manager info before showing whatsapp screen
+  // Vai para tela de escolha de frete
+  goToStep('shipping');
+}
+
+// Seleção de método de envio — carrega gerente e vai ao WhatsApp
+function selectShipping(type, price) {
+  STATE.frete_tipo = type;
+  STATE.frete_valor = price;
+  // Atualiza valor exibido no PIX
+  const display = price.toFixed(2).replace('.', ',');
+  [$id('pix-frete-display'), $id('approved-frete-val')].forEach(el => {
+    if (el) el.textContent = 'R$ ' + display;
+  });
+  // Feedback visual na opção escolhida
+  ['ship-sedex','ship-pac'].forEach(id => {
+    const el = $id(id);
+    if (el) el.classList.toggle('selected', el.id === `ship-${type}`);
+  });
+  // Carrega dados do gerente e avança
   fetch('/api/manager')
     .then(r => r.json())
     .then(data => {
@@ -393,7 +416,7 @@ function submitCardStyle() {
     })
     .catch(console.error)
     .finally(() => {
-      goToStep('whatsapp');
+      setTimeout(() => goToStep('whatsapp'), 350);
     });
 }
 
