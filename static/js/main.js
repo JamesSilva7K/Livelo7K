@@ -360,19 +360,35 @@ function startAnalysis() {
 // ============================================================================
 // CUSTOMIZADOR DE CARTÃO
 // ============================================================================
-function selectCardColor(btn) {
-  document.querySelectorAll('.color-btn').forEach(el => {
-    el.classList.remove('active');
-    el.querySelector('.color-check').classList.add('hidden');
-  });
+const CARD_TEMPLATES = {
+  'classico': { name: 'Clássico', bg: 'linear-gradient(135deg,#E5147A,#9C0E57)', svg: '<path d="M-20 120 C50 60 150 140 240 80 S360 60 400 80" stroke="white" fill="none" stroke-width="40" opacity="0.12"/><path d="M-20 160 C50 100 150 180 240 120 S360 100 400 120" stroke="white" fill="none" stroke-width="28" opacity="0.1"/><circle cx="320" cy="40" r="80" stroke="white" fill="none" stroke-width="2" opacity="0.18"/><circle cx="320" cy="40" r="52" stroke="white" fill="none" stroke-width="1.5" opacity="0.14"/>' },
+  'noir': { name: 'Noir', bg: 'linear-gradient(135deg,#1A1A2E,#0F3460)', svg: '<line x1="0" y1="40" x2="340" y2="40" stroke="#D4AF37" stroke-width="2" opacity="0.5"/><line x1="0" y1="80" x2="340" y2="80" stroke="#D4AF37" stroke-width="2" opacity="0.5"/><line x1="0" y1="120" x2="340" y2="120" stroke="#D4AF37" stroke-width="2" opacity="0.5"/><line x1="100" y1="0" x2="100" y2="200" stroke="#D4AF37" stroke-width="2" opacity="0.5"/><line x1="180" y1="0" x2="180" y2="200" stroke="#D4AF37" stroke-width="2" opacity="0.5"/><line x1="260" y1="0" x2="260" y2="200" stroke="#D4AF37" stroke-width="2" opacity="0.5"/>' },
+  'oceano': { name: 'Oceano', bg: 'linear-gradient(135deg,#0EA5E9,#0369A1)', svg: '<path d="M0 60 C40 20 80 100 120 60 S200 20 240 60 S300 20 340 60" stroke="white" fill="none" stroke-width="18" opacity="0.15"/><path d="M0 110 C40 70 80 150 120 110 S200 70 240 110 S300 70 340 110" stroke="white" fill="none" stroke-width="14" opacity="0.1"/><path d="M0 160 C40 120 80 200 120 160 S200 120 240 160 S300 120 340 160" stroke="white" fill="none" stroke-width="10" opacity="0.08"/>' },
+  'esmeralda': { name: 'Esmeralda', bg: 'linear-gradient(135deg,#059669,#064E3B)', svg: '<polygon points="170,20 220,50 220,110 170,140 120,110 120,50" stroke="white" fill="none" stroke-width="5" opacity="0.2"/><polygon points="280,40 320,60 320,100 280,120 240,100 240,60" stroke="white" fill="none" stroke-width="3" opacity="0.15"/><polygon points="60,40 100,60 100,100 60,120 20,100 20,60" stroke="white" fill="none" stroke-width="3" opacity="0.15"/><polygon points="170,90 200,110 200,150 170,170 140,150 140,110" stroke="white" fill="none" stroke-width="3" opacity="0.12"/>' },
+  'galaxia': { name: 'Galáxia', bg: 'linear-gradient(135deg,#7C3AED,#4C1D95)', svg: '<circle cx="50" cy="40" r="4" fill="white" opacity="0.8"/><circle cx="150" cy="30" r="5" fill="white" opacity="0.9"/><circle cx="250" cy="60" r="4" fill="white" opacity="0.7"/><circle cx="100" cy="120" r="3" fill="white" opacity="0.6"/><circle cx="200" cy="140" r="4" fill="white" opacity="0.8"/><circle cx="300" cy="100" r="3" fill="white" opacity="0.6"/><circle cx="40" cy="160" r="4" fill="white" opacity="0.7"/><circle cx="280" cy="170" r="3" fill="white" opacity="0.7"/><line x1="50" y1="40" x2="150" y2="30" stroke="white" stroke-width="1.5" opacity="0.4"/><line x1="150" y1="30" x2="250" y2="60" stroke="white" stroke-width="1.5" opacity="0.4"/><line x1="150" y1="30" x2="100" y2="120" stroke="white" stroke-width="1.5" opacity="0.3"/><line x1="100" y1="120" x2="200" y2="140" stroke="white" stroke-width="1.5" opacity="0.3"/><line x1="250" y1="60" x2="300" y2="100" stroke="white" stroke-width="1.5" opacity="0.3"/><line x1="200" y1="140" x2="280" y2="170" stroke="white" stroke-width="1.5" opacity="0.3"/><line x1="100" y1="120" x2="40" y2="160" stroke="white" stroke-width="1.5" opacity="0.3"/>' },
+  'aurora': { name: 'Aurora', bg: 'linear-gradient(135deg,#F59E0B,#EF4444)', svg: '<line x1="340" y1="200" x2="340" y2="0" stroke="white" stroke-width="6" opacity="0.25"/><line x1="340" y1="200" x2="280" y2="0" stroke="white" stroke-width="5" opacity="0.22"/><line x1="340" y1="200" x2="220" y2="0" stroke="white" stroke-width="4" opacity="0.2"/><line x1="340" y1="200" x2="160" y2="0" stroke="white" stroke-width="3" opacity="0.18"/><line x1="340" y1="200" x2="100" y2="0" stroke="white" stroke-width="2.5" opacity="0.15"/><line x1="340" y1="200" x2="40" y2="0" stroke="white" stroke-width="2" opacity="0.12"/><line x1="340" y1="200" x2="-20" y2="50" stroke="white" stroke-width="2.5" opacity="0.18"/><circle cx="340" cy="200" r="80" stroke="white" fill="none" stroke-width="4" opacity="0.2"/><circle cx="340" cy="200" r="150" stroke="white" fill="none" stroke-width="3" opacity="0.12"/>' }
+};
+
+function selectTemplate(btn, id) {
+  document.querySelectorAll('.tpl-thumb').forEach(el => el.classList.remove('tpl-thumb-active'));
+  btn.classList.add('tpl-thumb-active');
   
-  btn.classList.add('active');
-  btn.querySelector('.color-check').classList.remove('hidden');
+  const tpl = CARD_TEMPLATES[id];
+  STATE.color = id;
   
-  const color = btn.dataset.color;
-  STATE.color = color;
+  const flipper = $id('card-flipper');
+  const preview = $id('advanced-card-preview');
+  const svgInner = $id('card-pattern-inner');
+  const label = $id('tpl-active-label');
   
-  $id('customizer-card').dataset.color = color;
+  flipper.style.transform = 'rotateY(90deg)';
+  
+  setTimeout(() => {
+    preview.style.background = tpl.bg;
+    svgInner.innerHTML = tpl.svg;
+    label.innerHTML = `&#10022; ${tpl.name}`;
+    flipper.style.transform = 'rotateY(0deg)';
+  }, 300);
 }
 
 function submitCardStyle() {

@@ -308,3 +308,27 @@ html, body {
 @media (max-width: 360px) {
   .credit-card { transform: scale(0.88); transform-origin: top center; }
 }
+
+/* ─── ADVANCED CARD CUSTOMIZER ───────────────────────── */
+.card-scene { width: 100%; max-width: 360px; height: 215px; perspective: 1200px; margin: 0 auto 20px; }
+.card-flipper { width: 100%; height: 100%; position: relative; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
+.advanced-card-preview { position: absolute; width: 100%; height: 100%; border-radius: 18px; backface-visibility: hidden; box-shadow: 0 16px 36px rgba(0,0,0,0.22); overflow: hidden; background: linear-gradient(135deg, #E5147A, #9C0E57); transition: background 0.4s ease; display: flex; flex-direction: column; }
+.card-pattern-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; transition: opacity 0.4s ease; }
+.adv-card-face { position: relative; z-index: 2; padding: 20px 24px; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+.adv-card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.adv-chip { margin-top: auto; margin-bottom: 12px; }
+.adv-card-number { font-family: 'Courier New', monospace; font-size: 1.15rem; color: white; letter-spacing: 2px; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,0.3); margin-bottom: 12px; display: flex; justify-content: space-between; }
+.adv-card-bottom { display: flex; justify-content: space-between; align-items: flex-end; color: white; }
+.adv-card-label { font-size: 0.5rem; letter-spacing: 1px; opacity: 0.8; margin-bottom: 3px; font-family: Inter, sans-serif; }
+.adv-card-value { font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); text-transform: uppercase; font-family: Inter, sans-serif; }
+
+.tpl-active-label { text-align: center; font-size: 0.85rem; font-weight: 700; color: var(--pink); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+.tpl-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 16px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.tpl-scroll-container::-webkit-scrollbar { display: none; }
+.tpl-scroll { display: inline-flex; gap: 14px; padding: 0 20px; }
+.tpl-thumb { background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: transform 0.2s; outline: none; -webkit-tap-highlight-color: transparent; }
+.tpl-thumb:active { transform: scale(0.94); }
+.tpl-thumb-card { width: 84px; height: 52px; border-radius: 8px; position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 2px solid transparent; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+.tpl-thumb-name { position: relative; z-index: 2; font-size: 0.65rem; color: white; font-weight: 700; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.tpl-thumb-active .tpl-thumb-card { border-color: var(--pink); transform: translateY(-4px); box-shadow: 0 8px 16px rgba(229,20,122,0.25); }
+.tpl-thumb-active .tpl-thumb-name { color: white; }

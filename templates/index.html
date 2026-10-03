@@ -348,34 +348,106 @@
 
 <!-- ═══════ ESTILO DO CARTÃO ═══════ -->
 <div id="screen-card-style" class="screen">
-  <div class="funnel-page">
+  <div class="funnel-page card-style-page">
     <div class="funnel-logo">
       <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
       <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
     </div>
-    <p style="font-size:1.05rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:18px">Personalize o seu cart&atilde;o</p>
-      <div class="color-options" style="margin:20px 0 24px">
-        <button class="color-btn active" aria-label="Rosa" data-color="gradient_pink" onclick="selectCardColor(this)" style="background:linear-gradient(135deg,#E5147A,#9C0E57)"><div class="color-check"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></button>
-        <button class="color-btn" aria-label="Vermelho" data-color="gradient_purple" onclick="selectCardColor(this)" style="background:linear-gradient(135deg,#EF4444,#991B1B)"><div class="color-check hidden"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></button>
-        <button class="color-btn" aria-label="Verde" data-color="gradient_green" onclick="selectCardColor(this)" style="background:linear-gradient(135deg,#059669,#064E3B)"><div class="color-check hidden"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></button>
-        <button class="color-btn" aria-label="Azul" data-color="gradient_blue" onclick="selectCardColor(this)" style="background:linear-gradient(135deg,#1E88E5,#0D47A1)"><div class="color-check hidden"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></button>
-        <button class="color-btn" aria-label="Roxo" data-color="gradient_teal" onclick="selectCardColor(this)" style="background:linear-gradient(135deg,#EC4899,#7C3AED)"><div class="color-check hidden"><svg viewBox="0 0 12 12" fill="none" width="10" height="10"><path d="M2 6l3 3 5-5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div></button>
+    <p class="funnel-q" style="margin-bottom:4px">Personalize o seu cart&atilde;o</p>
+    <p style="font-size:0.85rem;color:var(--text-muted);text-align:center;margin-bottom:22px;line-height:1.5">Escolha o modelo que combina com voc&ecirc;</p>
+
+    <!-- CARD SCENE — 3D flip wrapper -->
+    <div class="card-scene">
+      <div class="card-flipper" id="card-flipper">
+        <div class="advanced-card-preview" id="advanced-card-preview">
+          <!-- SVG pattern overlay -->
+          <svg class="card-pattern-svg" viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <defs><clipPath id="acp-clip"><rect width="340" height="200" rx="18"/></clipPath></defs>
+            <g clip-path="url(#acp-clip)" id="card-pattern-inner">
+              <path d="M-20 120 C50 60 150 140 240 80 S360 60 400 80" stroke="white" fill="none" stroke-width="40" opacity="0.12"/>
+              <path d="M-20 160 C50 100 150 180 240 120 S360 100 400 120" stroke="white" fill="none" stroke-width="28" opacity="0.1"/>
+              <circle cx="320" cy="40" r="80" stroke="white" fill="none" stroke-width="2" opacity="0.18"/>
+              <circle cx="320" cy="40" r="52" stroke="white" fill="none" stroke-width="1.5" opacity="0.14"/>
+            </g>
+          </svg>
+          <!-- Card face content -->
+          <div class="adv-card-face">
+            <div class="adv-card-top">
+              <svg viewBox="0 0 80 22" fill="none" width="62" height="18"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg>
+              <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <div class="adv-chip"><svg viewBox="0 0 40 30" fill="none" width="38" height="26"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="8" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="30.5" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="1" y="10" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="1" y="18.5" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
+            <div class="adv-card-number">4532 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 8790</div>
+            <div class="adv-card-bottom">
+              <div>
+                <div class="adv-card-label">NOME DO TITULAR</div>
+                <div class="adv-card-value" id="style-card-name">SEU NOME</div>
+              </div>
+              <div>
+                <div class="adv-card-label">VALIDADE</div>
+                <div class="adv-card-value">12/28</div>
+              </div>
+              <svg viewBox="0 0 52 32" fill="none" width="44" height="28"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-preview-center">
-        <div class="credit-card" id="customizer-card" data-color="gradient_pink" style="">
-  <div class="card-face">
-    <div class="card-row-top"><svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg><svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-    <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="38" height="28"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="8" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="30.5" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="1" y="10" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="1" y="18.5" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-    <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-customizer-card">8790</span></div>
-    <div class="card-row-bottom">
-      <div><div class="card-label">Nome do Titular</div><div class="card-value" id="style-card-name" style="font-size:0.68rem">SEU NOME</div></div>
-      <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
-      <svg viewBox="0 0 52 32" fill="none" width="44" height="28"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
     </div>
-  </div>
-</div>
+
+    <!-- Active template badge -->
+    <div class="tpl-active-label" id="tpl-active-label">&#10022; Cl&aacute;ssico</div>
+
+    <!-- Horizontal template thumbnails -->
+    <div class="tpl-scroll-container">
+      <div class="tpl-scroll">
+
+        <button class="tpl-thumb tpl-thumb-active" data-template="classico" onclick="selectTemplate(this,'classico')" aria-label="Cl&aacute;ssico">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#E5147A,#9C0E57)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><path d="M-10 30 Q20 10 50 25 Q80 40 100 20" stroke="white" fill="none" stroke-width="10" opacity="0.2"/><path d="M-10 45 Q20 25 50 40 Q80 55 100 35" stroke="white" fill="none" stroke-width="7" opacity="0.15"/><circle cx="75" cy="10" r="18" stroke="white" fill="none" stroke-width="1.2" opacity="0.2"/></svg>
+            <span class="tpl-thumb-name">Cl&aacute;ssico</span>
+          </div>
+        </button>
+
+        <button class="tpl-thumb" data-template="noir" onclick="selectTemplate(this,'noir')" aria-label="Noir">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#1A1A2E,#0F3460)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><line x1="0" y1="12" x2="80" y2="12" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="0" y1="24" x2="80" y2="24" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="0" y1="36" x2="80" y2="36" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="20" y1="0" x2="20" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="40" y1="0" x2="40" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="60" y1="0" x2="60" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><rect x="28" y="17" width="24" height="14" rx="2" stroke="#D4AF37" fill="none" stroke-width="1.2" opacity="0.8"/></svg>
+            <span class="tpl-thumb-name">Noir</span>
+          </div>
+        </button>
+
+        <button class="tpl-thumb" data-template="oceano" onclick="selectTemplate(this,'oceano')" aria-label="Oceano">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#0EA5E9,#0369A1)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><path d="M0 18 C10 6 20 28 30 18 S50 6 60 18 S75 6 85 18" stroke="white" fill="none" stroke-width="6" opacity="0.2"/><path d="M0 32 C10 20 20 42 30 32 S50 20 60 32 S75 20 85 32" stroke="white" fill="none" stroke-width="5" opacity="0.15"/><path d="M0 45 C10 33 20 55 30 45 S50 33 60 45 S75 33 85 45" stroke="white" fill="none" stroke-width="4" opacity="0.12"/></svg>
+            <span class="tpl-thumb-name">Oceano</span>
+          </div>
+        </button>
+
+        <button class="tpl-thumb" data-template="esmeralda" onclick="selectTemplate(this,'esmeralda')" aria-label="Esmeralda">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#059669,#064E3B)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><polygon points="40,4 52,11 52,25 40,32 28,25 28,11" stroke="white" fill="none" stroke-width="1.5" opacity="0.3"/><polygon points="65,8 74,13 74,23 65,28 56,23 56,13" stroke="white" fill="none" stroke-width="1" opacity="0.2"/><polygon points="15,8 24,13 24,23 15,28 6,23 6,13" stroke="white" fill="none" stroke-width="1" opacity="0.2"/><polygon points="40,22 48,27 48,37 40,42 32,37 32,27" stroke="white" fill="none" stroke-width="1" opacity="0.18"/></svg>
+            <span class="tpl-thumb-name">Esmeralda</span>
+          </div>
+        </button>
+
+        <button class="tpl-thumb" data-template="galaxia" onclick="selectTemplate(this,'galaxia')" aria-label="Gal&aacute;xia">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#7C3AED,#4C1D95)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><circle cx="12" cy="10" r="2" fill="white" opacity="0.8"/><circle cx="35" cy="6" r="2.5" fill="white" opacity="0.9"/><circle cx="58" cy="14" r="2" fill="white" opacity="0.7"/><circle cx="25" cy="28" r="1.5" fill="white" opacity="0.6"/><circle cx="50" cy="32" r="2" fill="white" opacity="0.8"/><circle cx="70" cy="22" r="1.5" fill="white" opacity="0.6"/><circle cx="10" cy="36" r="2" fill="white" opacity="0.7"/><circle cx="65" cy="40" r="1.5" fill="white" opacity="0.7"/><line x1="12" y1="10" x2="35" y2="6" stroke="white" stroke-width="0.6" opacity="0.5"/><line x1="35" y1="6" x2="58" y2="14" stroke="white" stroke-width="0.6" opacity="0.5"/><line x1="35" y1="6" x2="25" y2="28" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="25" y1="28" x2="50" y2="32" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="58" y1="14" x2="70" y2="22" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="50" y1="32" x2="65" y2="40" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="25" y1="28" x2="10" y2="36" stroke="white" stroke-width="0.6" opacity="0.4"/></svg>
+            <span class="tpl-thumb-name">Gal&aacute;xia</span>
+          </div>
+        </button>
+
+        <button class="tpl-thumb" data-template="aurora" onclick="selectTemplate(this,'aurora')" aria-label="Aurora">
+          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">
+            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><line x1="80" y1="48" x2="80" y2="0" stroke="white" stroke-width="1.5" opacity="0.25"/><line x1="80" y1="48" x2="65" y2="0" stroke="white" stroke-width="1.2" opacity="0.22"/><line x1="80" y1="48" x2="50" y2="0" stroke="white" stroke-width="1" opacity="0.2"/><line x1="80" y1="48" x2="35" y2="0" stroke="white" stroke-width="0.8" opacity="0.18"/><line x1="80" y1="48" x2="20" y2="0" stroke="white" stroke-width="0.7" opacity="0.15"/><line x1="80" y1="48" x2="5" y2="0" stroke="white" stroke-width="0.6" opacity="0.12"/><line x1="80" y1="48" x2="0" y2="20" stroke="white" stroke-width="0.8" opacity="0.18"/><circle cx="80" cy="48" r="18" stroke="white" fill="none" stroke-width="1.2" opacity="0.2"/><circle cx="80" cy="48" r="36" stroke="white" fill="none" stroke-width="0.8" opacity="0.12"/></svg>
+            <span class="tpl-thumb-name">Aurora</span>
+          </div>
+        </button>
+
       </div>
-      <button class="btn-primary" onclick="submitCardStyle()" style="margin-top:20px;max-width:340px">Continuar &#8594;</button>
+    </div>
+
+    <button class="btn-primary" onclick="submitCardStyle()" style="max-width:340px;margin-top:22px">Continuar &#8594;</button>
+
     <footer class="funnel-footer">
       <p>Livelo | CNPJ: 12.888.241/0001-06</p>
       <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
