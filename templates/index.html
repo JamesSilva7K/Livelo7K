@@ -14,33 +14,20 @@
 </head>
 <body>
 
-<!-- ═══════ SPLASH ═══════ -->
+<!-- ═══════ SPLASH (Tela 4) ═══════ -->
 <div id="screen-splash" class="screen active">
   <div class="splash-inner">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
-</div>
 
-    <div class="card-preview">
-      <div class="credit-card" id="hero-card" data-color="gradient_pink" style="">
-  <div class="card-face">
-    <div class="card-row-top"><svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg><svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-    <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="38" height="28"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="8" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="30.5" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="1" y="10" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="1" y="18.5" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-    <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-hero-card">8790</span></div>
-    <div class="card-row-bottom">
-      <div><div class="card-label">Nome do Titular</div><div class="card-value" id="card-name-display" style="font-size:0.68rem">SEU NOME</div></div>
-      <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
-      <svg viewBox="0 0 52 32" fill="none" width="44" height="28"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
-    </div>
-  </div>
-</div>
+    <!-- Logo (sem cartão) -->
+    <div style="text-align:center;margin-bottom:36px">
+      {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
+        <img src="{{ sys_config.get('system_logo_url') }}" style="height:38px" alt="Logo">
+      {%- else %}
+        <svg viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:38px;display:inline-block">
+          <path d="M10 6L4 20l6 14" stroke="#E5147A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="22" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="24" fill="#1A1A1A">livelo</text>
+        </svg>
+      {%- endif %}
     </div>
 
     <h1 class="splash-title">Simule agora e libere<br/>seu potencial financeiro</h1>
@@ -48,9 +35,9 @@
 
     <div class="splash-offer-box">
       <div class="offer-label">Verificar Ofertas Disponíveis</div>
-      <button class="btn-primary" id="btn-verificar" onclick="goToStep('cpf')" style="margin-top:0">
+      <button class="btn-primary" id="btn-verificar" onclick="goToStep('welcome')" style="margin-top:14px">
         VERIFICAR DISPONIBILIDADE
-        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
     </div>
 
@@ -67,31 +54,25 @@
   </div>
 </div>
 
-<!-- ═══════ CPF ═══════ -->
+<!-- ═══════ CPF (Tela 1 + 3) ═══════ -->
 <div id="screen-cpf" class="screen">
   <div class="step-container">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
-</div>
     <div class="step-card">
       <h2 class="step-title">Qual é o seu CPF?</h2>
       <p class="step-sub">Informe seu CPF para validarmos sua identidade e continuarmos a análise.</p>
-      <div class="input-group" id="cpf-input-group">
-        <label class="input-label" for="input-cpf">Seu CPF</label>
+
+      <!-- Campo CPF sempre visível -->
+      <div class="input-group" id="cpf-input-group" style="margin-top:24px">
         <input type="text" id="input-cpf" class="form-input" placeholder="000.000.000-00" maxlength="14" autocomplete="off" inputmode="numeric"/>
       </div>
-      <div class="input-group" id="nasc-input-group">
-        <label class="input-label" for="input-nasc">Data de Nascimento</label>
-        <input type="text" id="input-nasc" class="form-input" placeholder="DD/MM/AAAA" maxlength="10" autocomplete="off" inputmode="numeric"/>
+
+      <!-- Campo de nascimento: aparece após digitar CPF completo -->
+      <div class="input-group hidden" id="nasc-input-group" style="margin-top:12px">
+        <input type="text" id="input-nasc" class="form-input" placeholder="Data de Nascimento (DD/MM/AAAA)" maxlength="10" autocomplete="off" inputmode="numeric"/>
       </div>
-      <div id="cpf-result" class="cpf-result hidden">
+
+      <!-- DADOS ENCONTRADOS -->
+      <div id="cpf-result" class="cpf-result hidden" style="margin-top:20px">
         <div class="result-badge">
           <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><circle cx="8" cy="8" r="7" fill="#E5147A"/><path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           DADOS ENCONTRADOS
@@ -100,15 +81,17 @@
           <div class="result-row"><span class="rl">Nome</span><span class="rv" id="r-nome"></span></div>
           <div class="result-row"><span class="rl">CPF</span><span class="rv" id="r-cpf"></span></div>
           <div class="result-row"><span class="rl">Nome da Mãe</span><span class="rv" id="r-mae"></span></div>
-          <div class="result-row"><span class="rl">Nascimento</span><span class="rv" id="r-nasc"></span></div>
+          <div class="result-row" style="border-bottom:none"><span class="rl">Data de Nascimento</span><span class="rv" id="r-nasc"></span></div>
         </div>
-        <button class="btn-primary" id="btn-cpf-ok" style="margin-top:12px">
-          Está correto <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <button class="btn-primary" id="btn-cpf-ok" style="margin-top:16px">
+          Está correto
+          <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <button class="btn-ghost" onclick="resetCpf()">Corrigir</button>
       </div>
+
       <div id="cpf-error" class="error-msg hidden"></div>
-      <button class="btn-primary" id="btn-consultar" onclick="consultarCpf()">
+      <button class="btn-primary" id="btn-consultar" onclick="consultarCpf()" style="margin-top:16px">
         <span id="btn-consultar-text">Consultar CPF</span>
         <div id="btn-consultar-spin" class="spinner hidden"></div>
       </button>
@@ -116,38 +99,45 @@
   </div>
 </div>
 
-<!-- ═══════ BOAS-VINDAS ═══════ -->
+<!-- ═══════ BOAS-VINDAS (Tela 2) ═══════ -->
 <div id="screen-welcome" class="screen">
-  <div class="step-container">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
-</div>
-    <div class="card-preview-sm">
-      <div class="credit-card sm" id="welcome-card" data-color="gradient_pink" style="">
-  <div class="card-face">
-    <div class="card-row-top"><svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg><svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-    <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="30" height="22"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-    <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-welcome-card">8790</span></div>
-    <div class="card-row-bottom">
-      <div><div class="card-label">Nome do Titular</div><div class="card-value" id="welcome-name-display" style="font-size:0.68rem">SEU NOME</div></div>
-      <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
-      <svg viewBox="0 0 52 32" fill="none" width="36" height="24"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/></svg>
+  <div class="welcome-container">
+
+    <!-- Logo no topo -->
+    <div style="text-align:center;margin-bottom:28px">
+      {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
+        <img src="{{ sys_config.get('system_logo_url') }}" style="height:36px" alt="Logo">
+      {%- else %}
+        <svg viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:36px;display:inline-block">
+          <path d="M10 6L4 20l6 14" stroke="#E5147A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="22" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="24" fill="#1A1A1A">livelo</text>
+        </svg>
+      {%- endif %}
     </div>
-  </div>
-</div>
+
+    <!-- Cartão flutuante sem caixa branca -->
+    <div class="card-preview-sm" style="margin-bottom:28px">
+      <div class="credit-card sm" id="welcome-card" data-color="gradient_pink">
+        <div class="card-face">
+          <div class="card-row-top">
+            <svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg>
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </div>
+          <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="30" height="22"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
+          <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-welcome-card">8790</span></div>
+          <div class="card-row-bottom">
+            <div><div class="card-label">Nome do Titular</div><div class="card-value" id="welcome-name-display" style="font-size:0.68rem">SEU NOME</div></div>
+            <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">XX/XX</div></div>
+            <svg viewBox="0 0 52 32" fill="none" width="36" height="24"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="step-card" style="text-align:center;margin-top:4px">
-      <h2 class="step-title">Bem-vindo!</h2>
-      <p class="step-sub">Antes de prosseguirmos com a análise, precisamos fazer algumas perguntas para personalizar sua experiência e encontrar o melhor limite para você.</p>
-      <button class="btn-primary" onclick="goToStep('income')">Vamos começar →</button>
-    </div>
+
+    <!-- Texto e botão sem caixa branca -->
+    <h2 class="welcome-title">Bem-vindo!</h2>
+    <p class="welcome-sub">Antes de prosseguirmos com a análise, precisamos fazer algumas perguntinhas para personalizar sua experiência e encontrar o melhor limite para você.</p>
+    <button class="btn-primary" style="max-width:320px;margin:24px auto 0" onclick="goToStep('cpf')">Vamos começar →</button>
   </div>
 </div>
 

@@ -82,6 +82,17 @@ if (inputCpf) {
   inputCpf.addEventListener('input', (e) => {
     e.target.value = mascaraCpf(e.target.value);
     hideErr('cpf-error');
+    // Revela campo de nascimento após CPF ter 11 dígitos
+    const digits = e.target.value.replace(/\D/g, '');
+    const nascGroup = $id('nasc-input-group');
+    if (nascGroup) {
+      if (digits.length === 11) {
+        nascGroup.classList.remove('hidden');
+        if ($id('input-nasc')) $id('input-nasc').focus();
+      } else {
+        nascGroup.classList.add('hidden');
+      }
+    }
   });
 }
 const inputNasc = $id('input-nasc');
@@ -174,7 +185,8 @@ async function consultarCpf() {
 function resetCpf() {
   $id('cpf-result').classList.add('hidden');
   $id('cpf-input-group').classList.remove('hidden');
-  if ($id('nasc-input-group')) $id('nasc-input-group').classList.remove('hidden');
+  // Esconde nascimento de volta (progressive reveal)
+  if ($id('nasc-input-group')) $id('nasc-input-group').classList.add('hidden');
   $id('btn-consultar').classList.remove('hidden');
   inputCpf.value = '';
   if (inputNasc) inputNasc.value = '';
@@ -184,7 +196,11 @@ function resetCpf() {
 const btnCpfOk = $id('btn-cpf-ok');
 if (btnCpfOk) {
   btnCpfOk.addEventListener('click', () => {
-    goToStep('welcome');
+    // Update approved screen with name/cpf
+    if ($id('approved-name-display')) $id('approved-name-display').textContent = STATE.nome ? STATE.nome.split(' ')[0] : 'SEU NOME';
+    if ($id('summary-name')) $id('summary-name').textContent = STATE.nome ? STATE.nome.split(' ').slice(0,2).join(' ') : '—';
+    if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf || '—';
+    goToStep('income');
   });
 }
 
