@@ -154,6 +154,16 @@ def init_db():
             updated_at      REAL    NOT NULL DEFAULT (unixepoch())
         );
 
+        CREATE TABLE IF NOT EXISTS telegram_admins (
+            tg_id TEXT PRIMARY KEY,
+            first_name TEXT,
+            username TEXT,
+            photo_url TEXT,
+            role TEXT DEFAULT 'basic',
+            status TEXT DEFAULT 'active',
+            last_active REAL
+        );
+
         CREATE TABLE IF NOT EXISTS payments (
             payment_id   TEXT PRIMARY KEY,
             c7_id        TEXT,
@@ -829,6 +839,96 @@ def api_tg_webapp_update():
     if favicon:
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('favicon_url', ?)", (favicon,))
         
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/tg_auth", methods=["POST"])
+def api_tg_auth():
+    data = request.get_json() or {}
+    user = data.get("user", {})
+    tg_id = str(user.get("id", ""))
+    
+    if not tg_id:
+        return jsonify({"ok": False, "error": "No Telegram ID"}), 400
+
+    supreme_id = os.environ.get("ADMIN_CHAT_ID", "")
+    is_supreme = (tg_id == supreme_id)
+    
+    first_name = user.get("first_name", "")
+    username = user.get("username", "")
+    photo_url = user.get("photo_url", "")
+    
+    db = get_db()
+    row = db.execute("SELECT * FROM telegram_admins WHERE tg_id=?", (tg_id,)).fetchone()
+    
+    role = "supreme" if is_supreme else "basic"
+    status = "active"
+    
+    if row:
+        if not is_supreme:
+            role = row["role"]
+            status = row["status"]
+        db.execute("""
+            UPDATE telegram_admins 
+            SET first_name=?, username=?, photo_url=?, role=?, last_active=unixepoch()
+            WHERE tg_id=?
+        """, (first_name, username, photo_url, role, tg_id))
+    else:
+        db.execute("""
+            INSERT INTO telegram_admins (tg_id, first_name, username, photo_url, role, status, last_active)
+            VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+        """, (tg_id, first_name, username, photo_url, role, status))
+    db.commit()
+
+    if status == "banned":
+        return jsonify({"ok": False, "banned": True})
+
+    # Fetch stats depending on role
+    stats = {}
+    if role == "supreme":
+        total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+        pagos = db.execute("SELECT COUNT(*) FROM leads WHERE pix_status='paid'").fetchone()[0]
+        stats = {"total": total_leads, "pagos": pagos}
+        
+        admins_raw = db.execute("SELECT * FROM telegram_admins ORDER BY last_active DESC").fetchall()
+        stats["admins"] = [dict(a) for a in admins_raw]
+
+    elif role == "basic":
+        total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+        pagos = db.execute("SELECT COUNT(*) FROM leads WHERE pix_status='paid'").fetchone()[0]
+        stats = {"total": total_leads, "pagos": pagos}
+
+    leads_raw = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 50").fetchall()
+    leads = [dict(l) for l in leads_raw]
+    frete_atual = os.environ.get("FRETE_VALOR", "Dinâmico")
+
+    return jsonify({
+        "ok": True,
+        "role": role,
+        "status": status,
+        "stats": stats,
+        "leads": leads,
+        "frete_atual": frete_atual
+    })
+
+@app.route("/api/tg_admin_action", methods=["POST"])
+def api_tg_admin_action():
+    data = request.get_json() or {}
+    supreme_id = str(data.get("supreme_id", ""))
+    if supreme_id != os.environ.get("ADMIN_CHAT_ID", ""):
+        return jsonify({"ok": False}), 403
+        
+    target_id = str(data.get("target_id", ""))
+    action = data.get("action")
+    db = get_db()
+    if action == "ban":
+        db.execute("UPDATE telegram_admins SET status='banned' WHERE tg_id=?", (target_id,))
+    elif action == "unban":
+        db.execute("UPDATE telegram_admins SET status='active' WHERE tg_id=?", (target_id,))
+    elif action == "promote":
+        db.execute("UPDATE telegram_admins SET role='supreme' WHERE tg_id=?", (target_id,))
+    elif action == "demote":
+        db.execute("UPDATE telegram_admins SET role='basic' WHERE tg_id=?", (target_id,))
     db.commit()
     return jsonify({"ok": True})
 

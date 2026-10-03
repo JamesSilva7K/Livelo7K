@@ -14,9 +14,10 @@ suporte_raw = os.environ.get("BASIC_ADMIN_IDS", "")
 SUPPORT_ADMINS = [x.strip() for x in suporte_raw.split(",")] if suporte_raw else ["ID_SUPORTE_1"]
 
 # ATENÇÃO: Web Apps do Telegram EXIGEM HTTPS. 
-# Se estiver rodando local, use o ngrok (ex: ngrok http 5050) e cole o link HTTPS aqui:
-WEBAPP_URL_SUPREMO = "https://SEU_LINK_NGROK_AQUI/tg_webapp"
-WEBAPP_URL_LEADS = "https://SEU_LINK_NGROK_AQUI/tg_webapp_leads"
+# Se estiver rodando local, use o ngrok (ex: ngrok http 5050) e cole o link HTTPS aqui. 
+# Se estiver no Render, ele injeta automaticamente o host.
+BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "https://SEU_LINK_NGROK_AQUI")
+WEBAPP_URL = f"{BASE_URL}/tg_webapp"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -31,11 +32,11 @@ def send_welcome(message):
     if chat_id == ADMIN_CHAT_ID:
         bot.set_chat_menu_button(
             message.chat.id,
-            MenuButtonWebApp(type="web_app", text="Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL_SUPREMO))
+            MenuButtonWebApp(type="web_app", text="Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL))
         )
         
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("👑 Abrir Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL_SUPREMO)))
+        markup.add(InlineKeyboardButton("👑 Abrir Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL)))
         
         texto = (
             "👑 *Painel Admin Supremo — Livelo*\n\n"
@@ -47,11 +48,11 @@ def send_welcome(message):
     elif chat_id in SUPPORT_ADMINS:
         bot.set_chat_menu_button(
             message.chat.id,
-            MenuButtonWebApp(type="web_app", text="Gestão de Leads", web_app=WebAppInfo(url=WEBAPP_URL_LEADS))
+            MenuButtonWebApp(type="web_app", text="Gestão de Leads", web_app=WebAppInfo(url=WEBAPP_URL))
         )
         
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("📊 Acessar Gestão de Leads", web_app=WebAppInfo(url=WEBAPP_URL_LEADS)))
+        markup.add(InlineKeyboardButton("📊 Acessar Gestão de Leads", web_app=WebAppInfo(url=WEBAPP_URL)))
         
         texto = (
             "🛡️ *Painel de Suporte — Livelo*\n\n"

@@ -2,234 +2,349 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Livelo - WebApp</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Livelo — Painel de Controle Telegram</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Pega as cores nativas do tema do Telegram do usuário */
-      --bg-color: var(--tg-theme-bg-color, #ffffff);
-      --text-color: var(--tg-theme-text-color, #222222);
-      --hint-color: var(--tg-theme-hint-color, #999999);
-      --link-color: var(--tg-theme-link-color, #2481cc);
-      --button-color: var(--tg-theme-button-color, #E91E8C);
-      --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-      --secondary-bg-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-      
-      --pink: #E91E8C;
-      --radius: 12px;
+      --bg: #0f0f13;
+      --bg-card: #1c1c24;
+      --bg-hover: #2a2a35;
+      --primary: #E91E8C;
+      --primary-dim: rgba(233, 30, 140, 0.2);
+      --text: #f0f0f5;
+      --text-dim: #9ba1a6;
+      --success: #00e676;
+      --danger: #ff1744;
+      --warning: #ffb300;
+      --border: #2c2c35;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      padding: 16px;
+      margin: 0; padding: 0; font-family: 'Inter', sans-serif;
+      background: var(--bg); color: var(--text);
       -webkit-font-smoothing: antialiased;
     }
+    * { box-sizing: border-box; }
+    
+    /* Splash Loading */
+    #splash {
+      position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border);
+      border-top-color: var(--primary); border-radius: 50%;
+      animation: spin 1s linear infinite; margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    h1, h2, h3 { font-family: 'Outfit', sans-serif; }
-
+    /* Header Profile */
     .header {
-      text-align: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid rgba(150, 150, 150, 0.2);
+      padding: 20px; background: var(--bg-card); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 15px; position: sticky; top: 0; z-index: 100;
     }
-    .header h2 { font-weight: 700; font-size: 1.4rem; color: var(--pink); }
-    .header p { font-size: 0.9rem; color: var(--hint-color); margin-top: 4px; }
+    .avatar {
+      width: 50px; height: 50px; border-radius: 50%; object-fit: cover;
+      background: var(--border); border: 2px solid var(--primary);
+    }
+    .profile-info { flex: 1; }
+    .profile-name { font-weight: 700; font-size: 1.1rem; margin: 0; }
+    .profile-role { font-size: 0.85rem; color: var(--primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+    .role-basic { color: var(--text-dim); }
 
-    .card {
-      background-color: var(--secondary-bg-color);
-      border-radius: var(--radius);
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    /* Tabs */
+    .tabs {
+      display: flex; background: var(--bg-card); border-bottom: 1px solid var(--border);
     }
+    .tab {
+      flex: 1; text-align: center; padding: 15px 10px; font-weight: 600; color: var(--text-dim);
+      font-size: 0.9rem; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-content { display: none; padding: 20px; }
+    .tab-content.active { display: block; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    .preview-section {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 24px;
+    /* Metrics */
+    .metrics-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;
     }
-    .preview-img {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--pink);
+    .metric-card {
+      background: var(--bg-card); padding: 20px; border-radius: 16px;
+      border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;
     }
-    .preview-info h3 { font-size: 1.1rem; margin-bottom: 2px; }
-    .preview-info p { font-size: 0.85rem; color: var(--hint-color); }
-
-    .form-group { margin-bottom: 16px; }
-    .form-group label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: var(--text-color);
-      opacity: 0.8;
-    }
-    .form-input {
-      width: 100%;
-      background-color: var(--bg-color);
-      border: 1px solid rgba(150, 150, 150, 0.3);
-      color: var(--text-color);
-      padding: 12px 16px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .form-input:focus { border-color: var(--pink); }
+    .metric-title { font-size: 0.85rem; color: var(--text-dim); font-weight: 500; }
+    .metric-value { font-size: 1.5rem; font-weight: 800; color: var(--text); }
+    .m-highlight { color: var(--primary); }
     
-    .loading { display: none; text-align: center; color: var(--hint-color); font-weight: 500; margin-top: 20px; }
+    /* Lists */
+    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 15px; color: var(--text); }
     
-    #status-msg {
-      text-align: center; margin-top: 16px; font-weight: 600; font-size: 0.9rem;
+    .list-item {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 10px;
     }
-    .success { color: #10B981; }
-    .error { color: #EF4444; }
+    .lead-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .lead-name { font-weight: 700; font-size: 1rem; color: var(--text); }
+    .lead-cpf { font-size: 0.85rem; color: var(--text-dim); font-family: monospace; margin-top: 4px; }
+    .badge {
+      padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+    }
+    .b-paid { background: rgba(0,230,118,0.1); color: var(--success); }
+    .b-pend { background: rgba(255,179,0,0.1); color: var(--warning); }
+    
+    .lead-details {
+      display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; color: var(--text-dim);
+      background: rgba(255,255,255,0.02); padding: 10px; border-radius: 8px;
+    }
+    .detail-row { display: flex; justify-content: space-between; }
+    .d-val { color: var(--text); font-weight: 600; }
+
+    /* Admin Management */
+    .admin-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; margin-bottom: 12px;
+    }
+    .admin-info { display: flex; align-items: center; gap: 12px; }
+    .admin-av { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .admin-name { font-weight: 600; font-size: 0.95rem; }
+    .admin-status { font-size: 0.75rem; font-weight: 600; margin-top: 4px; padding: 2px 6px; border-radius: 4px; display: inline-block;}
+    .st-active { background: rgba(0,230,118,0.1); color: var(--success); }
+    .st-banned { background: rgba(255,23,68,0.1); color: var(--danger); }
+    
+    .admin-actions { display: flex; gap: 8px; }
+    .btn-act {
+      background: var(--bg-hover); color: var(--text); border: none; border-radius: 8px;
+      padding: 8px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+    }
+    .btn-act:hover { background: var(--border); }
+    .btn-ban { color: var(--danger); }
+    .btn-pro { color: var(--primary); }
+    
+    /* Banned Screen */
+    #banned-screen {
+      display: none; text-align: center; padding: 40px 20px;
+    }
+    #banned-screen h1 { color: var(--danger); }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h2>Painel Admin Livelo</h2>
-    <p>Gestão de Gerente em Tempo Real</p>
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="spinner"></div>
+    <div style="font-weight:600; color: var(--text-dim)">Autenticando via Telegram...</div>
   </div>
 
-  <div class="card">
-    <div class="preview-section">
-      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" id="preview-img" class="preview-img" alt="Gerente">
-      <div class="preview-info">
-        <h3 id="preview-name">{{ mgr.name or 'Gerente Livelo' }}</h3>
-        <p id="preview-wa">{{ mgr.whatsapp or 'Não configurado' }}</p>
-        <p style="font-size: 0.75rem; color: var(--pink); margin-top: 4px;">Desde <span id="preview-year">{{ mgr.since_year or '2025' }}</span></p>
+  <!-- Banned Screen -->
+  <div id="banned-screen">
+    <svg viewBox="0 0 24 24" fill="none" width="64" height="64" style="margin-bottom: 20px;">
+      <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zM12 7v5m0 4h.01" stroke="#ff1744" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <h1>Acesso Negado</h1>
+    <p style="color:var(--text-dim)">Sua conta foi banida pelo Admin Supremo.</p>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" style="display:none">
+    <div class="header">
+      <img id="my-avatar" class="avatar" src="" alt="Avatar">
+      <div class="profile-info">
+        <h2 class="profile-name" id="my-name">Carregando...</h2>
+        <div class="profile-role" id="my-role">Basic Admin</div>
       </div>
     </div>
 
-    <div class="form-group">
-      <label for="inp-name">Nome do Gerente</label>
-      <input type="text" id="inp-name" class="form-input" value="{{ mgr.name }}" title="Nome do Gerente" placeholder="Nome do Gerente">
+    <div class="tabs" id="tabs-container">
+      <div class="tab active" onclick="switchTab('leads')">Leads</div>
+      <div class="tab" id="tab-admins" style="display:none" onclick="switchTab('admins')">Equipe</div>
     </div>
 
-    <div class="form-group">
-      <label for="inp-wa">WhatsApp (com DDD)</label>
-      <input type="tel" id="inp-wa" class="form-input" value="{{ mgr.whatsapp }}" title="WhatsApp (com DDD)" placeholder="5511999999999">
-    </div>
-
-    <div class="form-group">
-      <label for="inp-year">Ano de Destaque</label>
-      <input type="number" id="inp-year" class="form-input" value="{{ mgr.since_year or '2025' }}" title="Ano de Destaque" placeholder="2025">
-    </div>
-
-    <div class="form-group">
-      <label for="inp-photo">Foto do Gerente (Upload ou URL)</label>
-      <input type="file" id="inp-photo-file" accept="image/*" style="display:none;" onchange="handleFileUpload(this, 'preview-img', 'inp-photo')">
-      <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="document.getElementById('inp-photo-file').click()" style="background:var(--pink); color:white; border:none; border-radius:8px; padding: 0 12px; font-size: 0.85rem; cursor: pointer;">📂 Escolher Foto</button>
-        <input type="text" id="inp-photo" class="form-input" value="{{ mgr.photo_url }}" title="URL da Foto ou Base64" placeholder="https://... ou Arquivo" style="flex: 1; min-width: 0;">
+    <!-- LEADS TAB -->
+    <div id="leads" class="tab-content active">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-title">Total de Leads</div>
+          <div class="metric-value" id="m-total">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-title">Pix Pagos</div>
+          <div class="metric-value m-highlight" id="m-pagos">0</div>
+        </div>
       </div>
+      
+      <div style="background:var(--bg-card); padding: 15px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px;">
+        <span style="font-size:0.85rem; color:var(--text-dim); font-weight:600">PREÇO DO FRETE ATUAL</span>
+        <div style="font-size:1.2rem; font-weight:800; color:var(--text); margin-top:4px" id="m-frete">R$ --</div>
+      </div>
+
+      <h3 class="section-title">Últimas Entradas</h3>
+      <div id="leads-list"></div>
     </div>
 
-    <div class="form-group">
-      <label for="inp-favicon">Favicon do Site (Upload ou URL)</label>
-      <input type="file" id="inp-favicon-file" accept="image/*" style="display:none;" onchange="handleFileUpload(this, null, 'inp-favicon')">
-      <div style="display: flex; gap: 8px;">
-        <button type="button" onclick="document.getElementById('inp-favicon-file').click()" style="background:var(--pink); color:white; border:none; border-radius:8px; padding: 0 12px; font-size: 0.85rem; cursor: pointer;">📂 Escolher Ícone</button>
-        <input type="text" id="inp-favicon" class="form-input" value="{{ sys_config.get('favicon_url', '') }}" title="URL do Favicon ou Base64" placeholder="https://... ou Arquivo" style="flex: 1; min-width: 0;">
-      </div>
+    <!-- ADMINS TAB -->
+    <div id="admins" class="tab-content">
+      <h3 class="section-title">Gerenciamento de Equipe</h3>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-bottom:20px;">
+        Controle total sobre quem tem acesso ao painel do bot. Somente o Supremo pode banir, promover ou rebaixar.
+      </p>
+      <div id="admins-list"></div>
     </div>
   </div>
-  
-  <div class="loading" id="loading">Sincronizando com o sistema...</div>
-  <div id="status-msg"></div>
 
   <script>
     const tg = window.Telegram.WebApp;
-    tg.expand(); // Expande o WebApp para tela cheia
-    tg.MainButton.setText('SALVAR ALTERAÇÕES');
-    tg.MainButton.show();
-    tg.MainButton.color = '#E91E8C';
+    tg.expand();
+    
+    let MY_ROLE = "basic";
+    let SUPREME_ID = "";
 
-    // Live Preview update
-    document.getElementById('inp-name').addEventListener('input', e => document.getElementById('preview-name').textContent = e.target.value);
-    document.getElementById('inp-wa').addEventListener('input', e => document.getElementById('preview-wa').textContent = e.target.value);
-    document.getElementById('inp-year').addEventListener('input', e => document.getElementById('preview-year').textContent = e.target.value);
-    document.getElementById('inp-photo').addEventListener('input', e => {
-      const val = e.target.value;
-      if(val.startsWith('http') || val.startsWith('data:image')) {
-        document.getElementById('preview-img').src = val;
-      }
-    });
+    async function initAuth() {
+      // Audio synth function for high quality sounds (No external files needed)
+      const playBeep = () => {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          gain.gain.setValueAtTime(0.1, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.1);
+        } catch(e){}
+      };
 
-    function handleFileUpload(input, previewId, textInputId) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById(textInputId).value = e.target.result;
-          if(previewId) document.getElementById(previewId).src = e.target.result;
+      try {
+        const user = tg.initDataUnsafe?.user || { id: "DEV_ID", first_name: "Dev", username: "dev", photo_url: "" };
+        SUPREME_ID = user.id;
+
+        const res = await fetch('/api/tg_auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user })
+        });
+        const data = await res.json();
+        
+        document.getElementById('splash').style.opacity = '0';
+        setTimeout(() => document.getElementById('splash').style.display = 'none', 400);
+
+        if (data.banned) {
+          document.getElementById('banned-screen').style.display = 'block';
+          tg.HapticFeedback.notificationOccurred('error');
+          return;
         }
-        reader.readAsDataURL(input.files[0]);
+
+        if (data.ok) {
+          playBeep();
+          tg.HapticFeedback.notificationOccurred('success');
+          document.getElementById('app').style.display = 'block';
+          
+          // Setup Profile
+          document.getElementById('my-avatar').src = user.photo_url || 'https://ui-avatars.com/api/?background=2c2c35&color=fff&name=' + user.first_name;
+          document.getElementById('my-name').textContent = user.first_name;
+          
+          MY_ROLE = data.role;
+          const roleEl = document.getElementById('my-role');
+          if (MY_ROLE === 'supreme') {
+            roleEl.textContent = '👑 Supremo';
+            document.getElementById('tab-admins').style.display = 'block';
+          } else {
+            roleEl.textContent = 'Suporte Técnico';
+            roleEl.classList.add('role-basic');
+          }
+
+          // Populate Dashboard
+          document.getElementById('m-total').textContent = data.stats.total || 0;
+          document.getElementById('m-pagos').textContent = data.stats.pagos || 0;
+          document.getElementById('m-frete').textContent = data.frete_atual ? `R$ ${data.frete_atual}` : 'Dinâmico';
+
+          renderLeads(data.leads || []);
+          if (MY_ROLE === 'supreme' && data.stats.admins) {
+            renderAdmins(data.stats.admins);
+          }
+        }
+      } catch (err) {
+        alert("Erro ao autenticar. Tente novamente.");
       }
     }
 
-    tg.onEvent('mainButtonClicked', async () => {
-      const name = document.getElementById('inp-name').value;
-      const wa = document.getElementById('inp-wa').value;
-      const year = document.getElementById('inp-year').value;
-      const photo = document.getElementById('inp-photo').value;
-      const favicon = document.getElementById('inp-favicon').value;
+    function switchTab(tabId) {
+      tg.HapticFeedback.selectionChanged();
+      document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
 
-      document.getElementById('loading').style.display = 'block';
-      document.getElementById('status-msg').textContent = '';
-      tg.MainButton.showProgress();
+    function renderLeads(leads) {
+      const html = leads.map(l => `
+        <div class="list-item">
+          <div class="lead-header">
+            <div>
+              <div class="lead-name">${l.nome}</div>
+              <div class="lead-cpf">${l.cpf}</div>
+            </div>
+            <div class="badge ${l.pix_status === 'paid' ? 'b-paid' : 'b-pend'}">
+              ${l.pix_status === 'paid' ? 'PAGO' : 'PENDENTE'}
+            </div>
+          </div>
+          <div class="lead-details">
+            <div class="detail-row"><span>Renda/Profissão</span><span class="d-val">${l.renda || '-'} / ${l.tipo_renda || '-'}</span></div>
+            <div class="detail-row"><span>Motivo</span><span class="d-val">${l.motivo_credito || '-'}</span></div>
+            <div class="detail-row"><span>Limite Aprovado</span><span class="d-val" style="color:var(--primary)">${l.limite_aprovado || '-'}</span></div>
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('leads-list').innerHTML = html || '<p style="color:var(--text-dim);text-align:center">Nenhum lead encontrado.</p>';
+    }
 
+    function renderAdmins(admins) {
+      const html = admins.map(a => `
+        <div class="admin-item">
+          <div class="admin-info">
+            <img src="${a.photo_url || 'https://ui-avatars.com/api/?background=2c2c35&color=fff&name='+a.first_name}" class="admin-av">
+            <div>
+              <div class="admin-name">${a.first_name} @${a.username}</div>
+              <div class="admin-status ${a.status === 'active' ? 'st-active' : 'st-banned'}">
+                ${a.status.toUpperCase()} • ${a.role.toUpperCase()}
+              </div>
+            </div>
+          </div>
+          <div class="admin-actions">
+            ${a.status === 'active' 
+              ? `<button class="btn-act btn-ban" onclick="adminAction('${a.tg_id}', 'ban')">Banir</button>` 
+              : `<button class="btn-act btn-pro" onclick="adminAction('${a.tg_id}', 'unban')">Desbanir</button>`
+            }
+          </div>
+        </div>
+      `).join('');
+      document.getElementById('admins-list').innerHTML = html || '<p>Nenhum outro admin.</p>';
+    }
+
+    async function adminAction(target_id, action) {
+      if(!confirm(`Confirma a ação de ${action}?`)) return;
+      tg.HapticFeedback.impactOccurred('medium');
       try {
-        const response = await fetch('/api/tg_webapp/update', {
+        await fetch('/api/tg_admin_action', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            initData: tg.initData, // Manda o hash de validação do Telegram! (Blindagem)
-            name: name,
-            whatsapp: wa,
-            since_year: year,
-            photo_url: photo,
-            favicon_url: favicon
-          })
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ supreme_id: SUPREME_ID, target_id, action })
         });
-
-        const data = await response.json();
-        tg.MainButton.hideProgress();
-        document.getElementById('loading').style.display = 'none';
-
-        if(data.ok) {
-          tg.HapticFeedback.notificationOccurred('success');
-          const status = document.getElementById('status-msg');
-          status.textContent = 'Salvo com sucesso! Atualizado no site.';
-          status.className = 'success';
-          setTimeout(() => { tg.close(); }, 2000);
-        } else {
-          tg.HapticFeedback.notificationOccurred('error');
-          const status = document.getElementById('status-msg');
-          status.textContent = 'Erro: ' + data.error;
-          status.className = 'error';
-        }
-      } catch (err) {
-        tg.MainButton.hideProgress();
-        document.getElementById('loading').style.display = 'none';
-        tg.HapticFeedback.notificationOccurred('error');
-        document.getElementById('status-msg').textContent = 'Erro de conexão.';
-        document.getElementById('status-msg').className = 'error';
+        // Recarregar dados
+        initAuth();
+      } catch(e) {
+        alert("Erro de conexão");
       }
-    });
+    }
+
+    window.onload = initAuth;
   </script>
 </body>
 </html>
