@@ -16,7 +16,7 @@ def generate_qr_b64(data: str) -> str:
         img = qr.make_image(fill_color="black", back_color="white")
         buffered = io.BytesIO()
         try:
-            img.save(buffered, format="PNG")
+            img.save(buffered, kind="PNG")
         except TypeError:
             img.save(buffered)
         return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
