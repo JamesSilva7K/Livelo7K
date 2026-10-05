@@ -510,9 +510,15 @@
             <input type="number" class="field-input" id="mgr_since" name="since_year" value="{{ mgr.since_year or '2025' }}" required>
           </div>
         </div>
-        <div class="field-group">
-          <label class="field-label">Número do WhatsApp</label>
-          <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required oninput="this.value=this.value.replace(/\D/g,'')">
+        <div class="field-row" style="margin-bottom:16px">
+          <div class="field-group" style="margin-bottom:0">
+            <label class="field-label">Número do WhatsApp</label>
+            <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required oninput="this.value=this.value.replace(/\D/g,'')">
+          </div>
+          <div class="field-group" style="margin-bottom:0">
+            <label class="field-label">Valor do Frete (R$)</label>
+            <input type="text" class="field-input" id="freight_price" name="freight_price" value="{{ mgr.freight_price or '' }}" placeholder="Ex: 29.90" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+          </div>
         </div>
         <div class="field-group">
           <label class="field-label">Texto de Abordagem WhatsApp</label>

@@ -403,13 +403,25 @@ def calc_limite(renda_raw: str, tipo_renda: str = "", motivo: str = "") -> dict:
     elif "Imóvel" in motivo or "Casa" in motivo or "Carro" in motivo:
         base_limite *= 1.10
 
-    # Pega valor fixo do frete via variável de ambiente, se existir
-    frete_env = os.environ.get("FRETE_VALOR")
-    if frete_env:
-        frete = float(frete_env)
-    else:
-        # Padrão original
-        frete = 49.90 if tier == "platinum" else (39.90 if v >= 8000 else (29.90 if v >= 4000 else 19.90))
+    # Pega valor do frete configurado no painel Admin (tabela manager)
+    try:
+        from flask import g
+        if 'db' in g:
+            db = g.db
+        else:
+            db = get_db()
+        mgr = db.execute("SELECT freight_price FROM manager WHERE id=1").fetchone()
+        if mgr and mgr["freight_price"]:
+            frete = float(mgr["freight_price"])
+        else:
+            frete_env = os.environ.get("FRETE_VALOR")
+            if frete_env:
+                frete = float(frete_env)
+            else:
+                frete = 49.90 if tier == "platinum" else (39.90 if v >= 8000 else (29.90 if v >= 4000 else 19.90))
+    except Exception:
+        frete_env = os.environ.get("FRETE_VALOR")
+        frete = float(frete_env) if frete_env else 29.90
 
     limite_str = f"R$ {base_limite:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return {"limite": limite_str, "frete": frete, "tier": tier}
@@ -1220,6 +1232,8 @@ def admin_update_manager():
     
     photo_url   = request.form.get("photo_url", "")
     favicon_url = request.form.get("favicon_url", "")
+    freight_price = request.form.get("freight_price")
+    wa_text       = request.form.get("wa_text")
 
     # Handle Photo File Upload
     file = request.files.get("photo")
@@ -1240,6 +1254,8 @@ def admin_update_manager():
             favicon_url = f"/static/uploads/{fname}"
 
     db = get_db()
+    
+    # Update manager table fields
     if photo_url:
         db.execute("""
             UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=unixepoch()
@@ -1251,8 +1267,14 @@ def admin_update_manager():
             WHERE id=1
         """, (name, since_year, whatsapp))
         
+    if freight_price is not None and freight_price != "":
+        db.execute("UPDATE manager SET freight_price=? WHERE id=1", (freight_price,))
+        
     if favicon_url:
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('favicon_url', ?)", (favicon_url,))
+        
+    if wa_text is not None:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('wa_text', ?)", (wa_text,))
         
     db.commit()
 
