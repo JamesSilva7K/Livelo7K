@@ -144,6 +144,17 @@
     .btn-ban { color: var(--danger); }
     .btn-pro { color: var(--primary); }
     
+    /* Filters */
+    .filter-btn {
+      background: var(--bg-hover); color: var(--text-dim); border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap;
+    }
+    .filter-btn.active {
+      background: var(--primary); color: #fff;
+    }
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
     /* Banned Screen */
     #banned-screen {
       display: none; text-align: center; padding: 40px 20px;
@@ -207,7 +218,7 @@
 
     <!-- LEADS TAB -->
     <div id="leads" class="tab-content active">
-      <div class="metrics-grid">
+      <div class="metrics-grid" id="metrics-grid">
         <div class="metric-card">
           <div class="metric-title"><svg class="icon"><use href="#ic-users"></use></svg> Total de Leads</div>
           <div class="metric-value" id="m-total">0</div>
@@ -218,6 +229,13 @@
         </div>
       </div>
       
+      <div style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:4px;" class="hide-scrollbar">
+        <button class="filter-btn active" onclick="filterLeads('all', this)">Todos</button>
+        <button class="filter-btn" onclick="filterLeads('paid', this)">Pagos</button>
+        <button class="filter-btn" onclick="filterLeads('pending', this)">Pendentes</button>
+        <button class="filter-btn" onclick="filterLeads('abandoned', this)">Cancelados</button>
+      </div>
+
       <h3 class="section-title"><svg class="icon-lg"><use href="#ic-leads"></use></svg> Últimas Entradas</h3>
       <div id="leads-list"></div>
     </div>
@@ -369,6 +387,7 @@
           if (MY_ROLE === 'supreme') {
             roleEl.innerHTML = `<svg class="icon"><use href="#ic-crown"></use></svg> Supremo`;
             document.getElementById('tab-admins').style.display = 'flex';
+            document.getElementById('metrics-grid').style.display = 'grid'; // Show metrics
             
             // Popula configs
             document.getElementById('cfg-frete').value = data.frete_atual;
@@ -376,12 +395,14 @@
           } else {
             roleEl.innerHTML = `<svg class="icon"><use href="#ic-users"></use></svg> Suporte Técnico`;
             roleEl.classList.add('role-basic');
+            document.getElementById('metrics-grid').style.display = 'none'; // Hide metrics
           }
 
           document.getElementById('m-total').textContent = data.stats.total || 0;
           document.getElementById('m-pagos').textContent = data.stats.pagos || 0;
 
-          renderLeads(data.leads || []);
+          window.ALL_LEADS = data.leads || [];
+          renderLeads(window.ALL_LEADS);
           if (MY_ROLE === 'supreme' && data.stats.admins) {
             renderAdmins(data.stats.admins);
           }
@@ -400,6 +421,22 @@
       document.getElementById(tabId).classList.add('active');
     }
 
+    function filterLeads(status, btn) {
+      tg.HapticFeedback.selectionChanged();
+      document.querySelectorAll('.filter-btn').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      
+      let filtered = window.ALL_LEADS;
+      if (status === 'paid') {
+        filtered = window.ALL_LEADS.filter(l => ['paid','authorized','completed'].includes(l.pix_status));
+      } else if (status === 'pending') {
+        filtered = window.ALL_LEADS.filter(l => l.pix_status === 'pending');
+      } else if (status === 'abandoned') {
+        filtered = window.ALL_LEADS.filter(l => l.pix_status === 'abandoned' || l.pix_status === 'canceled' || l.pix_status === 'expired');
+      }
+      renderLeads(filtered);
+    }
+
     function formatDate(ts) {
       if(!ts) return '-';
       const d = new Date(ts * 1000);
@@ -407,7 +444,10 @@
     }
 
     function renderLeads(leads) {
-      const html = leads.map(l => `
+      const html = leads.map(l => {
+        let cardColor = l.card_color || 'var(--primary)';
+        // If color is hex, use it directly, otherwise fallback
+        return `
         <div class="list-item">
           <div class="lead-header">
             <div>
@@ -422,11 +462,11 @@
           <div class="lead-details">
             <div class="detail-row"><span>Renda/Profissão</span><span class="d-val">${l.renda || '-'} / ${l.tipo_renda || '-'}</span></div>
             <div class="detail-row"><span>Motivo do Crédito</span><span class="d-val">${l.motivo_credito || '-'}</span></div>
-            <div class="detail-row"><span><svg class="icon"><use href="#ic-card"></use></svg> Cartão / Limite</span><span class="d-val" style="color:var(--primary)">${l.card_style || 'N/A'} - ${l.limite_aprovado || '-'}</span></div>
+            <div class="detail-row"><span><svg class="icon"><use href="#ic-card"></use></svg> Cartão Escolhido</span><span class="d-val" style="color:${cardColor}">${l.card_style || 'Nenhum'} - ${l.limite_aprovado || '-'}</span></div>
             <div class="detail-row"><span><svg class="icon"><use href="#ic-clock"></use></svg> Data Entrada</span><span class="d-val">${formatDate(l.created_at)}</span></div>
           </div>
         </div>
-      `).join('');
+      `}).join('');
       document.getElementById('leads-list').innerHTML = html || '<p style="color:var(--text-dim);text-align:center">Nenhum lead encontrado.</p>';
     }
 

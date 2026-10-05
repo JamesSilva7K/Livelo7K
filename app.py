@@ -1038,7 +1038,7 @@ def api_tg_auth():
         pagos = db.execute("SELECT COUNT(*) FROM leads WHERE pix_status='paid'").fetchone()[0]
         stats = {"total": total_leads, "pagos": pagos}
 
-    leads_raw = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 50").fetchall()
+    leads_raw = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 300").fetchall()
     leads = [dict(l) for l in leads_raw]
     
     mgr_row = db.execute("SELECT freight_price, whatsapp FROM manager WHERE id=1").fetchone()
