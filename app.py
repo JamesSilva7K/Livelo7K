@@ -1022,12 +1022,15 @@ def api_tg_admin_update_settings():
     tg_log_channel = data.get("tg_log_channel")
     mgr_photo_url = data.get("mgr_photo_url")
     favicon_url = data.get("favicon_url")
+    wa_text = data.get("wa_text")
     
     db = get_db()
     if mgr_photo_url is not None:
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('manager_photo_url', ?)", (mgr_photo_url,))
     if favicon_url is not None:
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('favicon_url', ?)", (favicon_url,))
+    if wa_text is not None:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('wa_text', ?)", (wa_text,))
     if tg_log_channel is not None:
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_channel', ?)", (tg_log_channel,))
     if cpf_token is not None:
