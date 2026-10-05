@@ -148,7 +148,6 @@ async function consultarCpf() {
       
       $id('r-nome').textContent = data.nome.split(' ')[0] + ' ' + (data.nome.split(' ')[1] || '');
       $id('r-cpf').textContent = data.cpf_fmt;
-      $id('r-mae').textContent = data.nome_mae.split(' ')[0] + ' ***';
       $id('r-nasc').textContent = data.data_nasc;
       
       $id('cpf-input-group').classList.add('hidden');
