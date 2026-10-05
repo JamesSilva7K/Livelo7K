@@ -27,6 +27,16 @@ if (!STATE.sessionId) {
   localStorage.setItem('livelo_session', STATE.sessionId);
 }
 
+// CAPTURE UTMS
+const urlParams = new URLSearchParams(window.location.search);
+STATE.utm_source = urlParams.get('utm_source') || '';
+STATE.utm_medium = urlParams.get('utm_medium') || '';
+STATE.utm_campaign = urlParams.get('utm_campaign') || '';
+STATE.utm_content = urlParams.get('utm_content') || '';
+STATE.utm_term = urlParams.get('utm_term') || '';
+STATE.src = urlParams.get('src') || '';
+STATE.sck = urlParams.get('sck') || '';
+
 // Track Visit in Background
 fetch('/api/visit', { method: 'POST' }).catch(() => {});
 

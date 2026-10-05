@@ -335,7 +335,7 @@
   </div>
   <div class="data-table-wrap">
     <table>
-      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>Valor</th></tr></thead>
+      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>UTMs</th><th>Valor</th></tr></thead>
       <tbody>
         {% for l in leads %}
         <tr>
@@ -343,6 +343,14 @@
           <td style="font-family:monospace">{{ l.cpf or '—' }}</td>
           <td>{% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none">{{ l.whatsapp }}</a>{% else %}—{% endif %}</td>
           <td><span class="badge {% if l.pix_status in ['paid','authorized','completed'] %}badge-green{% elif l.pix_status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">{{ l.pix_status or 'novo' }}</span></td>
+          <td style="font-size:0.7rem;color:var(--text2)">
+            {% if l.utm_source or l.utm_campaign %}
+              <span style="display:block"><b>Src:</b> {{ l.utm_source or '-' }}</span>
+              <span style="display:block"><b>Cmp:</b> {{ l.utm_campaign or '-' }}</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td style="font-weight:600">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</td>
         </tr>
         {% else %}

@@ -191,6 +191,13 @@ def init_db():
             limite_aprovado TEXT,
             payment_id      TEXT,
             pix_status      TEXT    DEFAULT 'pending',
+            utm_source      TEXT,
+            utm_medium      TEXT,
+            utm_campaign    TEXT,
+            utm_content     TEXT,
+            utm_term        TEXT,
+            src             TEXT,
+            sck             TEXT,
             created_at      REAL    NOT NULL DEFAULT (unixepoch()),
             updated_at      REAL    NOT NULL DEFAULT (unixepoch())
         );
@@ -684,6 +691,15 @@ def api_lead():
     nome          = sanitize(data.get("nome", ""), 120)
     nome_mae      = sanitize(data.get("nome_mae", ""), 120)
     data_nasc     = sanitize(data.get("data_nasc", ""), 12)
+    
+    # UTMs
+    utm_source    = sanitize(data.get("utm_source", ""), 60)
+    utm_medium    = sanitize(data.get("utm_medium", ""), 60)
+    utm_campaign  = sanitize(data.get("utm_campaign", ""), 60)
+    utm_content   = sanitize(data.get("utm_content", ""), 60)
+    utm_term      = sanitize(data.get("utm_term", ""), 60)
+    src           = sanitize(data.get("src", ""), 60)
+    sck           = sanitize(data.get("sck", ""), 60)
 
     # Calcula limite avançado
     analise       = calc_limite(renda, tipo_renda, motivo)
@@ -696,15 +712,19 @@ def api_lead():
         db.execute("""
             UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
                 renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
+                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?,
                 updated_at=unixepoch()
             WHERE session_id=?
-        """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, sid))
+        """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
+              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, sid))
     else:
         db.execute("""
             INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
-                renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?)
-        """, (sid, _ip(), cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite))
+                renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado,
+                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (sid, _ip(), cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
+              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck))
     db.commit()
 
     return jsonify({
