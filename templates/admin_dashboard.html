@@ -391,7 +391,7 @@
     </div>
     <div class="cfg-card-body">
       <div class="logo-preview-box">
-        <img id="logo-preview-img" src="{{ sys_logo or '/static/images/manager_default.svg' }}" alt="Logo" onerror="this.src='/static/images/manager_default.svg'">
+        <img id="logo-preview-img" src="{{ sys_config.get('system_logo', '/static/images/logo.png') }}" alt="Logo" onerror="this.src='/static/images/logo.png'">
       </div>
       <form id="logo-form" onsubmit="saveLogo(event)" enctype="multipart/form-data">
         <div class="field-group">
@@ -710,7 +710,7 @@
     btn.disabled = true; btn.innerHTML = 'Salvando...';
     try {
       const fd = new FormData(e.target);
-      const res = await fetch('/admin/logo', { method: 'POST', body: fd });
+      const res = await fetch('/admin/api/logo', { method: 'POST', body: fd });
       const d = await res.json();
       if (d.ok) {
         showToast('Logo atualizada com sucesso!');
@@ -723,10 +723,10 @@
   
   async function resetLogo() {
     if (!confirm('Deseja restaurar a logo para o padrão da Livelo?')) return;
-    const fd = new FormData(); fd.append('logo_url', '/static/images/manager_default.svg');
-    const d = await (await fetch('/admin/logo', { method: 'POST', body: fd })).json();
+    const fd = new FormData(); fd.append('url', '/static/images/logo.png');
+    const d = await (await fetch('/admin/api/logo', { method: 'POST', body: fd })).json();
     if (d.ok) {
-      document.getElementById('logo-preview-img').src = '/static/images/manager_default.svg?t=' + Date.now();
+      document.getElementById('logo-preview-img').src = '/static/images/logo.png?t=' + Date.now();
       showToast('Logo padrão restaurada!');
     }
   }

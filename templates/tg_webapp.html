@@ -235,6 +235,14 @@
           <div class="config-label"><svg class="icon" style="color:#25D366"><use href="#ic-whatsapp"></use></svg> WhatsApp Suporte</div>
           <input type="text" id="cfg-wa" class="config-input" placeholder="5511999999999">
         </div>
+        <div class="config-row">
+          <div class="config-label"><svg class="icon"><use href="#ic-settings"></use></svg> Token API CPF</div>
+          <input type="text" id="cfg-cpf-token" class="config-input" placeholder="Token da Hub...">
+        </div>
+        <div class="config-row">
+          <div class="config-label"><svg class="icon"><use href="#ic-leads"></use></svg> ID do Canal de Logs</div>
+          <input type="text" id="cfg-log-channel" class="config-input" placeholder="-100123456789">
+        </div>
         <button class="btn-save" onclick="saveConfigs()">Salvar Configurações</button>
       </div>
 
@@ -401,13 +409,14 @@
     async function saveConfigs() {
       const frete = document.getElementById('cfg-frete').value;
       const wa = document.getElementById('cfg-wa').value;
+      const cpf_token = document.getElementById('cfg-cpf-token').value;
       tg.HapticFeedback.impactOccurred('light');
       
       try {
         const res = await fetch('/api/tg_admin_update_settings', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ supreme_id: SUPREME_ID, freight_price: frete, whatsapp: wa })
+          body: JSON.stringify({ supreme_id: SUPREME_ID, freight_price: frete, whatsapp: wa, cpf_token: cpf_token, tg_log_channel: document.getElementById('cfg-log-channel').value })
         });
         const data = await res.json();
         if(data.ok) {
