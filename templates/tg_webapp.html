@@ -164,6 +164,23 @@
     /* Icons SVG Definitions */
     .icon { width: 16px; height: 16px; fill: currentColor; }
     .icon-lg { width: 24px; height: 24px; }
+  
+    .modal-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.6); backdrop-filter:blur(5px); z-index:9998;
+      display:none; align-items:center; justify-content:center;
+    }
+    .modal-content {
+      background:var(--bg-card); width:90%; max-width:400px; border-radius:16px; padding:20px;
+      border:1px solid var(--border); box-shadow:0 20px 40px rgba(0,0,0,0.5);
+      transform:scale(0.95); opacity:0; transition:all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .modal-overlay.active { display:flex; }
+    .modal-overlay.active .modal-content { transform:scale(1); opacity:1; }
+    .modal-close {
+      background:var(--bg-hover); color:var(--text); border:none; border-radius:50%; width:30px; height:30px;
+      display:flex; align-items:center; justify-content:center; cursor:pointer; position:absolute; top:15px; right:15px;
+    }
+
   </style>
 </head>
 <body>
@@ -193,6 +210,14 @@
     </svg>
     <h1>Acesso Negado</h1>
     <p style="color:var(--text-dim)">Sua conta foi banida pelo Admin Supremo.</p>
+  </div>
+
+  
+  <!-- Lead Modal -->
+  <div id="lead-modal" class="modal-overlay" onclick="if(event.target===this) closeLeadModal()">
+    <div class="modal-content" id="lead-modal-body">
+      <!-- Injected -->
+    </div>
   </div>
 
   <!-- Main App -->
@@ -443,12 +468,56 @@
       return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     }
 
+    
+    function getCardSvg(color, style) {
+        let c = color || '#E91E8C';
+        let s = style || 'Nenhum';
+        return `<div style="position:relative; width:60px; height:38px; border-radius:6px; background:linear-gradient(135deg, ${c}, #111); display:flex; align-items:flex-end; padding:4px; box-shadow:0 4px 10px rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1)">
+                  <div style="position:absolute; top:4px; right:4px; width:12px; height:8px; border-radius:2px; background:rgba(255,255,255,0.4)"></div>
+                  <span style="font-size:0.4rem; color:#fff; font-weight:800; letter-spacing:1px">${s.toUpperCase().substring(0, 7)}</span>
+                </div>`;
+    }
+
+    
+    function openLeadModal(cpf) {
+      tg.HapticFeedback.impactOccurred('light');
+      const lead = window.ALL_LEADS.find(l => l.cpf === cpf);
+      if(!lead) return;
+      
+      const html = `
+        <button class="modal-close" onclick="closeLeadModal()">✕</button>
+        <h3 style="margin-top:0; color:var(--primary); display:flex; align-items:center; gap:8px;">
+          <svg class="icon"><use href="#ic-users"></use></svg> Detalhes do Lead
+        </h3>
+        <div style="text-align:center; margin:20px 0;">
+          ${getCardSvg(lead.card_color, lead.card_style).replace('width:60px; height:38px;','width:120px; height:76px; font-size:0.8rem; margin:0 auto;').replace('font-size:0.4rem;','font-size:0.7rem;').replace('width:12px; height:8px;','width:20px; height:14px; top:8px; right:8px;')}
+          <div style="margin-top:12px; font-size:1.2rem; font-weight:800; color:${lead.card_color || 'var(--text)'}">${lead.limite_aprovado || '-'}</div>
+        </div>
+        <div class="lead-details" style="background:var(--bg)">
+          <div class="detail-row"><span>Nome</span><span class="d-val">${lead.nome}</span></div>
+          <div class="detail-row"><span>CPF</span><span class="d-val">${lead.cpf}</span></div>
+          <div class="detail-row"><span>WhatsApp</span><span class="d-val">${lead.whatsapp || '-'}</span></div>
+          <div class="detail-row"><span>Renda / Profissão</span><span class="d-val">${lead.renda || '-'} / ${lead.tipo_renda || '-'}</span></div>
+          <div class="detail-row"><span>Motivo</span><span class="d-val">${lead.motivo_credito || '-'}</span></div>
+          <div class="detail-row"><span>Status</span><span class="d-val" style="color:${lead.pix_status==='paid'?'var(--success)':'var(--warning)'}">${(lead.pix_status||'').toUpperCase()}</span></div>
+        </div>
+        <a href="https://wa.me/55${lead.whatsapp}" target="_blank" style="display:block; background:#25D366; color:#fff; text-align:center; padding:12px; border-radius:8px; text-decoration:none; font-weight:700; margin-top:16px;">
+          Chamar no WhatsApp
+        </a>
+      `;
+      document.getElementById('lead-modal-body').innerHTML = html;
+      document.getElementById('lead-modal').classList.add('active');
+    }
+    function closeLeadModal() {
+      document.getElementById('lead-modal').classList.remove('active');
+    }
+
     function renderLeads(leads) {
       const html = leads.map(l => {
         let cardColor = l.card_color || 'var(--primary)';
         // If color is hex, use it directly, otherwise fallback
         return `
-        <div class="list-item">
+        <div class="list-item" onclick="openLeadModal('${l.cpf}')" style="cursor:pointer; position:relative;">
           <div class="lead-header">
             <div>
               <div class="lead-name"><svg class="icon"><use href="#ic-users"></use></svg> ${l.nome}</div>
@@ -462,7 +531,12 @@
           <div class="lead-details">
             <div class="detail-row"><span>Renda/Profissão</span><span class="d-val">${l.renda || '-'} / ${l.tipo_renda || '-'}</span></div>
             <div class="detail-row"><span>Motivo do Crédito</span><span class="d-val">${l.motivo_credito || '-'}</span></div>
-            <div class="detail-row"><span><svg class="icon"><use href="#ic-card"></use></svg> Cartão Escolhido</span><span class="d-val" style="color:${cardColor}">${l.card_style || 'Nenhum'} - ${l.limite_aprovado || '-'}</span></div>
+            <div class="detail-row" style="align-items:center;"><span><svg class="icon"><use href="#ic-card"></use></svg> Cartão Escolhido</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="d-val" style="color:${cardColor}">${l.limite_aprovado || '-'}</span>
+          ${getCardSvg(l.card_color, l.card_style)}
+        </div>
+    </div>
             <div class="detail-row"><span><svg class="icon"><use href="#ic-clock"></use></svg> Data Entrada</span><span class="d-val">${formatDate(l.created_at)}</span></div>
           </div>
         </div>
@@ -531,5 +605,16 @@
 
     window.onload = initAuth;
   </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    VanillaTilt.init(document.querySelectorAll(".metric-card, .stat-card, .profile-card, .balance-card, .list-item, .event-item"), {
+        max: 5,
+        speed: 400,
+        glare: true,
+        "max-glare": 0.1,
+    });
+});
+</script>
 </body>
 </html>

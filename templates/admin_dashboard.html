@@ -194,6 +194,15 @@
     ::-webkit-scrollbar{width:6px;height:6px}
     ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
     ::-webkit-scrollbar-track{background:transparent}
+  
+    .stat-card { border: 1px solid rgba(255,255,255,0.05); background: rgba(22, 25, 37, 0.7); backdrop-filter: blur(10px); }
+    .balance-card { background: rgba(28, 31, 46, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 0 20px rgba(16, 185, 129, 0.1); }
+    .top-bar { background: rgba(22, 25, 37, 0.8); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .bottom-nav { background: rgba(22, 25, 37, 0.8); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05); }
+    .data-table-wrap { background: rgba(22, 25, 37, 0.7); backdrop-filter: blur(10px); }
+    .cfg-card { background: rgba(22, 25, 37, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+    .profile-card { background: rgba(22, 25, 37, 0.7); backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(124, 58, 237, 0.15); }
+
   </style>
 </head>
 <body>
@@ -335,7 +344,7 @@
   </div>
   <div class="data-table-wrap">
     <table>
-      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>UTMs</th><th>Valor</th></tr></thead>
+      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>UTMs</th><th>Cartão</th><th>Valor</th></tr></thead>
       <tbody>
         {% for l in leads %}
         <tr>
@@ -351,7 +360,16 @@
               —
             {% endif %}
           </td>
-          <td style="font-weight:600">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</td>
+          
+          <td style="font-weight:600">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="position:relative; width:45px; height:28px; border-radius:4px; background:linear-gradient(135deg, {{ l.card_color or 'var(--purple)' }}, #111); display:flex; align-items:flex-end; padding:3px; box-shadow:0 2px 5px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1)">
+                <div style="position:absolute; top:3px; right:3px; width:8px; height:5px; border-radius:1px; background:rgba(255,255,255,0.4)"></div>
+                <span style="font-size:0.3rem; color:#fff; font-weight:800;">{{ (l.card_style or 'PADRÃO')[:6] }}</span>
+              </div>
+            </div>
+          </td>
+<td style="font-weight:600; color:var(--green)">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</td>
         </tr>
         {% else %}
         <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Nenhum registro encontrado.</td></tr>
@@ -368,7 +386,7 @@
   </div>
   <div class="data-table-wrap">
     <table>
-      <thead><tr><th>Transação</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
+      <thead><tr><th>Transação</th><th>Cartão</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
       <tbody>
         {% for p in pays %}
         <tr>
@@ -838,6 +856,17 @@
     } catch { showToast('Erro de conexão', 'error'); }
     finally { btn.disabled = false; btn.innerHTML = origHTML; }
   }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    VanillaTilt.init(document.querySelectorAll(".metric-card, .stat-card, .profile-card, .balance-card, .list-item, .event-item"), {
+        max: 5,
+        speed: 400,
+        glare: true,
+        "max-glare": 0.1,
+    });
+});
 </script>
 </body>
 </html>
