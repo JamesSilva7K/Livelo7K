@@ -38,10 +38,10 @@ html, body {
 }
 
 /* SCREEN */
-.screen { display: none; min-height: 100vh; opacity: 0; transform: translateY(16px); transition: opacity 0.4s ease, transform 0.4s ease; }
+.screen { display: none; opacity: 0; transform: translateY(16px); transition: opacity 0.4s ease, transform 0.4s ease; }
 .screen.active { display: block; opacity: 1; transform: translateY(0); }
 
-.step-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 520px; margin: 0 auto; padding: 40px 20px 32px; min-height: 100vh; }
+.step-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 520px; margin: 0 auto; padding: 40px 20px 32px; min-height: auto; }
 
 /* LOGO */
 .livelo-logo { display: flex; align-items: center; gap: 6px; margin-bottom: 32px; text-decoration: none; }
@@ -203,7 +203,7 @@ html, body {
 .rv { font-weight: 700; color: var(--text); text-align: right; }
 
 /* SPLASH */
-.splash-inner { display: flex; flex-direction: column; align-items: center; padding: 48px 24px 32px; min-height: 100vh; }
+.splash-inner { display: flex; flex-direction: column; align-items: center; padding: 48px 24px 32px; min-height: auto; }
 .splash-title { font-size: 1.8rem; font-weight: 800; color: var(--text); text-align: center; letter-spacing: -0.03em; line-height: 1.2; margin-bottom: 12px; }
 .splash-sub { font-size: 0.95rem; color: var(--text-muted); text-align: center; line-height: 1.6; margin-bottom: 32px; max-width: 380px; }
 .splash-logo { text-align: center; margin-bottom: 36px; }
