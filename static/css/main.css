@@ -226,7 +226,7 @@ html, body {
 .footer-links a:hover { color: var(--pink); }
 
 /* ─── FUNNEL FULL-PAGE LAYOUT ─────────────────────────── */
-.funnel-page { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; margin: 0 auto; padding: 40px 20px 32px; min-height: 100vh; }
+.funnel-page { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 480px; margin: 0 auto; padding: 0 20px 32px; }
 .funnel-logo { display: flex; align-items: center; gap: 4px; margin-bottom: 40px; }
 .funnel-card { width: 100%; max-width: 460px; }
 .funnel-q { font-size: 1.05rem; font-weight: 700; color: var(--text); text-align: center; line-height: 1.4; margin-bottom: 4px; letter-spacing: -0.01em; }
@@ -279,9 +279,9 @@ html, body {
 .hidden { display: none !important; }
 
 /* CARD PREVIEW (card-style screen) */
-.card-preview { display: flex; justify-content: center; margin: 24px 0 32px; perspective: 1200px; }
-.card-preview-sm { margin: 24px 0; perspective: 1200px; display: flex; justify-content: center; }
-.card-preview-center { margin: 24px 0 32px; perspective: 1200px; display: flex; justify-content: center; }
+.card-preview { display: flex; justify-content: center; margin: 0 0 32px; perspective: 1200px; }
+.card-preview-sm { margin: 0 0 24px; perspective: 1200px; display: flex; justify-content: center; }
+.card-preview-center { margin: 0 0 32px; perspective: 1200px; display: flex; justify-content: center; }
 .credit-card.sm { width: 280px; height: 175px; }
 .credit-card.sm .card-face { padding: 16px 18px; }
 .credit-card.sm .card-row-number { font-size: 0.92rem; gap: 7px; }
