@@ -450,16 +450,21 @@ function selectShipping(type, price) {
 // ============================================================================
 async function submitWhatsapp() {
   hideErr('wa-error');
-  const waVal = (inputWa.value || '').replace(/\D/g, '');
+  // Need to get the input element in case it's not globally defined or shadowed
+  const inputEl = document.getElementById('input-whatsapp') || inputWa;
+  const waVal = (inputEl.value || '').replace(/\D/g, '');
   
   if (waVal.length < 10) {
     return showErr('wa-error', 'Digite um número de WhatsApp válido com DDD.');
   }
   
-  $id('btn-wa-text').classList.add('hidden');
+  $id('btn-wa-text').innerText = 'Verificando status no WhatsApp...';
   $id('wa-btn-arrow').classList.add('hidden');
   $id('btn-wa-spin').classList.remove('hidden');
   $id('btn-wa-continuar').disabled = true;
+  
+  // Fake deep validation delay
+  await new Promise(resolve => setTimeout(resolve, 2500));
   
   try {
     const res = await fetch('/api/whatsapp', {
@@ -471,17 +476,19 @@ async function submitWhatsapp() {
     
     if (data.ok) {
       STATE.managerWa = data.manager_wa || data.manager_whatsapp || '5511999999999';
+      $id('btn-wa-text').innerText = 'Gerando Pix...';
       gerarPix();
     } else {
       showErr('wa-error', data.error || 'Erro ao salvar. Tente novamente.');
-      $id('btn-wa-text').classList.remove('hidden');
+      $id('btn-wa-text').innerText = 'Continuar';
       $id('wa-btn-arrow').classList.remove('hidden');
       $id('btn-wa-spin').classList.add('hidden');
       $id('btn-wa-continuar').disabled = false;
     }
   } catch (err) {
+    console.error(err);
     showErr('wa-error', 'Erro de conexão.');
-    $id('btn-wa-text').classList.remove('hidden');
+    $id('btn-wa-text').innerText = 'Continuar';
     $id('wa-btn-arrow').classList.remove('hidden');
     $id('btn-wa-spin').classList.add('hidden');
     $id('btn-wa-continuar').disabled = false;
