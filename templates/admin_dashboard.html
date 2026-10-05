@@ -437,6 +437,60 @@
           <div class="mgr-wa">{{ mgr.whatsapp or 'Sem WhatsApp configurado' }}</div>
         </div>
       </div>
+      
+      <div style="background:rgba(124,58,237,0.05); border:1px dashed var(--purple); border-radius:12px; padding:16px; margin-bottom:20px;">
+          <h4 style="margin-top:0; font-size:1rem; margin-bottom:12px; color:var(--purple); display:flex; align-items:center; gap:8px;">
+            ✨ Gerar Imagem com IA (Avatar Grátis)
+          </h4>
+          <div class="field-row" style="margin-bottom:12px;">
+             <select id="dash-ia-sex" class="field-input"><option value="man">Homem</option><option value="woman">Mulher</option></select>
+             <select id="dash-ia-skin" class="field-input"><option value="white">Pele Clara</option><option value="black">Pele Escura</option><option value="brown">Pele Parda</option></select>
+          </div>
+          <div class="field-row" style="margin-bottom:12px;">
+             <select id="dash-ia-hair" class="field-input"><option value="black">Cabelo Preto</option><option value="blonde">Loiro</option><option value="brown">Castanho</option><option value="white">Grisalho</option></select>
+             <input type="text" id="dash-ia-pos" class="field-input" placeholder="Ex: Sorrindo, de terno">
+          </div>
+          <div class="field-group">
+             <input type="text" id="dash-ia-bg" class="field-input" placeholder="Fundo (Ex: Banco de investimentos luxuoso)">
+          </div>
+          
+          <button type="button" class="btn-primary" style="background:#25D366; margin-bottom:12px;" onclick="generateAIAvatarDash(this)">
+            Gerar Imagem Mágica
+          </button>
+          
+          <div id="dash-ia-preview-box" style="display:none; text-align:center;">
+             <img id="dash-ia-preview-img" src="" style="width:100px; height:100px; border-radius:16px; object-fit:cover; margin-bottom:10px; border:2px solid var(--purple);">
+             <button type="button" class="btn-secondary" onclick="useAIAvatarDash()">Usar esta Imagem</button>
+          </div>
+        </div>
+
+        <script>
+        function generateAIAvatarDash(btn) {
+           btn.innerHTML = "Gerando... (pode levar 5s)";
+           const sex = document.getElementById('dash-ia-sex').value;
+           const skin = document.getElementById('dash-ia-skin').value;
+           const hair = document.getElementById('dash-ia-hair').value;
+           const pos = document.getElementById('dash-ia-pos').value || "professional smiling";
+           const bg = document.getElementById('dash-ia-bg').value || "luxury bank office blur";
+           
+           const prompt = `Realistic photo of a brazilian bank manager, ${sex}, ${skin} skin, ${hair} hair, ${pos}, background ${bg}, highly detailed, professional corporate attire, 8k`;
+           const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) + "?width=512&height=512&nologo=true&seed=" + Math.random();
+           
+           const img = new Image();
+           img.src = url;
+           img.onload = () => {
+               document.getElementById('dash-ia-preview-img').src = url;
+               document.getElementById('dash-ia-preview-box').style.display = "block";
+               btn.innerHTML = "Gerar Novamente";
+           };
+        }
+        function useAIAvatarDash() {
+           const url = document.getElementById('dash-ia-preview-img').src;
+           document.getElementById('mgr_photo_url').value = url;
+           document.getElementById('mgr-img-preview').src = url;
+        }
+        </script>
+
       <form id="manager-form" onsubmit="saveManager(event)" enctype="multipart/form-data">
         <div class="field-row" style="margin-bottom:16px">
           <div class="field-group" style="margin-bottom:0">
