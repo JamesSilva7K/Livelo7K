@@ -77,11 +77,23 @@ app.config.update(
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 log = logging.getLogger("livelo")
 
+import shutil
 # ── PATHS ──────────────────────────────────────────────────────────────────────
 BASE_DIR   = Path(__file__).parent
-DB_PATH    = BASE_DIR / "livelo.db"
-UPLOAD_DIR = BASE_DIR / "static" / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+if os.environ.get("VERCEL"):
+    DB_PATH = Path("/tmp/livelo.db")
+    UPLOAD_DIR = Path("/tmp/uploads")
+    # Copy db to tmp if not exists
+    if not DB_PATH.exists() and (BASE_DIR / "livelo.db").exists():
+        shutil.copy2(BASE_DIR / "livelo.db", DB_PATH)
+else:
+    DB_PATH    = BASE_DIR / "livelo.db"
+    UPLOAD_DIR = BASE_DIR / "static" / "uploads"
+
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 ALLOWED_IMG_EXT = {"png", "jpg", "jpeg", "webp", "gif"}
 
@@ -120,9 +132,12 @@ def get_secure_json():
 # ══════════════════════════════════════════════════════════════════════════════
 def get_db() -> sqlite3.Connection:
     if "db" not in g:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA journal_mode=WAL")
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+        except Exception:
+            pass
         conn.execute("PRAGMA busy_timeout=4000")
         g.db = conn
     return g.db
