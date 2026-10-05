@@ -102,17 +102,21 @@
     </div>
     {% endif %}
     
-    <form method="POST" action="/admin/login">
-      <div class="form-group">
-        <label for="username">Usuário</label>
-        <input type="text" id="username" name="username" required autocomplete="username" autofocus>
-      </div>
-      <div class="form-group">
-        <label for="password">Senha</label>
-        <input type="password" id="password" name="password" required autocomplete="current-password">
-      </div>
-      <button type="submit" class="btn-login">Acessar Painel</button>
-    </form>
+    <p style="text-align: center; color: #374151; margin-bottom: 24px; font-size: 0.95rem;">
+      O acesso ao painel é restrito. <br>Autentique-se com sua conta do Telegram.
+    </p>
+
+    <div style="display: flex; justify-content: center; margin-top: 10px;">
+      <script async src="https://telegram.org/js/telegram-widget.js?22" 
+              data-telegram-login="{{ bot_username }}" 
+              data-size="large" 
+              data-auth-url="/admin/tg_callback" 
+              data-request-access="write"></script>
+    </div>
+    
+    <p style="text-align: center; font-size: 0.75rem; color: #9ca3af; margin-top: 24px;">
+      Nota: O bot precisa ter seu domínio configurado via @BotFather (/setdomain)
+    </p>
   </div>
 </body>
 </html>

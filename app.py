@@ -1154,42 +1154,65 @@ def tg_webapp_leads():
 # ══════════════════════════════════════════════════════════════════════════════
 #  ROUTES — ADMIN PANEL
 # ══════════════════════════════════════════════════════════════════════════════
-@app.route("/admin/login", methods=["GET", "POST"])
+@app.route("/admin/login")
 def admin_login():
-    ip = _ip()
-    if is_blocked(ip):
-        return render_template("admin_login.html",
-                               error="Acesso bloqueado temporariamente por segurança."), 429
+    db = get_db()
+    token_row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+    token = os.environ.get("TELEGRAM_BOT_TOKEN") or (token_row["value"] if token_row else "")
+    bot_username = "SeuBot"
+    if token:
+        import requests
+        try:
+            r = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=3).json()
+            if r.get("ok"):
+                bot_username = r["result"]["username"]
+        except:
+            pass
+    return render_template("admin_login.html", bot_username=bot_username, error=request.args.get("error"))
 
-    if request.method == "POST":
-        username = sanitize(request.form.get("username", ""), 60)
-        password = request.form.get("password", "")
-        env_user = os.environ.get("ADMIN_USER")
-        env_pass = os.environ.get("ADMIN_PASS")
-
-        # Prioriza login via variáveis de ambiente se configurado (ideal para o Render)
-        if env_user and env_pass and username == env_user and password == env_pass:
-            reset_auth_fail(ip)
-            session.permanent = True
-            session["admin_id"]   = 999
-            session["admin_user"] = username
-            log.info("[ADMIN ENV] Login: %s @ %s", username, ip)
-            return redirect(url_for("admin_dashboard"))
-
-        # Fallback para o Banco de Dados
-        db  = get_db()
-        row = db.execute("SELECT * FROM admin WHERE username=?", (username,)).fetchone()
-        if row and check_password_hash(row["password"], password):
-            reset_auth_fail(ip)
-            session.permanent = True
-            session["admin_id"]   = row["id"]
-            session["admin_user"] = row["username"]
-            log.info("[ADMIN DB] Login: %s @ %s", username, ip)
-            return redirect(url_for("admin_dashboard"))
-        record_auth_fail(ip)
-        return render_template("admin_login.html", error="Credenciais inválidas.")
-
-    return render_template("admin_login.html", error=None)
+@app.route("/admin/tg_callback")
+def admin_tg_callback():
+    import hashlib, hmac
+    data = request.args.to_dict()
+    tg_hash = data.pop('hash', None)
+    if not tg_hash:
+        return redirect(url_for("admin_login", error="Autenticação inválida"))
+        
+    db = get_db()
+    token_row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or (token_row["value"] if token_row else "")
+    
+    data_check_string = "\n".join([f"{k}={v}" for k, v in sorted(data.items())])
+    secret_key = hashlib.sha256(bot_token.encode()).digest()
+    expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    
+    if expected_hash != tg_hash:
+        return redirect(url_for("admin_login", error="Assinatura do Telegram inválida"))
+        
+    tg_id = str(data.get("id"))
+    supreme_id = os.environ.get("ADMIN_CHAT_ID", "")
+    
+    is_supreme = (tg_id == supreme_id)
+    role = "supreme" if is_supreme else "basic"
+    status = "active"
+    
+    row = db.execute("SELECT * FROM telegram_admins WHERE tg_id=?", (tg_id,)).fetchone()
+    if row:
+        if not is_supreme:
+            role = row["role"]
+            status = row["status"]
+            
+    if status == "banned":
+        return redirect(url_for("admin_login", error="Acesso banido pelo Admin Supremo."))
+        
+    session.permanent = True
+    session["admin_id"] = tg_id
+    session["admin_user"] = data.get("first_name", "Admin")
+    session["admin_role"] = role
+    session["admin_photo"] = data.get("photo_url", "")
+    
+    log.info("[ADMIN TG LOGIN] %s @ %s", tg_id, _ip())
+    return redirect(url_for("admin_dashboard"))
 
 
 @app.route("/admin/logout")

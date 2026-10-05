@@ -349,12 +349,19 @@
     </span>
     <span class="section-hdr-action">{{ total_leads }} leads</span>
   </div>
+  </div>
+  <div style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto;" class="hide-scrollbar">
+    <button class="nav-item active" style="padding:4px 12px; background:var(--bg3); border-radius:6px; cursor:pointer;" onclick="filterLeadsT('all', this)">Todos</button>
+    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('paid', this)">Pagos</button>
+    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('pending', this)">Pendentes</button>
+    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('abandoned', this)">Abandonos</button>
+  </div>
   <div class="data-table-wrap">
     <table>
       <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>UTMs</th><th>Cartão</th><th>Valor</th></tr></thead>
-      <tbody>
+      <tbody id="leads-tbody">
         {% for l in leads %}
-        <tr>
+        <tr class="lead-row" data-status="{{ l.pix_status or 'novo' }}">
           <td style="font-weight:600">{{ l.nome or '—' }}</td>
           <td style="font-family:monospace">{{ l.cpf or '—' }}</td>
           <td>{% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none">{{ l.whatsapp }}</a>{% else %}—{% endif %}</td>
@@ -412,10 +419,10 @@
 
 
 <!-- ====== CONFIG ====== -->
+{% if session.admin_role == 'supreme' %}
 <div id="tab-config" class="tab-pane">
 
   <!-- CPF API -->
-  {% if admin_user == 'admin' %}
   <div class="cfg-card" style="border: 1px solid var(--orange); box-shadow: 0 0 15px rgba(245,158,11,0.1);">
     <div class="cfg-card-header">
       <div class="cfg-icon" style="background:rgba(245,158,11,0.1);color:var(--orange)">
@@ -637,7 +644,7 @@
     </div>
   </div>
 </div>
-
+{% endif %}
 
 <!-- ====== PERFIL ====== -->
 <div id="tab-perfil" class="tab-pane">
@@ -731,10 +738,12 @@
     <span class="nav-label">Leads</span>
     {% if total_leads > 0 %}<span class="nav-badge">{{ total_leads if total_leads < 100 else '99+' }}</span>{% endif %}
   </button>
+  {% if session.admin_role == 'supreme' %}
   <button class="nav-item" id="nav-config" onclick="switchTab('config')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     <span class="nav-label">Config</span>
   </button>
+  {% endif %}
   <button class="nav-item" id="nav-perfil" onclick="switchTab('perfil')">
     <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     <span class="nav-label">Perfil</span>
@@ -777,6 +786,32 @@
   
   // INIT THEME
   applyTheme(getTheme());
+
+  function filterLeadsT(status, btn) {
+    btn.parentElement.querySelectorAll('button').forEach(b => {
+      b.classList.remove('active');
+      b.style.background = 'transparent';
+    });
+    btn.classList.add('active');
+    btn.style.background = 'var(--bg3)';
+    
+    const rows = document.querySelectorAll('#leads-tbody .lead-row');
+    rows.forEach(r => {
+      const st = r.getAttribute('data-status');
+      if (status === 'all') {
+        r.style.display = '';
+      } else if (status === 'paid') {
+        if (['paid','authorized','completed'].includes(st)) r.style.display = '';
+        else r.style.display = 'none';
+      } else if (status === 'pending') {
+        if (st === 'pending' || st === 'novo') r.style.display = '';
+        else r.style.display = 'none';
+      } else if (status === 'abandoned') {
+        if (['abandoned','canceled','expired'].includes(st)) r.style.display = '';
+        else r.style.display = 'none';
+      }
+    });
+  }
 
   // NAVIGATION
   function switchTab(name) {
