@@ -428,7 +428,7 @@
 
     <div id="leads-cards">
     {% for l in leads %}
-    <div class="lead-card" id="lc-{{ l.id }}" data-status="{{ l.pix_status or 'novo' }}" onclick="openLeadModal({{ l.id }})">
+    <div class="lead-card" id="lc-{{ l.id }}" data-status="{{ l.pix_status or 'novo' }}" onclick="openLeadModal('{{ l.id }}')">
       <div class="lead-card-header">
         <div>
           <div class="lead-name">{{ l.nome or 'Lead Anônimo' }}</div>
@@ -445,7 +445,7 @@
 
       <div class="lead-info-row">
         <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        {% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" onclick="event.stopPropagation()" style="color:var(--green);text-decoration:none;font-weight:600">{{ l.whatsapp }}</a>{% else %}<span>Não informado</span>{% endif %}
+        {% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--green);text-decoration:none;font-weight:600">{{ l.whatsapp }}</a>{% else %}<span>Não informado</span>{% endif %}
       </div>
       {% if l.renda %}
       <div class="lead-info-row">
@@ -523,17 +523,34 @@
           <svg class="ico" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
         API de Consultas CPF
-        <div style="margin-left:auto;font-size:0.75rem;font-weight:600;color:{% if cpf_calls >= 45 %}var(--red){% else %}var(--green){% endif %}">
+        {% if cpf_calls >= 50 %}
+          {% set c_color = 'var(--red)' %}
+          {% set c_width = 100 %}
+          {% set c_status = 'Esgotado' %}
+        {% elif cpf_calls >= 45 %}
+          {% set c_color = 'var(--red)' %}
+          {% set c_width = (cpf_calls / 50 * 100) | round | int %}
+          {% set c_status = 'Ativo' %}
+        {% elif cpf_calls >= 30 %}
+          {% set c_color = 'var(--orange)' %}
+          {% set c_width = (cpf_calls / 50 * 100) | round | int %}
+          {% set c_status = 'Ativo' %}
+        {% else %}
+          {% set c_color = 'var(--green)' %}
+          {% set c_width = (cpf_calls / 50 * 100) | round | int %}
+          {% set c_status = 'Ativo' %}
+        {% endif %}
+        <div style="margin-left:auto;font-size:0.75rem;font-weight:600;color:{{ c_color }}">
           {{ cpf_calls }}/50 créditos
         </div>
       </div>
       <div class="cfg-body">
         <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px">
           <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
-            <div style="height:100%;width:{{ (cpf_calls / 50 * 100) | round | int }}%;background:{% if cpf_calls >= 45 %}var(--red){% elif cpf_calls >= 30 %}var(--orange){% else %}var(--green){% endif %};border-radius:3px;transition:width 0.5s"></div>
+            <div style="height:100%;width:{{ c_width }}%;background:{{ c_color }};border-radius:3px;transition:width 0.5s"></div>
           </div>
           <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">
-            Status: <b style="color:{% if cpf_calls >= 50 %}var(--red){% else %}var(--green){% endif %}">{% if cpf_calls >= 50 %}Esgotado{% else %}Ativo{% endif %}</b>
+            Status: <b style="color:{{ c_color }}">{{ c_status }}</b>
           </div>
         </div>
         <form onsubmit="updateCpfApi(event)">
@@ -865,9 +882,9 @@
   }
 
   // ─── LEAD MODAL ───
-  const LEADS_DATA = {{ leads | tojson }};
+  const LEADS_DATA = JSON.parse('{{ leads | tojson | safe }}');
   function openLeadModal(id) {
-    const l = LEADS_DATA.find(x => x.id === id);
+    const l = LEADS_DATA.find(x => x.id == id);
     if (!l) return;
 
     // Build mini card class
