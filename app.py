@@ -1243,6 +1243,11 @@ def admin_dashboard():
     sys_logo = db.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
     sys_logo_val = sys_logo["value"] if sys_logo else ""
 
+    # Build sys_config dict
+    cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
+    sys_config_dict = {r["key"]: r["value"] for r in cfg_rows}
+    cpf_calls_val = int(sys_config_dict.get("cpf_api_calls", 0) or 0)
+
     return render_template(
         "admin_dashboard.html",
         mgr=dict(mgr) if mgr else {},
@@ -1254,6 +1259,8 @@ def admin_dashboard():
         admin_user=session.get("admin_user"),
         sys_favicon=sys_favicon_val,
         sys_logo=sys_logo_val,
+        sys_config=sys_config_dict,
+        cpf_calls=cpf_calls_val,
     )
 
 

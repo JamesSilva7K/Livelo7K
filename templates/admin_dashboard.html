@@ -3,960 +3,1049 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <meta name="robots" content="noindex,nofollow"/>
   <title>Livelo Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    /* Monitor dot — color driven by data-pstatus on parent */
-    .monitor-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;background:var(--red)}
-    [data-pstatus="paid"] .status-dot-clr,
-    [data-pstatus="authorized"] .status-dot-clr,
-    [data-pstatus="completed"] .status-dot-clr{background:var(--green)}
-    [data-pstatus="pending"] .status-dot-clr{background:var(--orange)}
-
-    [data-pstatus="paid"] .status-amount-clr,
-    [data-pstatus="authorized"] .status-amount-clr,
-    [data-pstatus="completed"] .status-amount-clr{color:var(--green)}
-    [data-pstatus="pending"] .status-amount-clr{color:var(--orange)}
-    .status-amount-clr{color:var(--red)}
-    
-    /* LIGHT THEME (Default) */
+    /* ─── TOKENS ─── */
     :root {
-      --bg: #F3F4F6;
-      --bg2: #FFFFFF;
-      --bg3: #F9FAFB;
-      --card: #FFFFFF;
-      --card2: #F9FAFB;
-      --border: #E5E7EB;
-      --text: #111827;
-      --text2: #4B5563;
-      --text3: #6B7280;
-      
-      --pink: #E5147A;
-      --purple: #7C3AED;
-      --green: #10B981;
-      --orange: #F59E0B;
-      --red: #EF4444;
-      
-      --radius: 14px;
-      --nav-h: 68px;
-      --top-h: 60px;
+      --bg:      #0A0C14;
+      --bg2:     #111422;
+      --bg3:     #181C2E;
+      --card:    #13172B;
+      --border:  rgba(255,255,255,0.07);
+      --text:    #F1F5F9;
+      --text2:   #8B92A9;
+      --text3:   #4B5470;
+      --pink:    #E5147A;
+      --purple:  #7C3AED;
+      --green:   #10B981;
+      --orange:  #F59E0B;
+      --red:     #EF4444;
+      --blue:    #3B82F6;
+      --gold:    #D4AF37;
+      --radius:  16px;
+      --nav-h:   70px;
+      --top-h:   58px;
     }
-    
-    /* DARK THEME (Modern Gray/Blue) */
-    [data-theme="dark"] {
-      --bg: #0F111A;
-      --bg2: #161925;
-      --bg3: #1C1F2E;
-      --card: #161925;
-      --card2: #1C1F2E;
-      --border: rgba(255, 255, 255, 0.08);
-      --text: #F3F4F6;
-      --text2: #9CA3AF;
-      --text3: #6B7280;
+    [data-theme="light"]{
+      --bg:#F1F5F9; --bg2:#FFFFFF; --bg3:#F8FAFC;
+      --card:#FFFFFF; --border:#E2E8F0;
+      --text:#0F172A; --text2:#475569; --text3:#94A3B8;
     }
 
-    html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background-color 0.3s, color 0.3s}
-    
-    /* SVGs */
+    html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
     svg{display:inline-block;vertical-align:middle}
-    .svg-icon{width:20px;height:20px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
-    
-    .top-bar{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--top-h);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);transition:background-color 0.3s, border-color 0.3s}
-    .top-bar-left{display:flex;align-items:center;gap:10px}
-    .top-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--pink),var(--purple));display:flex;align-items:center;justify-content:center}
-    .top-title{font-size:1rem;font-weight:700;letter-spacing:-0.01em}
-    .top-actions{display:flex;align-items:center;gap:6px}
-    .top-btn{width:36px;height:36px;border-radius:8px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s, color 0.2s;text-decoration:none}
-    .top-btn:hover{background:var(--border);color:var(--text)}
-    
-    .main-scroll{padding-top:calc(var(--top-h) + 16px);padding-bottom:calc(var(--nav-h) + 24px);min-height:100vh}
-    .tab-pane{display:none;padding:0 16px;max-width:800px;margin:0 auto}
-    .tab-pane.active{display:block;animation:fadeIn 0.3s ease}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
-    
-    .profile-card{background:var(--card);border:1px solid var(--purple);border-radius:var(--radius);padding:16px;display:flex;align-items:center;gap:14px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05)}
-    .profile-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--purple),var(--pink))}
-    .profile-avatar{width:56px;height:56px;border-radius:14px;overflow:hidden;background:var(--bg3);flex-shrink:0;border:2px solid var(--border)}
-    .profile-avatar img{width:100%;height:100%;object-fit:cover}
-    .profile-info{flex:1}
-    .profile-name{font-size:1.05rem;font-weight:700;margin-bottom:4px}
-    .profile-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,0.15);color:var(--purple);font-size:0.7rem;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.05em;text-transform:uppercase}
-    .profile-status{display:flex;align-items:center;gap:6px;margin-top:6px}
-    .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pdot 2s infinite}
-    @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(0.85)}}
-    .status-text{font-size:0.8rem;color:var(--green);font-weight:600}
-    
-    .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:8px}
-    .section-hdr-title{font-size:0.85rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:6px}
-    .section-hdr-action{font-size:0.8rem;color:var(--purple);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
-    .section-hdr-action:hover{text-decoration:underline}
-    
-    .stats-grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:12px;margin-bottom:16px}
-    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.02)}
-    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-    .stat-card.s-green::before{background:var(--green)}
-    .stat-card.s-orange::before{background:var(--orange)}
-    .stat-card.s-purple::before{background:var(--purple)}
-    .stat-card.s-pink::before{background:var(--pink)}
-    .stat-label{font-size:0.7rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px}
-    .stat-value{font-size:1.7rem;font-weight:800;line-height:1;margin-bottom:6px;color:var(--text)}
-    .stat-sub{font-size:0.75rem;color:var(--text3)}
-    .stat-icon{position:absolute;bottom:12px;right:16px;opacity:0.1}
-    .stat-icon svg{width:40px;height:40px}
-    
-    .balance-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 4px rgba(0,0,0,0.02)}
-    .balance-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),#34D399)}
-    .balance-label{font-size:0.75rem;font-weight:700;color:var(--text2);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px}
-    .balance-value{font-size:2.2rem;font-weight:800;margin-bottom:16px;letter-spacing:-0.02em;color:var(--text)}
-    .balance-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .balance-sub-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
-    .balance-sub-label{font-size:0.7rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;font-weight:600}
-    .balance-sub-val{font-size:1rem;font-weight:700;color:var(--text)}
-    
-    .event-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:flex-start;gap:14px;margin-bottom:10px;transition:transform 0.2s;box-shadow:0 1px 2px rgba(0,0,0,0.02)}
-    .event-icon{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-    .ev-green{background:rgba(16,185,129,0.15);color:var(--green)}
-    .ev-orange{background:rgba(245,158,11,0.15);color:var(--orange)}
-    .ev-red{background:rgba(239,68,68,0.15);color:var(--red)}
-    .event-info{flex:1;min-width:0}
-    .event-title{font-size:0.9rem;font-weight:600;margin-bottom:4px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .event-sub{font-size:0.8rem;color:var(--text2);display:flex;align-items:center;gap:4px}
-    
-    .badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;letter-spacing:0.03em;text-transform:uppercase}
-    .badge-green{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)}
-    .badge-orange{background:rgba(245,158,11,0.15);color:var(--orange);border:1px solid rgba(245,158,11,0.3)}
-    .badge-red{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3)}
-    
-    .data-table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
-    table{width:100%;border-collapse:collapse;font-size:0.85rem}
-    thead{background:var(--bg3)}
-    th{padding:12px 16px;text-align:left;font-weight:600;color:var(--text2);text-transform:uppercase;font-size:0.7rem;letter-spacing:0.06em;white-space:nowrap;border-bottom:1px solid var(--border)}
-    td{padding:12px 16px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text)}
-    tr:last-child td{border-bottom:none}
-    tr:hover td{background:var(--bg3)}
-    
-    .cfg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.02)}
-    .cfg-card-header{padding:16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:0.95rem;font-weight:700;color:var(--text)}
-    .cfg-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
-    .cfg-card-body{padding:20px}
-    
-    .field-group{margin-bottom:16px}
-    .field-group:last-child{margin-bottom:0}
-    .field-label{display:block;font-size:0.75rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px}
-    .field-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:0.9rem;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s, box-shadow 0.2s}
-    .field-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,0.15)}
-    .field-input::placeholder{color:var(--text3)}
-    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    
-    .upload-row{display:flex;gap:10px;align-items:center}
-    .upload-row .field-input{flex:1}
-    .upload-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:12px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px}
-    .upload-btn:hover{background:var(--purple);border-color:var(--purple);color:#FFF}
-    
-    .logo-preview-box{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;margin-bottom:16px;min-height:100px;display:flex;align-items:center;justify-content:center}
-    .logo-preview-box img{max-height:60px;max-width:240px;object-fit:contain}
-    
-    .btn-primary{width:100%;padding:14px;background:var(--purple);color:white;font-size:0.95rem;font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:opacity 0.2s,transform 0.1s;font-family:'Inter',sans-serif;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
-    .btn-primary:active{transform:translateY(1px)}
-    .btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none}
-    
-    .btn-secondary{width:100%;padding:14px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:0.95rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-secondary:hover{background:var(--border);color:var(--text)}
-    
-    .btn-danger{width:100%;padding:14px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:var(--red);font-size:0.95rem;font-weight:600;border-radius:12px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:10px;transition:background 0.2s;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-danger:hover{background:rgba(239,68,68,0.2)}
-    
-    .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:100;height:var(--nav-h);background:var(--bg2);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 -1px 3px rgba(0,0,0,0.05);transition:background-color 0.3s, border-color 0.3s}
-    .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;padding:8px 4px;border:none;background:transparent;color:var(--text3);font-family:'Inter',sans-serif;transition:color 0.2s;position:relative}
-    .nav-item:hover{color:var(--text2)}
-    .nav-item.active{color:var(--purple)}
-    .nav-item.active::before{content:'';position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--purple);border-radius:0 0 3px 3px}
-    .nav-item svg{width:22px;height:22px}
-    .nav-label{font-size:0.65rem;font-weight:600}
-    .nav-badge{position:absolute;top:8px;right:calc(50% - 20px);background:var(--pink);color:white;font-size:0.6rem;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
-    
-    .toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--text);color:var(--bg);padding:12px 24px;border-radius:30px;font-size:0.9rem;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s,transform 0.3s;white-space:nowrap;pointer-events:none;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-    
-    .empty-state{text-align:center;padding:48px 20px;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
-    .empty-state svg{width:48px;height:48px;margin-bottom:16px;opacity:0.5}
-    .empty-state-text{font-size:0.95rem;font-weight:500}
-    
-    .mgr-photo-wrap{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-    .mgr-photo{width:64px;height:64px;border-radius:16px;object-fit:cover;border:2px solid var(--border)}
-    .mgr-name{font-size:1.1rem;font-weight:700;color:var(--text)}
-    .mgr-wa{font-size:0.85rem;color:var(--text2);margin-top:4px}
-    
-    ::-webkit-scrollbar{width:6px;height:6px}
-    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-    ::-webkit-scrollbar-track{background:transparent}
-  
-    .stat-card { border: 1px solid rgba(255,255,255,0.05); background: rgba(22, 25, 37, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-    .balance-card { background: rgba(28, 31, 46, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(16, 185, 129, 0.2); box-shadow: 0 0 20px rgba(16, 185, 129, 0.1); }
-    .top-bar { background: rgba(22, 25, 37, 0.8); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .bottom-nav { background: rgba(22, 25, 37, 0.8); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,0.05); }
-    .data-table-wrap { background: rgba(22, 25, 37, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-    .cfg-card { background: rgba(22, 25, 37, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
-    .profile-card { background: rgba(22, 25, 37, 0.7); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 0 15px rgba(124, 58, 237, 0.15); }
+    .ico{width:20px;height:20px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0}
 
+    /* ─── TOP BAR ─── */
+    .top-bar{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--top-h);background:rgba(10,12,20,0.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+    [data-theme="light"] .top-bar{background:rgba(255,255,255,0.9)}
+    .top-left{display:flex;align-items:center;gap:10px}
+    .top-logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--pink),var(--purple));display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .top-title{font-size:1rem;font-weight:800;letter-spacing:-0.01em}
+    .top-badge{font-size:0.65rem;font-weight:700;background:rgba(229,20,122,0.15);color:var(--pink);border:1px solid rgba(229,20,122,0.3);border-radius:20px;padding:2px 8px;letter-spacing:0.05em}
+    .top-right{display:flex;align-items:center;gap:6px}
+    .ico-btn{width:36px;height:36px;border-radius:10px;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;text-decoration:none;flex-shrink:0}
+    .ico-btn:hover{background:rgba(229,20,122,0.15);color:var(--pink)}
+
+    /* ─── MAIN SCROLL ─── */
+    .main-scroll{padding-top:calc(var(--top-h) + 20px);padding-bottom:calc(var(--nav-h) + 24px);min-height:100vh;padding-left:16px;padding-right:16px}
+
+    /* ─── TABS ─── */
+    .tab-pane{display:none;animation:fadeUp 0.25s ease}
+    .tab-pane.active{display:block}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ─── BOTTOM NAV ─── */
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:200;height:var(--nav-h);background:rgba(10,12,20,0.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:0 8px;padding-bottom:env(safe-area-inset-bottom)}
+    [data-theme="light"] .bottom-nav{background:rgba(255,255,255,0.95)}
+    .nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding:8px 12px;border:none;background:transparent;color:var(--text3);font-family:'Inter',sans-serif;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;border-radius:12px;transition:all 0.2s;position:relative;min-width:52px}
+    .nav-btn svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;transition:all 0.2s}
+    .nav-btn.active{color:var(--pink)}
+    .nav-btn.active svg{stroke:var(--pink)}
+    .nav-btn::after{content:'';position:absolute;top:-1px;left:20%;right:20%;height:3px;background:var(--pink);border-radius:0 0 3px 3px;transform:scaleX(0);transition:transform 0.2s}
+    .nav-btn.active::after{transform:scaleX(1)}
+    .nav-badge{position:absolute;top:4px;right:8px;min-width:18px;height:18px;background:var(--pink);color:#fff;border-radius:9px;font-size:0.6rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg)}
+
+    /* ─── SECTION HEADER ─── */
+    .sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;margin-top:24px}
+    .sec-hdr:first-child{margin-top:0}
+    .sec-title{font-size:0.85rem;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.07em;display:flex;align-items:center;gap:7px}
+    .sec-action{font-size:0.8rem;font-weight:600;color:var(--pink);cursor:pointer;display:flex;align-items:center;gap:4px}
+
+    /* ─── STAT CARDS ─── */
+    .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px;position:relative;overflow:hidden;transition:transform 0.2s}
+    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+    .sc-green::before{background:linear-gradient(90deg,var(--green),#34D399)}
+    .sc-orange::before{background:linear-gradient(90deg,var(--orange),#FCD34D)}
+    .sc-purple::before{background:linear-gradient(90deg,var(--purple),#A78BFA)}
+    .sc-pink::before{background:linear-gradient(90deg,var(--pink),#F472B6)}
+    .stat-label{font-size:0.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px}
+    .stat-value{font-size:1.9rem;font-weight:900;letter-spacing:-0.03em;color:var(--text);line-height:1}
+    .stat-sub{font-size:0.75rem;color:var(--text3);margin-top:6px;font-weight:500}
+    .stat-icon{position:absolute;bottom:14px;right:14px;width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;opacity:0.2}
+    .sc-green .stat-icon{background:var(--green)}
+    .sc-orange .stat-icon{background:var(--orange)}
+    .sc-purple .stat-icon{background:var(--purple)}
+    .sc-pink .stat-icon{background:var(--pink)}
+    .stat-icon svg{width:20px;height:20px;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+
+    /* ─── WALLET CARD ─── */
+    .wallet{background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(229,20,122,0.15));border:1px solid rgba(124,58,237,0.25);border-radius:var(--radius);padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+    .wallet::after{content:'';position:absolute;top:-40px;right:-40px;width:120px;height:120px;background:radial-gradient(circle,rgba(229,20,122,0.25),transparent);border-radius:50%;pointer-events:none}
+    .wallet-label{font-size:0.7rem;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+    .wallet-value{font-size:2rem;font-weight:900;letter-spacing:-0.03em;color:#fff;margin-bottom:16px}
+    .wallet-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .wallet-sub{background:rgba(255,255,255,0.07);border-radius:10px;padding:12px}
+    .wallet-sub-label{font-size:0.65rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;font-weight:600}
+    .wallet-sub-val{font-size:0.95rem;font-weight:700;color:#fff}
+
+    /* ─── LEAD CARD (modern) ─── */
+    .lead-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+    .lead-card:hover{border-color:rgba(229,20,122,0.3);transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,0.2)}
+    .lead-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:10px}
+    .lead-name{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:2px}
+    .lead-cpf{font-size:0.75rem;color:var(--text3);font-family:monospace}
+    .lead-badge{padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:800;letter-spacing:0.07em;text-transform:uppercase;display:flex;align-items:center;gap:4px;flex-shrink:0}
+    .lb-paid{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.25)}
+    .lb-pend{background:rgba(245,158,11,0.12);color:var(--orange);border:1px solid rgba(245,158,11,0.25)}
+    .lb-rest{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
+    .lead-info-row{display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text2);margin-bottom:6px}
+    .lead-info-row span{color:var(--text);font-weight:600}
+    .lead-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+
+    /* ─── MINI CREDIT CARD (inside lead card) ─── */
+    .mini-cc{width:90px;height:57px;border-radius:8px;position:relative;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,0.4)}
+    .mini-cc .mcc-face{width:100%;height:100%;padding:7px 8px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+    .mini-cc .mcc-brand{font-size:0.45rem;font-weight:900;color:rgba(255,255,255,0.9);letter-spacing:0.1em;text-transform:uppercase}
+    .mini-cc .mcc-chip{width:14px;height:10px;border-radius:2px;background:linear-gradient(135deg,#D4AF37,#C9A227)}
+    .mini-cc .mcc-row{display:flex;align-items:center;justify-content:space-between}
+    .mini-cc .mcc-limit{font-size:0.55rem;font-weight:800;color:#fff;letter-spacing:-0.01em}
+    .mini-cc .mcc-mc{display:flex}
+    .mini-cc .mcc-mc span{width:10px;height:10px;border-radius:50%;opacity:0.9}
+    .mini-cc .mcc-mc span:first-child{background:#EB001B;margin-right:-4px}
+    .mini-cc .mcc-mc span:last-child{background:#F79E1B}
+
+    .mcc-pink{background:linear-gradient(135deg,#E5147A,#9C0E57)}
+    .mcc-purple{background:linear-gradient(135deg,#7C3AED,#3C096C)}
+    .mcc-blue{background:linear-gradient(135deg,#1E88E5,#0D47A1)}
+    .mcc-black{background:linear-gradient(135deg,#2B2D42,#0B090A)}
+    .mcc-gold{background:linear-gradient(135deg,#D4AF37,#9C6615)}
+    .mcc-teal{background:linear-gradient(135deg,#0F766E,#134E4A)}
+    .mcc-green{background:linear-gradient(135deg,#059669,#064E3B)}
+
+    /* ─── FILTER PILLS ─── */
+    .filter-pills{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
+    .filter-pills::-webkit-scrollbar{display:none}
+    .filter-pill{border:1px solid var(--border);background:var(--bg3);color:var(--text2);border-radius:20px;padding:6px 14px;font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:all 0.2s;font-family:'Inter',sans-serif}
+    .filter-pill.active,.filter-pill:hover{background:var(--pink);border-color:var(--pink);color:#fff}
+
+    /* ─── EMPTY STATE ─── */
+    .empty{text-align:center;padding:48px 20px;color:var(--text3)}
+    .empty svg{width:48px;height:48px;stroke:var(--text3);margin-bottom:12px}
+    .empty p{font-size:0.9rem;font-weight:500}
+
+    /* ─── TABLE ─── */
+    .tbl-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);margin-bottom:16px}
+    table{width:100%;border-collapse:collapse;font-size:0.83rem}
+    thead{background:var(--bg3)}
+    th{padding:11px 14px;text-align:left;font-weight:700;color:var(--text3);text-transform:uppercase;font-size:0.67rem;letter-spacing:0.07em;white-space:nowrap;border-bottom:1px solid var(--border)}
+    td{padding:12px 14px;border-bottom:1px solid var(--border);white-space:nowrap;color:var(--text)}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,0.02)}
+
+    /* ─── CONFIG CARDS ─── */
+    .cfg{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden}
+    .cfg-hdr{padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;font-size:0.9rem;font-weight:700}
+    .cfg-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cfg-body{padding:18px}
+    .fld{margin-bottom:14px}
+    .fld:last-child{margin-bottom:0}
+    .fld-label{display:block;font-size:0.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px}
+    .fld-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:0.88rem;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+    .fld-input:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,0.15)}
+    .fld-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    textarea.fld-input{resize:vertical;min-height:80px}
+
+    /* ─── BUTTONS ─── */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:12px;font-family:'Inter',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;text-decoration:none}
+    .btn-full{width:100%;justify-content:center}
+    .btn-primary{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;box-shadow:0 4px 15px rgba(229,20,122,0.3)}
+    .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(229,20,122,0.4)}
+    .btn-ghost{background:var(--bg3);border:1px solid var(--border);color:var(--text2)}
+    .btn-ghost:hover{background:var(--border);color:var(--text)}
+    .btn-danger{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);color:var(--red)}
+    .btn-sm{padding:8px 14px;font-size:0.8rem;border-radius:8px}
+    .btn-orange{background:linear-gradient(135deg,var(--orange),#D97706);color:#fff}
+
+    /* ─── PROFILE CARD ─── */
+    .profile-hero{background:linear-gradient(135deg,rgba(124,58,237,0.15),rgba(229,20,122,0.1));border:1px solid rgba(124,58,237,0.2);border-radius:var(--radius);padding:24px;display:flex;align-items:center;gap:16px;margin-bottom:16px;position:relative;overflow:hidden}
+    .profile-hero::after{content:'';position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(124,58,237,0.3),transparent);border-radius:50%}
+    .profile-av{width:56px;height:56px;border-radius:14px;object-fit:cover;background:var(--bg3);border:2px solid rgba(229,20,122,0.5);flex-shrink:0}
+    .profile-name{font-size:1.1rem;font-weight:800;margin-bottom:4px}
+    .role-badge{display:inline-flex;align-items:center;gap:5px;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;padding:3px 10px;border-radius:20px}
+    .rb-supreme{background:rgba(229,20,122,0.15);color:var(--pink);border:1px solid rgba(229,20,122,0.3)}
+    .rb-basic{background:rgba(59,130,246,0.15);color:var(--blue);border:1px solid rgba(59,130,246,0.3)}
+    .status-row{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--text2);margin-top:6px}
+    .dot-live{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-green 2s infinite;flex-shrink:0}
+    @keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.4)}50%{box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+
+    /* ─── MONITOR LIVE ─── */
+    .monitor-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:10px}
+    .mdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .mdot-paid{background:var(--green);box-shadow:0 0 8px rgba(16,185,129,0.5)}
+    .mdot-pend{background:var(--orange);box-shadow:0 0 8px rgba(245,158,11,0.5)}
+    .mdot-rest{background:var(--red)}
+    .m-info{flex:1;min-width:0}
+    .m-id{font-size:0.8rem;font-weight:600;color:var(--text);font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .m-sub{font-size:0.72rem;color:var(--text3);margin-top:2px}
+    .m-amt{font-size:0.9rem;font-weight:800}
+
+    /* ─── API ALERT ─── */
+    .api-alert{background:linear-gradient(135deg,rgba(239,68,68,0.15),rgba(245,158,11,0.1));border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px}
+    .api-alert-icon{width:36px;height:36px;background:rgba(239,68,68,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--red);flex-shrink:0}
+    .api-alert-title{font-weight:800;font-size:0.9rem;color:var(--red);margin-bottom:4px}
+    .api-alert-body{font-size:0.82rem;color:var(--text2)}
+
+    /* ─── TOAST ─── */
+    .toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;padding:12px 20px;border-radius:12px;font-size:0.88rem;font-weight:600;display:flex;align-items:center;gap:8px;opacity:0;transition:all 0.35s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* ─── UPLOAD ROW ─── */
+    .upload-row{display:flex;gap:10px;align-items:center}
+    .upload-row .fld-input{flex:1}
+    .upload-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:11px 14px;font-size:0.85rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;transition:all 0.2s;display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .upload-btn:hover{background:var(--purple);border-color:var(--purple);color:#fff}
+
+    /* ─── LOGO PREVIEW ─── */
+    .logo-preview{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;margin-bottom:14px;min-height:90px;display:flex;align-items:center;justify-content:center}
+    .logo-preview img{max-height:55px;max-width:220px;object-fit:contain}
+
+    /* ─── MGR PREVIEW ─── */
+    .mgr-preview{width:72px;height:72px;border-radius:16px;object-fit:cover;background:var(--bg3);border:2px solid var(--border);flex-shrink:0}
+
+    /* hide scrollbar */
+    .hsc::-webkit-scrollbar{display:none}
+    .hsc{-ms-overflow-style:none;scrollbar-width:none}
+
+    /* credit card for leads */
+    .cc-badge{font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(124,58,237,0.15);color:var(--purple);border:1px solid rgba(124,58,237,0.25)}
   </style>
 </head>
 <body>
 
 <!-- TOP BAR -->
 <div class="top-bar">
-  <div class="top-bar-left">
+  <div class="top-left">
     <div class="top-logo">
-      <svg viewBox="0 0 20 20" fill="none" width="18" height="18"><path d="M5 2L2 10l3 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h7" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 2L2 10l3 8" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 10h7" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
     </div>
     <span class="top-title">Livelo Admin</span>
+    {% if session.admin_role == 'supreme' %}
+    <span class="top-badge">SUPREMO</span>
+    {% endif %}
   </div>
-  <div class="top-actions">
-    <button class="top-btn" id="theme-toggle" onclick="toggleTheme()" title="Alternar Tema">
-      <svg class="svg-icon" id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+  <div class="top-right">
+    <button class="ico-btn" id="theme-toggle" onclick="toggleTheme()" title="Tema">
+      <svg class="ico" id="theme-icon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
-    <button class="top-btn" onclick="location.reload()" title="Atualizar">
-      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+    <button class="ico-btn" onclick="location.reload()" title="Atualizar">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
     </button>
-    <a href="/admin/logout" class="top-btn" title="Sair">
-      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+    <a href="/admin/logout" class="ico-btn" title="Sair">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </a>
   </div>
 </div>
 
 <div class="main-scroll">
-{% set cpf_calls = sys_config.get('cpf_api_calls', 0) | int %}
-{% if admin_user == 'admin' and cpf_calls >= 45 %}
-<div style="background:var(--red); color:#fff; padding:16px; border-radius:var(--radius); margin:16px; text-align:center; box-shadow:0 4px 15px rgba(239,68,68,0.4); animation: pdot 2s infinite alternate;">
-  <div style="font-weight:800; font-size:1.1rem; margin-bottom:4px;">⚠️ ALERTA ADMIN SUPREMO ⚠️</div>
-  <div style="font-size:0.95rem;">Restam apenas <b>{{ 50 - cpf_calls }} créditos</b> na API de CPF. Por favor, recarregue e altere o token no painel de configurações!</div>
-</div>
-{% endif %}
 
-<!-- ====== DASHBOARD ====== -->
-<div id="tab-dashboard" class="tab-pane active">
-  <div class="profile-card">
-    <div class="profile-avatar">
-      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Admin" onerror="this.src='/static/images/manager_default.svg'">
-    </div>
-    <div class="profile-info">
-      <div class="profile-name">{{ admin_user or mgr.name or 'Admin' }}</div>
-      <div class="profile-badge">
-        <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> SUPREME ADMIN
-      </div>
-      <div class="profile-status"><div class="status-dot"></div><span class="status-text">Online e Autenticado</span></div>
-    </div>
-  </div>
+  {% set cpf_calls = sys_config.get('cpf_api_calls', 0) | int %}
 
-  <div class="section-hdr">
-    <span class="section-hdr-title">
-      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 3v18h18"></path><path d="M18 17V9"></path><path d="M13 17V5"></path><path d="M8 17v-3"></path></svg> Métricas
-    </span>
-    <span class="section-hdr-action" onclick="location.reload()">
-      <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg> Atualizar
-    </span>
-  </div>
-  
-  <div class="stats-grid">
-    <div class="stat-card s-green">
-      <div class="stat-label">Leads Total</div>
-      <div class="stat-value">{{ total_leads }}</div>
-      <div class="stat-sub">Dados coletados</div>
-      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
-    </div>
-    <div class="stat-card s-orange">
-      <div class="stat-label">Pix Pagos</div>
-      <div class="stat-value">{{ total_paid }}</div>
-      <div class="stat-sub">Taxa: {{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
-      <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg></div>
-    </div>
-    <div class="stat-card s-purple">
-      <div class="stat-label">Receita (R$)</div>
-      <div class="stat-value" style="font-size:1.3rem;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ total_rev }}</div>
-      <div class="stat-sub">PIX confirmados</div>
-      <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
-    </div>
-    <div class="stat-card s-pink">
-      <div class="stat-label">Abandonos</div>
-      <div class="stat-value">{{ total_leads - total_paid }}</div>
-      <div class="stat-sub">Sem conversão</div>
-      <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-9 5 18 3-10 2 3h4"></path></svg></div>
-    </div>
-  </div>
+  <!-- ══════════════════ DASHBOARD ══════════════════ -->
+  <div id="tab-dashboard" class="tab-pane active">
 
-  <div class="balance-card">
-    <div class="balance-label">Carteira — Saldo Total</div>
-    <div class="balance-value">{{ total_rev }}</div>
-    <div class="balance-row">
-      <div class="balance-sub-card">
-        <div class="balance-sub-label">Ticket Médio</div>
-        <div class="balance-sub-val" id="ticket-medio">—</div>
-      </div>
-      <div class="balance-sub-card">
-        <div class="balance-sub-label">Conversão Global</div>
-        <div class="balance-sub-val">{{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
+    <!-- PROFILE HERO -->
+    <div class="profile-hero">
+      <img class="profile-av"
+           src="{{ session.admin_photo or mgr.photo_url or '/static/images/manager_default.svg' }}"
+           alt="Admin"
+           onerror="this.src='/static/images/manager_default.svg'">
+      <div>
+        <div class="profile-name">{{ session.admin_user or 'Admin' }}</div>
+        {% if session.admin_role == 'supreme' %}
+        <div class="role-badge rb-supreme">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Admin Supremo
+        </div>
+        {% else %}
+        <div class="role-badge rb-basic">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+          Suporte Técnico
+        </div>
+        {% endif %}
+        <div class="status-row"><div class="dot-live"></div> Sessão protegida e ativa</div>
       </div>
     </div>
-  </div>
 
-  <div class="section-hdr">
-    <span class="section-hdr-title">
-      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Últimos Leads
-    </span>
-    <span class="section-hdr-action" onclick="switchTab('eventos')">Ver todos &rarr;</span>
-  </div>
-  
-  {% for l in leads[:5] %}
-  <div class="event-item">
-    <div class="event-icon {% if l.pix_status in ['paid','authorized','completed'] %}ev-green{% elif l.pix_status == 'pending' %}ev-orange{% else %}ev-red{% endif %}">
-      {% if l.pix_status in ['paid','authorized','completed'] %}
-        <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      {% elif l.pix_status == 'pending' %}
-        <svg class="svg-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-      {% else %}
-        <svg class="svg-icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    <!-- API ALERT (supreme only, when low credits) -->
+    {% if session.admin_role == 'supreme' and cpf_calls >= 45 %}
+    <div class="api-alert">
+      <div class="api-alert-icon">
+        <svg class="ico" viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <div class="api-alert-title">⚠️ Créditos CPF Esgotando!</div>
+        <div class="api-alert-body">Restam apenas <b>{{ 50 - cpf_calls }} crédito(s)</b> na API cpfhub.io. Vá em Configurações → API CPF e atualize o token.</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- STATS -->
+    <div class="sec-hdr">
+      <div class="sec-title">
+        <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        Métricas em Tempo Real
+      </div>
+      <div class="sec-action" onclick="location.reload()">
+        <svg style="width:12px;height:12px;stroke:currentColor;stroke-width:2;fill:none" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Atualizar
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card sc-green">
+        <div class="stat-label">Total Leads</div>
+        <div class="stat-value">{{ total_leads }}</div>
+        <div class="stat-sub">Cadastros únicos</div>
+        <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      </div>
+      <div class="stat-card sc-orange">
+        <div class="stat-label">Pix Pagos</div>
+        <div class="stat-value">{{ total_paid }}</div>
+        <div class="stat-sub">Taxa: {{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
+        <div class="stat-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></div>
+      </div>
+      <div class="stat-card sc-purple">
+        <div class="stat-label">Receita</div>
+        <div class="stat-value" style="font-size:1.3rem;line-height:1.2">{{ total_rev }}</div>
+        <div class="stat-sub">PIX confirmados</div>
+        <div class="stat-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      </div>
+      <div class="stat-card sc-pink">
+        <div class="stat-label">Abandonos</div>
+        <div class="stat-value">{{ total_leads - total_paid }}</div>
+        <div class="stat-sub">Sem conversão</div>
+        <div class="stat-icon"><svg viewBox="0 0 24 24"><path d="M2 12h4l2-9 5 18 3-10 2 3h4"/></svg></div>
+      </div>
+    </div>
+
+    <!-- WALLET -->
+    <div class="wallet">
+      <div class="wallet-label">Carteira — Saldo Total</div>
+      <div class="wallet-value">{{ total_rev }}</div>
+      <div class="wallet-row">
+        <div class="wallet-sub">
+          <div class="wallet-sub-label">Ticket Médio</div>
+          <div class="wallet-sub-val" id="ticket-medio">—</div>
+        </div>
+        <div class="wallet-sub">
+          <div class="wallet-sub-label">Conversão Global</div>
+          <div class="wallet-sub-val">{{ ((total_paid / total_leads * 100) | round(1)) if total_leads > 0 else 0 }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÚLTIMOS LEADS (mini) -->
+    <div class="sec-hdr">
+      <div class="sec-title">
+        <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Últimas Entradas
+      </div>
+      <div class="sec-action" onclick="switchTab('leads')">Ver todos →</div>
+    </div>
+
+    {% for l in leads[:5] %}
+    <div class="lead-card" onclick="switchTab('leads')">
+      <div class="lead-card-header">
+        <div>
+          <div class="lead-name">{{ l.nome or l.cpf or 'Lead Anônimo' }}</div>
+          <div class="lead-cpf">{{ l.cpf or '' }}</div>
+        </div>
+        {% if l.pix_status in ['paid','authorized','completed'] %}
+        <div class="lead-badge lb-paid">
+          <svg style="width:9px;height:9px;stroke:currentColor;stroke-width:3;fill:none" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          PAGO
+        </div>
+        {% elif l.pix_status == 'pending' %}
+        <div class="lead-badge lb-pend">
+          <svg style="width:9px;height:9px;stroke:currentColor;stroke-width:2;fill:none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          PEND
+        </div>
+        {% else %}
+        <div class="lead-badge lb-rest">
+          <svg style="width:9px;height:9px;stroke:currentColor;stroke-width:2.5;fill:none" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {{ l.pix_status or 'novo' }}
+        </div>
+        {% endif %}
+      </div>
+      <div class="lead-info-row">
+        <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>{{ l.whatsapp or 'Não informado' }}</span>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty">
+      <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <p>Nenhum lead capturado ainda.</p>
+    </div>
+    {% endfor %}
+
+  </div><!-- /tab-dashboard -->
+
+
+  <!-- ══════════════════ LEADS ══════════════════ -->
+  <div id="tab-leads" class="tab-pane">
+    <div class="sec-hdr" style="margin-top:0">
+      <div class="sec-title">
+        <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Todos os Leads
+      </div>
+      <div class="sec-action">{{ total_leads }} total</div>
+    </div>
+
+    <div class="filter-pills">
+      <button class="filter-pill active" onclick="filterLeads('all',this)">Todos ({{ total_leads }})</button>
+      <button class="filter-pill" onclick="filterLeads('paid',this)">✅ Pagos ({{ total_paid }})</button>
+      <button class="filter-pill" onclick="filterLeads('pending',this)">⏳ Pendentes</button>
+      <button class="filter-pill" onclick="filterLeads('abandoned',this)">❌ Cancelados</button>
+    </div>
+
+    <div id="leads-cards">
+    {% for l in leads %}
+    <div class="lead-card" id="lc-{{ l.id }}" data-status="{{ l.pix_status or 'novo' }}" onclick="openLeadModal({{ l.id }})">
+      <div class="lead-card-header">
+        <div>
+          <div class="lead-name">{{ l.nome or 'Lead Anônimo' }}</div>
+          <div class="lead-cpf">{{ l.cpf or '—' }}</div>
+        </div>
+        {% if l.pix_status in ['paid','authorized','completed'] %}
+        <div class="lead-badge lb-paid">✓ PAGO</div>
+        {% elif l.pix_status == 'pending' %}
+        <div class="lead-badge lb-pend">⏱ PENDENTE</div>
+        {% else %}
+        <div class="lead-badge lb-rest">{{ l.pix_status or 'NOVO' }}</div>
+        {% endif %}
+      </div>
+
+      <div class="lead-info-row">
+        <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        {% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" onclick="event.stopPropagation()" style="color:var(--green);text-decoration:none;font-weight:600">{{ l.whatsapp }}</a>{% else %}<span>Não informado</span>{% endif %}
+      </div>
+      {% if l.renda %}
+      <div class="lead-info-row">
+        <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Renda: <span>{{ l.renda }}</span>{% if l.tipo_renda %} · <span>{{ l.tipo_renda }}</span>{% endif %}
+      </div>
       {% endif %}
-    </div>
-    <div class="event-info">
-      <div class="event-title">{{ l.nome or l.cpf or 'Lead Anônimo' }}</div>
-      <div class="event-sub">
-        <svg class="svg-icon" style="width:12px;height:12px" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-        {{ l.whatsapp or 'Não informado' }}
+      {% if l.motivo_credito %}
+      <div class="lead-info-row">
+        <svg class="ico" style="width:13px;height:13px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Motivo: <span>{{ l.motivo_credito }}</span>
       </div>
-    </div>
-    <span class="badge {% if l.pix_status in ['paid','authorized','completed'] %}badge-green{% elif l.pix_status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">
-      {{ l.pix_status or 'novo' }}
-    </span>
-  </div>
-  {% else %}
-  <div class="empty-state">
-    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-    <div class="empty-state-text">Nenhum lead capturado ainda.</div>
-  </div>
-  {% endfor %}
-</div>
+      {% endif %}
 
-
-<!-- ====== EVENTOS ====== -->
-<div id="tab-eventos" class="tab-pane">
-  <div class="section-hdr">
-    <span class="section-hdr-title">
-      <svg class="svg-icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Todos os Leads
-    </span>
-    <span class="section-hdr-action">{{ total_leads }} leads</span>
-  </div>
-  </div>
-  <div style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto;" class="hide-scrollbar">
-    <button class="nav-item active" style="padding:4px 12px; background:var(--bg3); border-radius:6px; cursor:pointer;" onclick="filterLeadsT('all', this)">Todos</button>
-    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('paid', this)">Pagos</button>
-    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('pending', this)">Pendentes</button>
-    <button class="nav-item" style="padding:4px 12px; background:transparent; border-radius:6px; cursor:pointer;" onclick="filterLeadsT('abandoned', this)">Abandonos</button>
-  </div>
-  <div class="data-table-wrap">
-    <table>
-      <thead><tr><th>Nome</th><th>CPF</th><th>WhatsApp</th><th>Status</th><th>UTMs</th><th>Cartão</th><th>Valor</th></tr></thead>
-      <tbody id="leads-tbody">
-        {% for l in leads %}
-        <tr class="lead-row" data-status="{{ l.pix_status or 'novo' }}">
-          <td style="font-weight:600">{{ l.nome or '—' }}</td>
-          <td style="font-family:monospace">{{ l.cpf or '—' }}</td>
-          <td>{% if l.whatsapp %}<a href="https://wa.me/55{{ l.whatsapp }}" target="_blank" rel="noopener noreferrer" style="color:var(--green);text-decoration:none">{{ l.whatsapp }}</a>{% else %}—{% endif %}</td>
-          <td><span class="badge {% if l.pix_status in ['paid','authorized','completed'] %}badge-green{% elif l.pix_status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">{{ l.pix_status or 'novo' }}</span></td>
-          <td style="font-size:0.7rem;color:var(--text2)">
-            {% if l.utm_source or l.utm_campaign %}
-              <span style="display:block"><b>Src:</b> {{ l.utm_source or '-' }}</span>
-              <span style="display:block"><b>Cmp:</b> {{ l.utm_campaign or '-' }}</span>
-            {% else %}
-              —
+      <!-- MINI CREDIT CARD real -->
+      <div class="lead-card-footer">
+        <div style="display:flex;align-items:center;gap:10px">
+          {% set cc_class = 'mcc-pink' %}
+          {% if l.card_color %}
+            {% if 'purple' in (l.card_color|lower) or '7C3A' in l.card_color %}{% set cc_class = 'mcc-purple' %}
+            {% elif 'blue' in (l.card_color|lower) or '1E88' in l.card_color %}{% set cc_class = 'mcc-blue' %}
+            {% elif 'black' in (l.card_color|lower) or '2B2D' in l.card_color %}{% set cc_class = 'mcc-black' %}
+            {% elif 'gold' in (l.card_color|lower) or 'D4AF' in l.card_color %}{% set cc_class = 'mcc-gold' %}
+            {% elif 'teal' in (l.card_color|lower) or '0F76' in l.card_color %}{% set cc_class = 'mcc-teal' %}
+            {% elif 'green' in (l.card_color|lower) or '0596' in l.card_color %}{% set cc_class = 'mcc-green' %}
             {% endif %}
-          </td>
-          
-          <td style="font-weight:600">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <div style="--card-color: {{ l.card_color or 'var(--purple)' }}; position:relative; width:45px; height:28px; border-radius:4px; background:linear-gradient(135deg, var(--card-color), #111); display:flex; align-items:flex-end; padding:3px; box-shadow:0 2px 5px rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.1)">
-                <div style="position:absolute; top:3px; right:3px; width:8px; height:5px; border-radius:1px; background:rgba(255,255,255,0.4)"></div>
-                <span style="font-size:0.3rem; color:#fff; font-weight:800;">{{ (l.card_style or 'PADRÃO')[:6] }}</span>
+          {% endif %}
+          <div class="mini-cc {{ cc_class }}">
+            <div class="mcc-face">
+              <div class="mcc-row">
+                <div class="mcc-brand">LIVELO</div>
+                <div class="mcc-chip"></div>
+              </div>
+              <div class="mcc-row">
+                <div class="mcc-limit">{{ l.limite_aprovado or '—' }}</div>
+                <div class="mcc-mc"><span></span><span></span></div>
               </div>
             </div>
-          </td>
-<td style="font-weight:600; color:var(--green)">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Nenhum registro encontrado.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  
-  <div class="section-hdr" style="margin-top:24px">
-    <span class="section-hdr-title">
-      <svg class="svg-icon" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Histórico de Pagamentos
-    </span>
-    <span class="section-hdr-action">{{ total_paid }} pagos</span>
-  </div>
-  <div class="data-table-wrap">
-    <table>
-      <thead><tr><th>Transação</th><th>Cartão</th><th>Valor</th><th>Status</th><th>Data</th></tr></thead>
-      <tbody>
-        {% for p in pays %}
-        <tr>
-          <td style="font-family:monospace;font-size:0.75rem">{{ p.payment_id or p.id }}</td>
-          <td style="color:var(--green);font-weight:700">R$ {{ '%.2f'|format(p.amount|float) if p.amount else '—' }}</td>
-          <td><span class="badge {% if p.status in ['paid','authorized','completed'] %}badge-green{% elif p.status == 'pending' %}badge-orange{% else %}badge-red{% endif %}">{{ p.status }}</span></td>
-          <td style="color:var(--text2);font-size:0.75rem">{{ p.created_at or '—' }}</td>
-        </tr>
-        {% else %}
-        <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma transação financeira.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-
-<!-- ====== CONFIG ====== -->
-{% if session.admin_role == 'supreme' %}
-<div id="tab-config" class="tab-pane">
-
-  <!-- CPF API -->
-  <div class="cfg-card" style="border: 1px solid var(--orange); box-shadow: 0 0 15px rgba(245,158,11,0.1);">
-    <div class="cfg-card-header">
-      <div class="cfg-icon" style="background:rgba(245,158,11,0.1);color:var(--orange)">
-        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-      </div>
-      API de Consultas CPF (Admin Supremo)
-    </div>
-    <div class="cfg-card-body">
-      <div style="margin-bottom: 16px; font-size: 0.9rem; color: var(--text2);">
-        <b>Créditos Consumidos:</b> {{ cpf_calls }} de 50<br>
-        <b>Status:</b> {% if cpf_calls >= 50 %}<span style="color:var(--red);font-weight:bold">Esgotado</span>{% else %}<span style="color:var(--green);font-weight:bold">Ativo</span>{% endif %}
-      </div>
-      <form onsubmit="updateCpfApi(event)">
-        <div class="field-group">
-          <label class="field-label">Token / API Key (cpfhub.io)</label>
-          <input type="text" class="field-input" id="cpf_api_token" name="cpf_api_token" value="{{ sys_config.get('cpf_api_token', '') }}" placeholder="d0442b7d42e2a762f64a02f5e4abc1187ad6585cb3e9c11740c4024961aa1026" required>
-        </div>
-        <button type="submit" class="btn-primary" style="background:var(--orange); color:#fff; border:none; margin-top:8px;">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path></svg>
-          Salvar Token e Zerar Consumo
-        </button>
-      </form>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Logo -->
-  <div class="cfg-card">
-    <div class="cfg-card-header">
-      <div class="cfg-icon" style="background:rgba(229,20,122,0.1);color:var(--pink)">
-        <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-      </div>
-      Logo do Sistema
-    </div>
-    <div class="cfg-card-body">
-      <div class="logo-preview-box">
-        <img id="logo-preview-img" src="{{ sys_config.get('system_logo', '/static/images/logo.png') }}" alt="Logo" onerror="this.src='/static/images/logo.png'">
-      </div>
-      <form id="logo-form" onsubmit="saveLogo(event)" enctype="multipart/form-data">
-        <div class="field-group">
-          <label class="field-label">URL Externa da Imagem</label>
-          <input type="text" class="field-input" id="logo_url_input" name="logo_url" placeholder="https://exemplo.com/logo.png" oninput="if(this.value)document.getElementById('logo-preview-img').src=this.value">
-        </div>
-        <div class="field-group">
-          <label class="field-label">Upload Direto</label>
-          <div class="upload-row">
-            <input type="file" id="logo_file_input" name="logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none" onchange="previewLogoFile(this)">
-            <button type="button" class="upload-btn" onclick="document.getElementById('logo_file_input').click()">
-              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-              Procurar
-            </button>
-            <span id="logo-filename" style="font-size:0.85rem;color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis">Nenhum arquivo</span>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text3);font-weight:600;margin-bottom:2px">{{ l.card_style or 'Padrão' }}</div>
+            <div style="font-size:0.85rem;font-weight:800;color:var(--text)">{{ l.limite_aprovado or '—' }}</div>
           </div>
         </div>
-        <button type="submit" class="btn-primary" id="logo-save-btn">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-          Salvar Nova Logo
-        </button>
-        <button type="button" class="btn-secondary" onclick="resetLogo()">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
-          Restaurar Padrão
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Gerente -->
-  <div class="cfg-card">
-    <div class="cfg-card-header">
-      <div class="cfg-icon" style="background:rgba(124,58,237,0.1);color:var(--purple)">
-        <svg class="svg-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      </div>
-      Configurações do Gerente
-    </div>
-    <div class="cfg-card-body">
-      <div class="mgr-photo-wrap">
-        <img class="mgr-photo" id="mgr-img-preview" src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Gerente" onerror="this.src='/static/images/manager_default.svg'">
-        <div>
-          <div class="mgr-name">{{ mgr.name or 'Gerente Livelo' }}</div>
-          <div class="mgr-wa">{{ mgr.whatsapp or 'Sem WhatsApp configurado' }}</div>
+        <div style="text-align:right">
+          <div style="font-size:0.72rem;color:var(--text3);margin-bottom:2px">Frete Pago</div>
+          <div style="font-size:0.9rem;font-weight:800;color:var(--green)">{% if l.frete_valor %}R$ {{ l.frete_valor }}{% else %}—{% endif %}</div>
         </div>
       </div>
-      
-      <div style="background:rgba(124,58,237,0.05); border:1px dashed var(--purple); border-radius:12px; padding:16px; margin-bottom:20px;">
-          <h4 style="margin-top:0; font-size:1rem; margin-bottom:12px; color:var(--purple); display:flex; align-items:center; gap:8px;">
-            ✨ Gerar Imagem com IA (Avatar Grátis)
-          </h4>
-          <div class="field-row" style="margin-bottom:12px;">
-             <select id="dash-ia-sex" class="field-input"><option value="man">Homem</option><option value="woman">Mulher</option></select>
-             <select id="dash-ia-skin" class="field-input"><option value="white">Pele Clara</option><option value="black">Pele Escura</option><option value="brown">Pele Parda</option></select>
+      {% if l.utm_source or l.utm_campaign %}
+      <div style="margin-top:8px;font-size:0.72rem;color:var(--text3);display:flex;gap:8px">
+        {% if l.utm_source %}<span>📡 {{ l.utm_source }}</span>{% endif %}
+        {% if l.utm_campaign %}<span>📣 {{ l.utm_campaign }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <p>Nenhum lead cadastrado ainda.</p>
+    </div>
+    {% endfor %}
+    </div>
+  </div><!-- /tab-leads -->
+
+
+  <!-- ══════════════════ CONFIG (SUPREME ONLY) ══════════════════ -->
+  {% if session.admin_role == 'supreme' %}
+  <div id="tab-config" class="tab-pane">
+
+    <!-- CPF API -->
+    <div class="cfg" style="border-color:rgba(245,158,11,0.25)">
+      <div class="cfg-hdr">
+        <div class="cfg-ico" style="background:rgba(245,158,11,0.1);color:var(--orange)">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        API de Consultas CPF
+        <div style="margin-left:auto;font-size:0.75rem;font-weight:600;color:{% if cpf_calls >= 45 %}var(--red){% else %}var(--green){% endif %}">
+          {{ cpf_calls }}/50 créditos
+        </div>
+      </div>
+      <div class="cfg-body">
+        <div style="background:var(--bg);border-radius:10px;padding:12px;margin-bottom:14px">
+          <div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:{{ (cpf_calls / 50 * 100) | round | int }}%;background:{% if cpf_calls >= 45 %}var(--red){% elif cpf_calls >= 30 %}var(--orange){% else %}var(--green){% endif %};border-radius:3px;transition:width 0.5s"></div>
           </div>
-          <div class="field-row" style="margin-bottom:12px;">
-             <select id="dash-ia-hair" class="field-input"><option value="black">Cabelo Preto</option><option value="blonde">Loiro</option><option value="brown">Castanho</option><option value="white">Grisalho</option></select>
-             <input type="text" id="dash-ia-pos" class="field-input" placeholder="Ex: Sorrindo, de terno">
+          <div style="font-size:0.75rem;color:var(--text3);margin-top:6px">
+            Status: <b style="color:{% if cpf_calls >= 50 %}var(--red){% else %}var(--green){% endif %}">{% if cpf_calls >= 50 %}Esgotado{% else %}Ativo{% endif %}</b>
           </div>
-          <div class="field-group">
-             <input type="text" id="dash-ia-bg" class="field-input" placeholder="Fundo (Ex: Banco de investimentos luxuoso)">
+        </div>
+        <form onsubmit="updateCpfApi(event)">
+          <div class="fld">
+            <label class="fld-label">Token / API Key (cpfhub.io)</label>
+            <input type="text" class="fld-input" id="cpf_api_token" name="cpf_api_token" value="{{ sys_config.get('cpf_api_token', '') }}" placeholder="Cole o novo token aqui..." required>
           </div>
-          
-          <button type="button" class="btn-primary" style="background:#25D366; margin-bottom:12px;" onclick="generateAIAvatarDash(this)">
-            Gerar Imagem Mágica
+          <button type="submit" class="btn btn-orange btn-full">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M21 2v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7L21 8"/></svg>
+            Salvar Token e Zerar Créditos
           </button>
-          
-          <div id="dash-ia-preview-box" style="display:none; text-align:center;">
-             <img id="dash-ia-preview-img" src="" style="width:100px; height:100px; border-radius:16px; object-fit:cover; margin-bottom:10px; border:2px solid var(--purple);">
-             <button type="button" class="btn-secondary" onclick="useAIAvatarDash()">Usar esta Imagem</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- MANAGER -->
+    <div class="cfg">
+      <div class="cfg-hdr">
+        <div class="cfg-ico" style="background:rgba(229,20,122,0.1);color:var(--pink)">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        Gerente & Atendimento
+      </div>
+      <div class="cfg-body">
+        <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
+          <img id="mgr-img-preview" class="mgr-preview"
+               src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}"
+               onerror="this.src='/static/images/manager_default.svg'" alt="Gerente">
+          <div style="flex:1">
+            <div class="fld" style="margin-bottom:10px">
+              <label class="fld-label">URL da Foto</label>
+              <div class="upload-row">
+                <input type="text" class="fld-input" id="mgr_photo_url_preview"
+                       value="{{ mgr.photo_url }}" placeholder="https://..."
+                       oninput="document.getElementById('mgr-img-preview').src=this.value">
+                <label class="upload-btn">
+                  <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <input type="file" id="mgr_photo_file" accept="image/*" style="display:none" onchange="previewMgrPhotoAdmin(this)">
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
         <script>
-        function generateAIAvatarDash(btn) {
-           btn.innerHTML = "Gerando... (pode levar 5s)";
-           const sex = document.getElementById('dash-ia-sex').value;
-           const skin = document.getElementById('dash-ia-skin').value;
-           const hair = document.getElementById('dash-ia-hair').value;
-           const pos = document.getElementById('dash-ia-pos').value || "professional smiling";
-           const bg = document.getElementById('dash-ia-bg').value || "luxury bank office blur";
-           
-           const prompt = `Realistic photo of a brazilian bank manager, ${sex}, ${skin} skin, ${hair} hair, ${pos}, background ${bg}, highly detailed, professional corporate attire, 8k`;
-           const url = "https://image.pollinations.ai/prompt/" + encodeURIComponent(prompt) + "?width=512&height=512&nologo=true&seed=" + Math.random();
-           
-           const img = new Image();
-           img.src = url;
-           img.onload = () => {
-               document.getElementById('dash-ia-preview-img').src = url;
-               document.getElementById('dash-ia-preview-box').style.display = "block";
-               btn.innerHTML = "Gerar Novamente";
-           };
-        }
-        function useAIAvatarDash() {
-           const url = document.getElementById('dash-ia-preview-img').src;
-           document.getElementById('mgr_photo_url').value = url;
-           document.getElementById('mgr-img-preview').src = url;
+        function previewMgrPhotoAdmin(input) {
+          if(!input.files||!input.files[0]) return;
+          const r = new FileReader();
+          r.onload = e => { document.getElementById('mgr-img-preview').src = e.target.result; document.getElementById('mgr_photo_url_preview').value = ''; };
+          r.readAsDataURL(input.files[0]);
         }
         </script>
 
-      <form id="manager-form" onsubmit="saveManager(event)" enctype="multipart/form-data">
-        <div class="field-row" style="margin-bottom:16px">
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">Nome Completo</label>
-            <input type="text" class="field-input" id="mgr_name" name="name" value="{{ mgr.name }}" placeholder="Ex: Roberto Silva" required>
+        <form id="manager-form" onsubmit="saveManagerAdmin(event)" enctype="multipart/form-data">
+          <div class="fld-row" style="margin-bottom:14px">
+            <div class="fld">
+              <label class="fld-label">Nome Completo</label>
+              <input type="text" class="fld-input" id="mgr_name" name="name" value="{{ mgr.name }}" placeholder="Ex: Roberto Silva" required>
+            </div>
+            <div class="fld">
+              <label class="fld-label">Desde</label>
+              <input type="number" class="fld-input" name="since_year" value="{{ mgr.since_year or '2025' }}">
+            </div>
           </div>
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">Atuando Desde</label>
-            <input type="number" class="field-input" id="mgr_since" name="since_year" value="{{ mgr.since_year or '2025' }}" required>
+          <div class="fld-row" style="margin-bottom:14px">
+            <div class="fld">
+              <label class="fld-label">WhatsApp Suporte</label>
+              <input type="text" class="fld-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="5511999999999" oninput="this.value=this.value.replace(/\D/g,'')">
+            </div>
+            <div class="fld">
+              <label class="fld-label">Valor do Frete (R$)</label>
+              <input type="text" class="fld-input" name="freight_price" value="{{ mgr.freight_price or '' }}" placeholder="29.90" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
+            </div>
           </div>
+          <div class="fld">
+            <label class="fld-label">Texto de Abordagem WhatsApp</label>
+            <textarea class="fld-input" name="wa_text" placeholder="Use {token} para a sessão" rows="3">{{ sys_config.get('wa_text', 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!') }}</textarea>
+          </div>
+          <input type="hidden" name="photo_url" id="mgr_photo_url_form" value="{{ mgr.photo_url }}">
+          <input type="file" name="photo" id="mgr_photo_hidden" accept="image/*" style="display:none">
+          <button type="submit" class="btn btn-primary btn-full" id="mgr-save-btn" style="margin-top:8px">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar Gerente
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- LOGO -->
+    <div class="cfg">
+      <div class="cfg-hdr">
+        <div class="cfg-ico" style="background:rgba(124,58,237,0.1);color:var(--purple)">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
         </div>
-        <div class="field-row" style="margin-bottom:16px">
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">Número do WhatsApp</label>
-            <input type="text" class="field-input" id="mgr_wa" name="whatsapp" value="{{ mgr.whatsapp }}" placeholder="Apenas números (Ex: 11999999999)" required oninput="this.value=this.value.replace(/\D/g,'')">
-          </div>
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">Valor do Frete (R$)</label>
-            <input type="text" class="field-input" id="freight_price" name="freight_price" value="{{ mgr.freight_price or '' }}" placeholder="Ex: 29.90" oninput="this.value=this.value.replace(/[^0-9.]/g,'')">
-          </div>
+        Logo & Favicon
+      </div>
+      <div class="cfg-body">
+        <div class="logo-preview">
+          <img id="logo-preview-img" src="{{ sys_config.get('system_logo', '/static/images/logo.png') }}" alt="Logo">
         </div>
-        <div class="field-group">
-          <label class="field-label">Texto de Abordagem WhatsApp</label>
-          <textarea class="field-input" id="mgr_wa_text" name="wa_text" placeholder="Use {token} para a sessão" rows="3" style="resize:none">{{ sys_config.get('wa_text', 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!') }}</textarea>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Foto do Gerente</label>
-          <div class="upload-row">
-            <input type="text" class="field-input" id="mgr_photo_url" name="photo_url" value="{{ mgr.photo_url }}" placeholder="URL ou faça upload ->" oninput="document.getElementById('mgr-img-preview').src=this.value">
-            <input type="file" id="mgr_photo" name="photo" accept="image/*" style="display:none" onchange="previewMgrPhoto(this)">
-            <button type="button" class="upload-btn" onclick="document.getElementById('mgr_photo').click()">
-              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <form onsubmit="saveLogo(event)" enctype="multipart/form-data">
+          <div class="fld">
+            <label class="fld-label">Logo URL ou arquivo</label>
+            <div class="upload-row">
+              <input type="text" class="fld-input" id="logo_url" name="logo_url" placeholder="https://..." oninput="document.getElementById('logo-preview-img').src=this.value">
+              <label class="upload-btn">
+                <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <input type="file" name="file" accept="image/*" style="display:none" onchange="previewLogoFile(this)">
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:8px">
+            <button type="submit" class="btn btn-primary" id="logo-save-btn" style="flex:1">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/></svg>
+              Salvar Logo
             </button>
+            <button type="button" class="btn btn-ghost" onclick="resetLogo()">Padrão</button>
           </div>
+        </form>
+        <div class="fld" style="margin-top:14px">
+          <label class="fld-label">Favicon URL</label>
+          <input type="text" class="fld-input" id="sys_favicon_url" value="{{ sys_favicon }}" placeholder="URL do ícone da aba">
         </div>
-        <div class="field-group">
-          <label class="field-label">Favicon da Página</label>
-          <div class="upload-row">
-            <input type="text" class="field-input" id="sys_favicon_url" name="favicon_url" value="{{ sys_favicon }}" placeholder="URL do ícone da aba do navegador">
-            <input type="file" id="sys_favicon" name="favicon" accept="image/*,.ico" style="display:none">
-            <button type="button" class="upload-btn" onclick="document.getElementById('sys_favicon').click()">
-              <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            </button>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary" id="mgr-save-btn">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-          Salvar Dados do Gerente
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- Senha -->
-  <div class="cfg-card">
-    <div class="cfg-card-header">
-      <div class="cfg-icon" style="background:rgba(239,68,68,0.1);color:var(--red)">
-        <svg class="svg-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-      </div>
-      Segurança de Acesso
-    </div>
-    <div class="cfg-card-body">
-      <form id="pw-form" onsubmit="changePw(event)">
-        <div class="field-group">
-          <label class="field-label">Senha Atual</label>
-          <input type="password" class="field-input" id="pw-current" name="current_password" placeholder="••••••••" required>
-        </div>
-        <div class="field-row">
-          <div class="field-group">
-            <label class="field-label">Nova Senha</label>
-            <input type="password" class="field-input" id="pw-new" name="new_password" placeholder="••••••••" required minlength="6">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Confirmar Senha</label>
-            <input type="password" class="field-input" id="pw-confirm" name="confirm_password" placeholder="••••••••" required minlength="6">
-          </div>
-        </div>
-        <button type="submit" class="btn-primary" id="pw-save-btn" style="margin-top:16px">
-          <svg class="svg-icon" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
-          Alterar Senha de Admin
-        </button>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- ====== PERFIL ====== -->
-<div id="tab-perfil" class="tab-pane">
-  <div class="profile-card" style="flex-direction:column;text-align:center;padding:32px;margin-bottom:16px">
-    <div class="profile-avatar" style="width:80px;height:80px;border-radius:20px;margin:0 auto 16px;border-width:3px">
-      <img src="{{ mgr.photo_url or '/static/images/manager_default.svg' }}" alt="Perfil" style="width:100%;height:100%;object-fit:cover" onerror="this.src='/static/images/manager_default.svg'">
-    </div>
-    <div class="profile-name" style="font-size:1.2rem;margin-bottom:8px">{{ admin_user or 'Admin Supremo' }}</div>
-    <div class="profile-badge" style="margin:0 auto">
-      <svg class="svg-icon" style="width:14px;height:14px" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> SUPREME ADMIN
-    </div>
-    <div class="profile-status" style="justify-content:center;margin-top:12px"><div class="status-dot"></div><span class="status-text">Sessão protegida ativa</span></div>
-  </div>
-  
-  <div class="cfg-card">
-    <div class="cfg-card-body">
-      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
-          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Usuário
-        </span>
-        <span style="font-weight:600;font-size:0.9rem">{{ admin_user }}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
-          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Nível de Acesso
-        </span>
-        <span style="font-weight:600;font-size:0.9rem;color:var(--purple)">Supreme Admin</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:12px 0">
-        <span style="color:var(--text2);font-size:0.9rem;display:flex;align-items:center;gap:8px">
-          <svg class="svg-icon" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> Receita Administrada
-        </span>
-        <span style="font-weight:600;font-size:0.9rem;color:var(--green)">{{ total_rev }}</span>
       </div>
     </div>
-  </div>
-  
-  <a href="/admin/logout" class="btn-danger">
-    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-    Encerrar Sessão e Sair
-  </a>
-</div>
 
+    <!-- SEGURANÇA -->
+    <div class="cfg">
+      <div class="cfg-hdr">
+        <div class="cfg-ico" style="background:rgba(239,68,68,0.1);color:var(--red)">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        Segurança
+      </div>
+      <div class="cfg-body">
+        <form onsubmit="changePw(event)">
+          <div class="fld">
+            <label class="fld-label">Senha Atual</label>
+            <input type="password" class="fld-input" id="pw-current" name="current_password" placeholder="••••••••" required>
+          </div>
+          <div class="fld-row">
+            <div class="fld">
+              <label class="fld-label">Nova Senha</label>
+              <input type="password" class="fld-input" id="pw-new" name="new_password" placeholder="••••••••" required minlength="6">
+            </div>
+            <div class="fld">
+              <label class="fld-label">Confirmar</label>
+              <input type="password" class="fld-input" id="pw-confirm" name="confirm_password" placeholder="••••••••" required minlength="6">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-danger btn-full" id="pw-save-btn" style="margin-top:8px">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            Alterar Senha
+          </button>
+        </form>
+      </div>
+    </div>
 
-<!-- ====== MONITOR ====== -->
-<div id="tab-monitor" class="tab-pane">
-  <div class="section-hdr">
-    <span class="section-hdr-title">
-      <svg class="svg-icon" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg> Monitor em Tempo Real
-    </span>
-    <span class="section-hdr-action" style="color:var(--green);display:flex;align-items:center;gap:4px">
-      <div class="status-dot"></div> Live Activity
-    </span>
-  </div>
-  
-  {% for p in pays[:20] %}
-  {% set status_color = 'var(--red)' %}
-  {% if p.status in ['paid','authorized','completed'] %}
-    {% set status_color = 'var(--green)' %}
-  {% elif p.status == 'pending' %}
-    {% set status_color = 'var(--orange)' %}
+  </div><!-- /tab-config -->
   {% endif %}
-  <div class="event-item" style="align-items:center" data-pstatus="{{ p.status }}">
-    <div class="monitor-dot status-dot-clr"></div>
-    <div class="event-info">
-      <div class="event-title" style="font-family:monospace">{{ p.payment_id or ('PIX #' ~ p.id) }}</div>
-      <div class="event-sub">{{ p.status|upper }} &middot; {{ p.created_at or '' }}</div>
+
+
+  <!-- ══════════════════ PERFIL ══════════════════ -->
+  <div id="tab-perfil" class="tab-pane">
+    <div class="profile-hero" style="flex-direction:column;text-align:center;padding:32px">
+      <img class="profile-av" style="width:80px;height:80px;border-radius:20px;margin:0 auto 14px;border-width:3px"
+           src="{{ session.admin_photo or mgr.photo_url or '/static/images/manager_default.svg' }}"
+           onerror="this.src='/static/images/manager_default.svg'" alt="Perfil">
+      <div class="profile-name" style="font-size:1.2rem">{{ session.admin_user or 'Admin' }}</div>
+      <div style="margin:8px auto">
+        {% if session.admin_role == 'supreme' %}
+        <div class="role-badge rb-supreme">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Admin Supremo
+        </div>
+        {% else %}
+        <div class="role-badge rb-basic">Suporte Técnico</div>
+        {% endif %}
+      </div>
+      <div class="status-row" style="justify-content:center;margin-top:8px"><div class="dot-live"></div> Sessão protegida e ativa</div>
     </div>
-    <div class="status-amount-clr" style="font-size:0.95rem;font-weight:700">
-      R$ {{ '%.2f'|format(p.amount|float) if p.amount else '0,00' }}
+
+    <div class="cfg">
+      <div class="cfg-body">
+        <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text2);font-size:0.88rem;display:flex;align-items:center;gap:8px">
+            <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Usuário
+          </span>
+          <span style="font-weight:700">{{ session.admin_user }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--text2);font-size:0.88rem;display:flex;align-items:center;gap:8px">
+            <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Nível de Acesso
+          </span>
+          <span style="font-weight:700;color:{% if session.admin_role == 'supreme' %}var(--pink){% else %}var(--blue){% endif %}">
+            {% if session.admin_role == 'supreme' %}Supremo{% else %}Básico{% endif %}
+          </span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:12px 0">
+          <span style="color:var(--text2);font-size:0.88rem;display:flex;align-items:center;gap:8px">
+            <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Receita Administrada
+          </span>
+          <span style="font-weight:700;color:var(--green)">{{ total_rev }}</span>
+        </div>
+      </div>
     </div>
-  </div>
-  {% else %}
-  <div class="empty-state">
-    <svg class="svg-icon" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-    <div class="empty-state-text">Monitorando... nenhuma atividade ainda.</div>
-  </div>
-  {% endfor %}
-</div>
+
+    <a href="/admin/logout" class="btn btn-danger btn-full" style="margin-top:8px">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Encerrar Sessão
+    </a>
+  </div><!-- /tab-perfil -->
+
+
+  <!-- ══════════════════ MONITOR LIVE ══════════════════ -->
+  <div id="tab-monitor" class="tab-pane">
+    <div class="sec-hdr" style="margin-top:0">
+      <div class="sec-title">
+        <svg class="ico" style="width:16px;height:16px" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Monitor em Tempo Real
+      </div>
+      <div class="sec-action" style="color:var(--green);gap:6px">
+        <div class="dot-live"></div> Live
+      </div>
+    </div>
+
+    {% for p in pays[:30] %}
+    <div class="monitor-item">
+      <div class="mdot {% if p.status in ['paid','authorized','completed'] %}mdot-paid{% elif p.status == 'pending' %}mdot-pend{% else %}mdot-rest{% endif %}"></div>
+      <div class="m-info">
+        <div class="m-id">{{ p.payment_id or ('PIX #' ~ p.id) }}</div>
+        <div class="m-sub">{{ p.status|upper }} · {{ p.created_at or '' }}</div>
+      </div>
+      <div class="m-amt" style="color:{% if p.status in ['paid','authorized','completed'] %}var(--green){% elif p.status == 'pending' %}var(--orange){% else %}var(--red){% endif %}">
+        R$ {{ '%.2f'|format(p.amount|float) if p.amount else '0,00' }}
+      </div>
+    </div>
+    {% else %}
+    <div class="empty">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <p>Monitorando... nenhuma atividade ainda.</p>
+    </div>
+    {% endfor %}
+  </div><!-- /tab-monitor -->
 
 </div><!-- /main-scroll -->
 
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <button class="nav-item active" id="nav-dashboard" onclick="switchTab('dashboard')">
+  <button class="nav-btn active" id="nav-dashboard" onclick="switchTab('dashboard')">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
-    <span class="nav-label">Dashboard</span>
+    Início
   </button>
-  <button class="nav-item" id="nav-eventos" onclick="switchTab('eventos')">
-    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-    <span class="nav-label">Leads</span>
+  <button class="nav-btn" id="nav-leads" onclick="switchTab('leads')">
+    <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Leads
     {% if total_leads > 0 %}<span class="nav-badge">{{ total_leads if total_leads < 100 else '99+' }}</span>{% endif %}
   </button>
   {% if session.admin_role == 'supreme' %}
-  <button class="nav-item" id="nav-config" onclick="switchTab('config')">
+  <button class="nav-btn" id="nav-config" onclick="switchTab('config')">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    <span class="nav-label">Config</span>
+    Config
   </button>
   {% endif %}
-  <button class="nav-item" id="nav-perfil" onclick="switchTab('perfil')">
+  <button class="nav-btn" id="nav-perfil" onclick="switchTab('perfil')">
     <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <span class="nav-label">Perfil</span>
+    Perfil
   </button>
-  <button class="nav-item" id="nav-monitor" onclick="switchTab('monitor')">
+  <button class="nav-btn" id="nav-monitor" onclick="switchTab('monitor')">
     <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <span class="nav-label">Live</span>
+    Live
     {% if total_paid > 0 %}<span class="nav-badge" style="background:var(--green)">{{ total_paid }}</span>{% endif %}
   </button>
 </nav>
 
+<!-- LEAD MODAL OVERLAY -->
+<div id="lead-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:500;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeLeadModal()">
+  <div id="lead-modal-body" style="background:var(--bg2);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:24px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1)">
+  </div>
+</div>
+
+<!-- TOAST -->
 <div class="toast" id="toast">
-  <svg class="svg-icon" id="toast-icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+  <svg id="toast-icon" class="ico" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   <span id="toast-msg"></span>
 </div>
 
 <script>
-  // THEME MANAGEMENT
+  // ─── THEME ───
   const htmlEl = document.documentElement;
   const themeIcon = document.getElementById('theme-icon');
-  
-  function getTheme() {
-    return localStorage.getItem('adminTheme') || 'dark';
+  function getTheme(){ return localStorage.getItem('adminTheme') || 'dark'; }
+  function applyTheme(t){
+    htmlEl.setAttribute('data-theme', t);
+    localStorage.setItem('adminTheme', t);
+    themeIcon.innerHTML = t === 'dark'
+      ? '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>'
+      : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
   }
-  
-  function applyTheme(theme) {
-    htmlEl.setAttribute('data-theme', theme);
-    localStorage.setItem('adminTheme', theme);
-    
-    if (theme === 'dark') {
-      themeIcon.innerHTML = '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>';
-    } else {
-      themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-    }
-  }
-  
-  function toggleTheme() {
-    applyTheme(getTheme() === 'dark' ? 'light' : 'dark');
-  }
-  
-  // INIT THEME
+  function toggleTheme(){ applyTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
   applyTheme(getTheme());
 
-  function filterLeadsT(status, btn) {
-    btn.parentElement.querySelectorAll('button').forEach(b => {
-      b.classList.remove('active');
-      b.style.background = 'transparent';
-    });
-    btn.classList.add('active');
-    btn.style.background = 'var(--bg3)';
-    
-    const rows = document.querySelectorAll('#leads-tbody .lead-row');
-    rows.forEach(r => {
-      const st = r.getAttribute('data-status');
-      if (status === 'all') {
-        r.style.display = '';
-      } else if (status === 'paid') {
-        if (['paid','authorized','completed'].includes(st)) r.style.display = '';
-        else r.style.display = 'none';
-      } else if (status === 'pending') {
-        if (st === 'pending' || st === 'novo') r.style.display = '';
-        else r.style.display = 'none';
-      } else if (status === 'abandoned') {
-        if (['abandoned','canceled','expired'].includes(st)) r.style.display = '';
-        else r.style.display = 'none';
-      }
-    });
-  }
-
-  // NAVIGATION
+  // ─── TABS ───
   function switchTab(name) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    document.getElementById('nav-' + name).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(n => n.classList.remove('active'));
+    const pane = document.getElementById('tab-' + name);
+    const btn  = document.getElementById('nav-' + name);
+    if (pane) pane.classList.add('active');
+    if (btn)  btn.classList.add('active');
     window.scrollTo(0, 0);
   }
 
-  // TOASTS
+  // ─── LEAD FILTER ───
+  function filterLeads(status, btn) {
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('#leads-cards .lead-card').forEach(c => {
+      const st = c.getAttribute('data-status') || 'novo';
+      if (status === 'all') { c.style.display = ''; }
+      else if (status === 'paid') { c.style.display = ['paid','authorized','completed'].includes(st) ? '' : 'none'; }
+      else if (status === 'pending') { c.style.display = (st === 'pending' || st === 'novo') ? '' : 'none'; }
+      else if (status === 'abandoned') { c.style.display = ['abandoned','canceled','expired'].includes(st) ? '' : 'none'; }
+    });
+  }
+
+  // ─── LEAD MODAL ───
+  const LEADS_DATA = {{ leads | tojson }};
+  function openLeadModal(id) {
+    const l = LEADS_DATA.find(x => x.id === id);
+    if (!l) return;
+
+    // Build mini card class
+    let ccClass = 'mcc-pink';
+    const c = (l.card_color || '').toLowerCase();
+    if (c.includes('purple') || c.includes('7c3a')) ccClass = 'mcc-purple';
+    else if (c.includes('blue') || c.includes('1e88')) ccClass = 'mcc-blue';
+    else if (c.includes('black') || c.includes('2b2d')) ccClass = 'mcc-black';
+    else if (c.includes('gold') || c.includes('d4af')) ccClass = 'mcc-gold';
+    else if (c.includes('teal') || c.includes('0f76')) ccClass = 'mcc-teal';
+    else if (c.includes('green') || c.includes('0596')) ccClass = 'mcc-green';
+
+    const statusLabel = (st) => {
+      if (['paid','authorized','completed'].includes(st)) return '<span style="color:var(--green);font-weight:700">✓ PAGO</span>';
+      if (st === 'pending') return '<span style="color:var(--orange);font-weight:700">⏱ PENDENTE</span>';
+      return `<span style="color:var(--red);font-weight:700">${st || 'NOVO'}</span>`;
+    };
+
+    const ts = l.created_at ? new Date(l.created_at * 1000).toLocaleString('pt-BR') : '—';
+
+    document.getElementById('lead-modal-body').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:1.1rem;font-weight:800;color:var(--text)">Detalhes do Lead</div>
+        <button onclick="closeLeadModal()" style="background:var(--bg3);border:none;color:var(--text2);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:1rem">✕</button>
+      </div>
+      <!-- CREDIT CARD LARGE -->
+      <div style="display:flex;justify-content:center;margin-bottom:20px">
+        <div class="mini-cc ${ccClass}" style="width:200px;height:126px;border-radius:14px">
+          <div class="mcc-face" style="padding:14px 16px">
+            <div class="mcc-row">
+              <div class="mcc-brand" style="font-size:0.75rem">LIVELO</div>
+              <div class="mcc-chip" style="width:26px;height:18px;border-radius:4px"></div>
+            </div>
+            <div class="mcc-row" style="margin-top:8px">
+              <div style="font-size:0.6rem;color:rgba(255,255,255,0.6);font-weight:600">•••• •••• •••• ${l.cpf ? l.cpf.slice(-4) : '????'}</div>
+            </div>
+            <div class="mcc-row">
+              <div>
+                <div style="font-size:0.5rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.05em">${l.card_style || 'Standard'}</div>
+                <div class="mcc-limit" style="font-size:1rem;font-weight:900">${l.limite_aprovado || '—'}</div>
+              </div>
+              <div class="mcc-mc" style="align-self:flex-end"><span style="width:18px;height:18px"></span><span style="width:18px;height:18px"></span></div>
+            </div>
+            <div style="font-size:0.55rem;color:rgba(255,255,255,0.8);font-weight:700;margin-top:4px;letter-spacing:0.05em;text-transform:uppercase">${l.nome ? l.nome.split(' ')[0] + ' ' + (l.nome.split(' ').slice(-1)[0] || '') : '—'}</div>
+          </div>
+        </div>
+      </div>
+      <!-- DETAILS -->
+      <div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:16px">
+        ${[
+          ['Nome completo', l.nome || '—'],
+          ['CPF', l.cpf || '—'],
+          ['WhatsApp', l.whatsapp ? `<a href="https://wa.me/55${l.whatsapp}" target="_blank" style="color:var(--green)">${l.whatsapp}</a>` : '—'],
+          ['Status', statusLabel(l.pix_status)],
+          ['Renda', l.renda ? `${l.renda} · ${l.tipo_renda || ''}` : '—'],
+          ['Motivo', l.motivo_credito || '—'],
+          ['Vencimento', l.dia_vencimento || '—'],
+          ['Frete Pago', l.frete_valor ? `R$ ${l.frete_valor}` : '—'],
+          ['Data de Entrada', ts],
+          ['Origem UTM', [l.utm_source, l.utm_campaign].filter(Boolean).join(' / ') || '—'],
+        ].map(([k, v]) => `
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem;gap:12px">
+            <span style="color:var(--text2);flex-shrink:0">${k}</span>
+            <span style="font-weight:600;text-align:right">${v}</span>
+          </div>
+        `).join('')}
+      </div>
+      ${l.whatsapp ? `<a href="https://wa.me/55${l.whatsapp}" target="_blank" class="btn btn-full" style="background:#25D366;color:#fff;justify-content:center;border-radius:12px;padding:14px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:8px"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Chamar no WhatsApp</a>` : ''}
+    `;
+    const modal = document.getElementById('lead-modal');
+    modal.style.display = 'flex';
+    setTimeout(() => document.getElementById('lead-modal-body').style.transform = 'translateY(0)', 10);
+  }
+  function closeLeadModal() {
+    document.getElementById('lead-modal-body').style.transform = 'translateY(100%)';
+    setTimeout(() => document.getElementById('lead-modal').style.display = 'none', 350);
+  }
+
+  // ─── TOAST ───
   function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
-    const msgEl = document.getElementById('toast-msg');
-    const iconEl = document.getElementById('toast-icon');
-    
-    msgEl.innerText = msg;
-    
-    if (type === 'success') {
-      t.style.background = 'var(--green)';
-      t.style.color = '#FFF';
-      iconEl.innerHTML = '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline>';
-    } else {
-      t.style.background = 'var(--red)';
-      t.style.color = '#FFF';
-      iconEl.innerHTML = '<circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line>';
-    }
-    
+    document.getElementById('toast-msg').innerText = msg;
+    document.getElementById('toast-icon').innerHTML = type === 'success'
+      ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+      : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
+    t.style.background = type === 'success' ? 'var(--green)' : 'var(--red)';
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3500);
   }
 
-  // INIT TICKET MEDIO
+  // ─── TICKET MÉDIO ───
   (function() {
-    const totalPaid = parseInt("{{ total_paid }}") || 0;
+    const paid = parseInt("{{ total_paid }}") || 0;
     const revStr = "{{ total_rev }}".replace('R$','').trim().replace(/\./g,'').replace(',','.');
-    const revNum = parseFloat(revStr) || 0;
-    document.getElementById('ticket-medio').textContent = totalPaid > 0
-      ? 'R$ ' + (revNum / totalPaid).toFixed(2).replace('.',',')
-      : 'R$ 0,00';
+    const rev = parseFloat(revStr) || 0;
+    document.getElementById('ticket-medio').textContent = paid > 0 ? 'R$ ' + (rev/paid).toFixed(2).replace('.',',') : 'R$ 0,00';
   })();
 
-  // LOGO UPLOAD
+  // ─── LOGO UPLOAD ───
   function previewLogoFile(input) {
     if (!input.files || !input.files[0]) return;
-    document.getElementById('logo-filename').textContent = input.files[0].name;
     const r = new FileReader();
     r.onload = e => { document.getElementById('logo-preview-img').src = e.target.result; };
     r.readAsDataURL(input.files[0]);
   }
-  
   async function saveLogo(e) {
     e.preventDefault();
     const btn = document.getElementById('logo-save-btn');
-    const origHTML = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = 'Salvando...';
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Salvando...';
     try {
       const fd = new FormData(e.target);
-      const res = await fetch('/admin/api/logo', { method: 'POST', body: fd });
+      // If URL typed, send as JSON
+      const urlVal = document.getElementById('logo_url').value;
+      let res;
+      if (urlVal) {
+        fd.delete('logo_url'); // keep it for display only, send as url field
+        const fd2 = new FormData(); fd2.append('url', urlVal);
+        res = await fetch('/admin/api/logo', { method:'POST', body: fd2 });
+      } else {
+        res = await fetch('/admin/api/logo', { method:'POST', body: fd });
+      }
       const d = await res.json();
-      if (d.ok) {
-        showToast('Logo atualizada com sucesso!');
-        document.getElementById('logo-preview-img').src = d.logo_url + '?t=' + Date.now();
-        e.target.reset(); document.getElementById('logo-filename').textContent = 'Nenhum arquivo selecionado';
-      } else showToast(d.error || 'Erro ao salvar', 'error');
-    } catch { showToast('Erro de conexão', 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = origHTML; }
-  }
-  
-  async function resetLogo() {
-    if (!confirm('Deseja restaurar a logo para o padrão da Livelo?')) return;
-    const fd = new FormData(); fd.append('url', '/static/images/logo.png');
-    const d = await (await fetch('/admin/api/logo', { method: 'POST', body: fd })).json();
-    if (d.ok) {
-      document.getElementById('logo-preview-img').src = '/static/images/logo.png?t=' + Date.now();
-      showToast('Logo padrão restaurada!');
-    }
-  }
-
-  // MGR UPLOAD
-  function previewMgrPhoto(input) {
-    if (!input.files || !input.files[0]) return;
-    const r = new FileReader();
-    r.onload = e => { document.getElementById('mgr-img-preview').src = e.target.result; document.getElementById('mgr_photo_url').value = ''; };
-    r.readAsDataURL(input.files[0]);
-  }
-  
-  async function saveManager(e) {
-    e.preventDefault();
-    const btn = document.getElementById('mgr-save-btn');
-    const origHTML = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = 'Salvando...';
-    try {
-      const d = await (await fetch('/admin/manager', { method: 'POST', body: new FormData(e.target) })).json();
-      if (d.ok) { showToast('Configurações do gerente salvas!'); if (d.photo_url) document.getElementById('mgr-img-preview').src = d.photo_url; }
+      if (d.ok) { showToast('Logo atualizada!'); document.getElementById('logo-preview-img').src = d.logo_url + '?t=' + Date.now(); }
       else showToast(d.error || 'Erro', 'error');
     } catch { showToast('Erro de conexão', 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
+  }
+  async function resetLogo() {
+    if (!confirm('Restaurar logo padrão?')) return;
+    const fd = new FormData(); fd.append('url', '/static/images/logo.png');
+    const d = await (await fetch('/admin/api/logo', { method:'POST', body: fd })).json();
+    if (d.ok) { document.getElementById('logo-preview-img').src = '/static/images/logo.png?t=' + Date.now(); showToast('Logo padrão restaurada!'); }
   }
 
-  // PW CHANGE
+  // ─── MANAGER SAVE ───
+  async function saveManagerAdmin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('mgr-save-btn');
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Salvando...';
+    try {
+      // Sync photo url from preview field into hidden form field
+      document.getElementById('mgr_photo_url_form').value = document.getElementById('mgr_photo_url_preview').value;
+      const fd = new FormData(e.target);
+      const d = await (await fetch('/admin/manager', { method:'POST', body: fd })).json();
+      if (d.ok) { showToast('Gerente salvo com sucesso!'); if (d.photo_url) document.getElementById('mgr-img-preview').src = d.photo_url; }
+      else showToast(d.error || 'Erro', 'error');
+    } catch { showToast('Erro de conexão', 'error'); }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
+  }
+
+  // ─── PW CHANGE ───
   async function changePw(e) {
     e.preventDefault();
     const btn = document.getElementById('pw-save-btn');
-    const origHTML = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = 'Alterando...';
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Alterando...';
     try {
       const body = { current_password: document.getElementById('pw-current').value, new_password: document.getElementById('pw-new').value, confirm_password: document.getElementById('pw-confirm').value };
-      const d = await (await fetch('/admin/change-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
-      if (d.ok) { showToast('Senha de administrador alterada!'); e.target.reset(); }
+      const d = await (await fetch('/admin/change-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })).json();
+      if (d.ok) { showToast('Senha alterada com sucesso!'); e.target.reset(); }
       else showToast(d.error || 'Erro', 'error');
     } catch { showToast('Erro de conexão', 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
   }
 
-  // UPDATE CPF API
+  // ─── CPF API UPDATE ───
   async function updateCpfApi(e) {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
-    const origHTML = btn.innerHTML;
-    btn.disabled = true; btn.innerHTML = 'Salvando...';
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Salvando...';
     try {
       const fd = new URLSearchParams(new FormData(e.target));
-      const res = await fetch('/admin/api_cpf_update', { method: 'POST', body: fd });
+      const res = await fetch('/admin/api_cpf_update', { method:'POST', body: fd });
       const d = await res.json();
-      if (d.success) {
-        showToast('Token de API de CPF atualizado com sucesso e créditos zerados!');
-        setTimeout(() => location.reload(), 1500);
-      } else {
-        showToast(d.error || 'Erro', 'error');
-      }
+      if (d.success) { showToast('Token atualizado e créditos zerados!'); setTimeout(() => location.reload(), 1500); }
+      else showToast(d.error || 'Erro', 'error');
     } catch { showToast('Erro de conexão', 'error'); }
-    finally { btn.disabled = false; btn.innerHTML = origHTML; }
+    finally { btn.disabled = false; btn.innerHTML = orig; }
   }
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    VanillaTilt.init(document.querySelectorAll(".metric-card, .stat-card, .profile-card, .balance-card, .list-item, .event-item"), {
-        max: 5,
-        speed: 400,
-        glare: true,
-        "max-glare": 0.1,
-    });
-});
 </script>
 </body>
 </html>
