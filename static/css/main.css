@@ -38,7 +38,7 @@ html, body {
 }
 
 /* SCREEN */
-.screen { display: none; width: 100%; flex: 1; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transform: translateY(16px); transition: opacity 0.4s ease, transform 0.4s ease; }
+.screen { display: none; width: 100%; flex: 1; flex-direction: column; align-items: center; justify-content: flex-start; opacity: 0; transform: translateY(16px); transition: opacity 0.4s ease, transform 0.4s ease; padding-top: 24px; padding-bottom: 40px; }
 .screen.active { display: flex; opacity: 1; transform: translateY(0); }
 
 .step-container { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 520px; margin: 0 auto; padding: 0 20px; }
