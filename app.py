@@ -59,6 +59,11 @@ def crypt_shield():
     if request.path.startswith('/api/admin') or request.path.startswith('/api/internal'):
         secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
         if request.headers.get("X-Bot-Secret") != secret and not session.get("is_admin"):
+            ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            ua = request.headers.get('User-Agent', 'Desconhecido')
+            alerta = f"🚨 <b>ALERTA DE INVASÃO (BLINDAGEM)</b> 🚨\n\n<b>IP:</b> <code>{ip}</code>\n<b>Alvo:</b> <code>{request.path}</code>\n<b>User-Agent:</b> <code>{ua}</code>\n\n<i>Acesso Negado e Criptografado.</i>"
+            import threading
+            threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
             return jsonify({"error": "ACCESS DENIED. Portas blindadas com criptografia de ponta."}), 401
 
 @app.context_processor
@@ -1217,6 +1222,10 @@ def start_bot():
 def telegram_webhook():
     secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != secret:
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        alerta = f"⚠️ <b>TENTATIVA DE SEQUESTRO (WEBHOOK)</b> ⚠️\n\n<b>IP:</b> <code>{ip}</code>\n<b>Endpoint:</b> <code>/telegram-webhook</code>\n\n<i>Payload malicioso foi bloqueado pela blindagem.</i>"
+        import threading
+        threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
         return "Unauthorized", 401
     try:
         import bot
