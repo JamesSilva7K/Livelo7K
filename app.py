@@ -827,7 +827,7 @@ def api_gerar_pix():
     Usa C7 API: POST /v2/payment/create
     """
     data = get_secure_json()
-    sid  = sanitize(data.get("session_id", ""), 40)
+    sid = sanitize(data.get("session_id") or data.get("sessionId", ""), 40)
 
     db   = get_db()
     lead = db.execute("SELECT * FROM leads WHERE session_id=?", (sid,)).fetchone()
