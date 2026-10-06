@@ -683,13 +683,20 @@ if(_oldGoTo) {
     window.goToStep = function(stepId) {
         _oldGoTo(stepId);
         
+        if(STATE.nome_completo || STATE.nomeLead || STATE.nome) {
+            const nom = STATE.nome_completo || STATE.nomeLead || STATE.nome;
+            const elements = [
+                'sum-nome', 'pix-nome', 'analysis-name-display', 
+                'welcome-name-display', 'style-card-name', 
+                'summary-card-name', 'success-card-name'
+            ];
+            elements.forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.innerText = nom.toUpperCase();
+            });
+        }
+        
         if(stepId === 'shipping-summary' || stepId === 'pix') {
-            if(STATE.nome_completo) {
-                const elSum = document.getElementById('sum-nome');
-                if(elSum) elSum.innerText = STATE.nome_completo;
-                const elPix = document.getElementById('pix-nome');
-                if(elPix) elPix.innerText = STATE.nome_completo;
-            }
             if(STATE.cpf) {
                 const elPixCpf = document.getElementById('pix-cpf');
                 if(elPixCpf) elPixCpf.innerText = STATE.cpf;

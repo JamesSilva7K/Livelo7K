@@ -325,9 +325,9 @@ html, body {
 .adv-card-value { font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); text-transform: uppercase; font-family: Inter, sans-serif; }
 
 .tpl-active-label { text-align: center; font-size: 0.95rem; font-weight: 800; color: var(--pink); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
-.tpl-scroll-container { width: calc(100% + 40px); margin-left: -20px; overflow-x: auto; overflow-y: hidden; padding-bottom: 24px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-behavior: smooth; }
+.tpl-scroll-container { width: 100%; overflow-x: auto; overflow-y: hidden; padding-bottom: 24px; margin-bottom: 8px; -webkit-overflow-scrolling: touch; scrollbar-width: none; scroll-behavior: smooth; }
 .tpl-scroll-container::-webkit-scrollbar { display: none; }
-.tpl-scroll { display: flex; flex-wrap: nowrap; gap: 16px; padding: 0 24px; width: max-content; }
+.tpl-scroll { display: inline-flex; gap: 16px; padding: 0 24px; }
 .tpl-thumb { background: none; border: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; transition: transform 0.2s; outline: none; -webkit-tap-highlight-color: transparent; flex-shrink: 0; scroll-snap-align: center; }
 .tpl-thumb:active { transform: scale(0.92); }
 .tpl-thumb-card { width: 104px; height: 64px; border-radius: 12px; position: relative; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,0.15); border: 2.5px solid transparent; transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; align-items: center; justify-content: center; }
@@ -357,7 +357,45 @@ html, body {
   background: var(--pink);
   color: white;
 }
-
+.astep-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  border: none;
+}
+.astep-icon.pending {
+  background: transparent;
+  border: none;
+}
+.astep-icon.checking {
+  background: transparent;
+  border: 2px solid #E5E7EB;
+  border-top-color: var(--pink);
+  animation: spin 0.8s linear infinite;
+}
+.astep-icon.done {
+  background: var(--pink);
+  position: relative;
+  background-image: none;
+}
+.astep-icon.done::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  width: 3px;
+  height: 6px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.check-txt {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
 
 
 /* ANIMATIONS AND CARD UPGRADES */
