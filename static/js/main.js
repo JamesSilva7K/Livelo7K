@@ -46,6 +46,29 @@ STATE.sck = urlParams.get('sck') || '';
 // Track Visit in Background
 fetch('/api/visit', { method: 'POST' }).catch(() => {});
 
+async function fetchConfig() {
+  try {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    if(cfg.frete_expresso) {
+      const btn = document.getElementById('btn_frete_expresso');
+      if(btn) {
+        btn.setAttribute('onclick', `selectShipping('sedex', ${cfg.frete_expresso.replace(',', '.')})`);
+        const lbl = document.getElementById('lbl_frete_expresso');
+        if(lbl) lbl.textContent = `R$ ${cfg.frete_expresso}`;
+      }
+    }
+    if(cfg.frete_padrao) {
+      const btn = document.getElementById('btn_frete_padrao');
+      if(btn) {
+        btn.setAttribute('onclick', `selectShipping('pac', ${cfg.frete_padrao.replace(',', '.')})`);
+        const lbl = document.getElementById('lbl_frete_padrao');
+        if(lbl) lbl.textContent = `R$ ${cfg.frete_padrao}`;
+      }
+    }
+  } catch(e) {}
+}
+fetchConfig();
 // ============================================================================
 
 // ============================================================================
@@ -941,7 +964,7 @@ function selectShipping(method, price) {
   
   if ($id('summary-card-name')) $id('summary-card-name').innerText = (STATE.nome || 'SEU NOME').toUpperCase();
   
-  goToStep('shipping-success');
+  goToStep('cep'); // Redirects to new CEP step
 }
 
 

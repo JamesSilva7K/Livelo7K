@@ -6,92 +6,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    
     :root {
-      --bg-base: #0b0f19; --bg-surface: #111827; --bg-surface-hover: #1f2937;
+      --bg-base: #0f172a; --bg-surface: #1e293b; --bg-surface-hover: #334155;
       --primary: #E5147A; --primary-hover: #be1265;
       --success: #10B981; --warning: #F59E0B; --danger: #EF4444;
-      --text-main: #f9fafb; --text-muted: #9ca3af;
-      --border: rgba(255, 255, 255, 0.08);
-      --glass-bg: rgba(17, 24, 39, 0.7);
-      --glass-border: rgba(255, 255, 255, 0.05);
+      --text-main: #f8fafc; --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.1);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
-    body { background-color: var(--bg-base); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at top right, rgba(229,20,122,0.05), transparent 400px); }
+    body { background-color: var(--bg-base); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
     
-    /* Modern Glass Sidebar */
-    .sidebar { width: 280px; background: var(--glass-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: 0.3s; z-index: 10; }
-    .sidebar-header { padding: 32px 24px; font-weight: 800; font-size: 1.4rem; color: var(--text-main); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
-    .sidebar-header span { color: var(--primary); }
-    .sidebar-nav { flex: 1; padding: 24px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; cursor: pointer; border-left: 3px solid transparent; }
-    .nav-item:hover { color: var(--text-main); background: rgba(255,255,255,0.02); }
-    .nav-item.active { background: linear-gradient(90deg, rgba(229,20,122,0.1) 0%, transparent 100%); color: var(--primary); border-left: 3px solid var(--primary); }
+    /* Sidebar */
+    .sidebar { width: 260px; background: var(--bg-surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: 0.3s; }
+    .sidebar-header { padding: 24px; font-weight: 800; font-size: 1.25rem; color: var(--primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--text-muted); text-decoration: none; font-weight: 500; transition: 0.2s; cursor: pointer; }
+    .nav-item:hover, .nav-item.active { background: rgba(229, 20, 122, 0.1); color: var(--primary); border-right: 4px solid var(--primary); }
     
-    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    /* Main Content */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .header { height: 72px; padding: 0 32px; background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .content-area { flex: 1; padding: 32px; overflow-y: auto; background: var(--bg-base); }
     
-    /* Sleek Topbar */
-    .header { height: 80px; padding: 0 40px; background: transparent; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: 5; }
-    .header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; }
-    .user-profile { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 0.9rem; }
-    .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #ff4d9f); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; box-shadow: 0 4px 12px rgba(229,20,122,0.3); }
+    /* Cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; margin-bottom: 32px; }
+    .stat-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; transition: transform 0.2s; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--text-main); margin-top: 8px; }
+    .stat-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
     
-    .content-area { flex: 1; padding: 40px; overflow-y: auto; }
-    .content-section { display: none; animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-    .content-section.active { display: block; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    
-    /* Neo-brutal / Premium Cards */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 40px; }
-    .stat-card { background: linear-gradient(145deg, var(--bg-surface), #151e2f); border: 1px solid var(--glass-border); border-radius: 20px; padding: 28px; transition: all 0.3s; position: relative; overflow: hidden; }
-    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--primary); opacity: 0; transition: 0.3s; }
-    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5); }
-    .stat-card:hover::before { opacity: 1; }
-    .stat-value { font-size: 2.5rem; font-weight: 800; color: var(--text-main); margin-top: 12px; letter-spacing: -1px; }
-    .stat-label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
-    
-    /* Config Cards & Forms */
-    .section-header { margin-bottom: 32px; }
-    .section-header h2 { font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.5px; }
-    .section-header p { color: var(--text-muted); font-size: 1rem; }
-    
-    .config-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-    .field-group { margin-bottom: 24px; }
-    .field-label { display: block; margin-bottom: 10px; font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
-    .field-input { width: 100%; background: #0b0f19; border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; color: var(--text-main); font-size: 0.95rem; transition: all 0.2s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
-    .field-input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 4px rgba(229,20,122,0.15), inset 0 2px 4px rgba(0,0,0,0.2); }
-    
-    /* Modern Tables */
-    .table-container { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+    /* Tables */
+    .table-container { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 32px; }
+    .table-header { padding: 20px 24px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 1.1rem; }
     table { width: 100%; border-collapse: collapse; }
-    th { text-align: left; padding: 18px 24px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.2); letter-spacing: 0.5px; }
-    td { padding: 18px 24px; font-size: 0.95rem; border-bottom: 1px solid var(--border); color: var(--text-main); vertical-align: middle; }
+    th { text-align: left; padding: 16px 24px; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; border-bottom: 1px solid var(--border); }
+    td { padding: 16px 24px; font-size: 0.9rem; border-bottom: 1px solid var(--border); color: var(--text-main); }
     tr:last-child td { border-bottom: none; }
-    tr:hover { background: rgba(255,255,255,0.03); }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+    .badge.paid { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
     
-    .badge { padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
-    .badge-paid { background: rgba(16,185,129,0.15); color: #34d399; }
-    .badge-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    /* Forms */
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
+    input[type="text"], input[type="password"] { width: 100%; background: var(--bg-base); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; color: var(--text-main); font-size: 0.95rem; transition: 0.2s; }
+    input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(229,20,122,0.2); }
     
-    .btn-primary { background: linear-gradient(135deg, var(--primary), #ff4d9f); color: white; border: none; border-radius: 12px; padding: 14px 28px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(229,20,122,0.3); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(229,20,122,0.4); }
-
+    /* Buttons */
+    .btn { background: var(--primary); color: white; border: none; border-radius: 8px; padding: 12px 24px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; right: 24px; background: var(--success); color: white; padding: 16px 24px; border-radius: 8px; font-weight: 600; transform: translateY(100px); opacity: 0; transition: 0.3s; z-index: 9999; }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    
+    /* Sections */
+    .view-section { display: none; animation: fadeIn 0.4s; }
+    .view-section.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
 
   <nav class="sidebar">
-    <div class="sidebar-header">Supreme<span>Admin</span></div>
+    <div class="sidebar-header">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Admin Supremo
+    </div>
     <div class="sidebar-nav">
-      <a class="nav-item active" onclick="switchTab('dashboard', this)">Dashboard</a>
-      <a class="nav-item" onclick="switchTab('leads', this)">Leads</a>
-      <a class="nav-item" onclick="switchTab('bot', this)">Bot Telegram</a>
-      <a class="nav-item" onclick="switchTab('customization', this)">Personalização (Gerente & Site)</a>
-      <a class="nav-item" onclick="switchTab('marketing', this)">Pixel & Marketing</a>
+      <a class="nav-item active" onclick="switchTab('dashboard', this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Dashboard
+      </a>
+      <a class="nav-item" onclick="switchTab('leads', this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Leads & Vendas
+      </a>
+      <a class="nav-item" onclick="switchTab('bot', this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Notificações Bot
+      </a>
+      <a class="nav-item" onclick="switchTab('settings', this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Configurações
+      </a>
+      <a href="/admin/logout" class="nav-item" style="margin-top: auto; border-top: 1px solid var(--border);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg> Sair
+      </a>
     </div>
   </nav>
 
   <main class="main-wrapper">
+    <header class="header">
+      <h2 style="font-weight: 600; font-size: 1.1rem;">Visão Geral do Sistema</h2>
+      <div style="display:flex; align-items:center; gap: 12px;">
+        <img src="{{ sys_logo_val }}" alt="Logo do sistema" height="30" onerror="this.style.display='none'">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700;">A</div>
+      </div>
+    </header>
+
     <div class="content-area">
       <!-- DASHBOARD -->
       <section id="dashboard" class="view-section active">
@@ -101,26 +111,27 @@
             <div class="stat-value">{{ total_leads }}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-label">Vendas Pagas</div>
+            <div class="stat-label">Vendas PIX Pagas</div>
             <div class="stat-value">{{ total_paid }}</div>
           </div>
+          <div class="stat-card">
+            <div class="stat-label">Receita (Frete)</div>
+            <div class="stat-value" style="color: var(--success)">R$ {{ "%.2f"|format(total_rev) }}</div>
+          </div>
         </div>
-      </section>
 
-      <!-- LEADS -->
-      <section id="leads" class="view-section">
-        <div class="table-container" style="padding:0; max-width: 100%;">
+        <div class="table-container">
+          <div class="table-header">Últimos Pagamentos</div>
           <table>
-            <thead><tr><th>Nome</th><th>CPF</th><th>IP & Geo</th><th>Renda</th><th>Limite</th><th>PIX</th></tr></thead>
+            <thead><tr><th>ID</th><th>Nome</th><th>CPF</th><th>Valor</th><th>Status</th></tr></thead>
             <tbody>
-              {% for l in leads %}
+              {% for p in pays[:5] %}
               <tr>
-                <td>{{ l.nome }}</td>
-                <td>{{ l.cpf }}</td>
-                <td style='font-size:0.75rem; color:var(--text-muted)'>{{ l.ip }}<br>{{ l.location }}</td>
-                <td>R$ {{ l.renda }}</td>
-                <td style="color: var(--success); font-weight: 600">R$ {{ l.limite_aprovado }}</td>
-                <td>{{ l.pix_status }}</td>
+                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted)">{{ p.payment_id[:12] }}...</td>
+                <td>{{ p.payer_name }}</td>
+                <td>{{ p.payer_cpf }}</td>
+                <td style="font-weight: 600">R$ {{ "%.2f"|format(p.amount) }}</td>
+                <td><span class="badge {{ p.status }}">{{ p.status }}</span></td>
               </tr>
               {% endfor %}
             </tbody>
@@ -128,63 +139,81 @@
         </div>
       </section>
 
-      <!-- BOT -->
+      <!-- LEADS -->
+      <section id="leads" class="view-section">
+        <div class="table-container">
+          <div class="table-header">Banco de Leads</div>
+          <table style="font-size: 0.8rem;">
+            <thead><tr><th>Data</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>Renda</th><th>Limite</th><th>PIX</th></tr></thead>
+            <tbody>
+              {% for l in leads %}
+              <tr>
+                <td style="color: var(--text-muted)">{{ l.created_at|default('Recent') }}</td>
+                <td style="font-weight: 600">{{ l.nome }}</td>
+                <td>{{ l.cpf }}</td>
+                <td>{{ l.telefone }}</td>
+                <td>R$ {{ l.renda }}</td>
+                <td style="color: var(--success); font-weight: 600">R$ {{ l.limite_aprovado }}</td>
+                <td><span class="badge {{ l.pix_status }}">{{ l.pix_status }}</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- BOT NOTIFICATIONS -->
       <section id="bot" class="view-section">
-        <div class="table-container">
-          <h3 style="margin-bottom: 24px;">Configuração Telegram</h3>
-          <div class="form-group"><label for="bot_token">Bot Token</label><input type="password" id="bot_token" value="{{ sys_config_dict.get('telegram_token', '') }}"></div>
-          <div class="form-group"><label for="bot_channel">ID Canal/Grupo</label><input type="text" id="bot_channel" value="{{ sys_config_dict.get('tg_log_channel', '') }}"></div>
-          <div class="form-group"><label for="bot_topic">ID Tópico</label><input type="text" id="bot_topic" value="{{ sys_config_dict.get('tg_log_thread_id', '') }}"></div>
-          <button class="btn" onclick="saveBotConfig()">Salvar Bot</button>
+        <div class="table-container" style="padding: 32px; max-width: 600px;">
+          <h3 style="margin-bottom: 24px;">Configuração de Notificações Telegram</h3>
+          <form onsubmit="saveBotConfig(event)">
+            <div class="form-group">
+              <label>Bot Token (Token do BotFather)</label>
+              <input type="password" id="bot_token" value="{{ sys_config_dict.get('telegram_token', '') }}">
+            </div>
+            <div class="form-group">
+              <label>ID do Canal/Grupo Principal (Ex: -100123456)</label>
+              <input type="text" id="bot_channel" value="{{ sys_config_dict.get('tg_log_channel', '') }}">
+            </div>
+            <div class="form-group">
+              <label>ID do Tópico (Thread ID) - Opcional para Grupos com Tópicos</label>
+              <input type="text" id="bot_topic" value="{{ sys_config_dict.get('tg_log_thread_id', '') }}" placeholder="Deixe em branco para canal normal">
+            </div>
+            <button type="submit" class="btn">Salvar Configurações do Bot</button>
+          </form>
         </div>
       </section>
 
-      <!-- CUSTOMIZATION -->
-      <section id="customization" class="view-section">
-        <div class="table-container">
-          <h3 style="margin-bottom: 24px;">Dados da Gerente & Site (Upload Avançado Criptografado)</h3>
-          
-          <div class="form-group">
-            <label for="mgr_name">Nome da Gerente</label>
-            <input type="text" id="mgr_name" value="{{ sys_config_dict.get('mgr_name', 'Camila Soares') }}">
-          </div>
-          <div class="form-group">
-            <label for="mgr_years">Anos de Empresa</label>
-            <input type="text" id="mgr_years" value="{{ sys_config_dict.get('mgr_years', '8') }}">
-          </div>
-          <div class="form-group">
-            <label for="mgr_avatar_file">Avatar da Gerente (Upload)</label>
-            <input type="file" id="mgr_avatar_file" accept="image/*" onchange="encodeImage(this, 'mgr_avatar_preview', 'mgr_avatar_b64')">
-            <input type="hidden" id="mgr_avatar_b64" value="{{ sys_config_dict.get('mgr_avatar', '') }}">
-            <img id="mgr_avatar_preview" class="image-preview" src="{{ sys_config_dict.get('mgr_avatar', '') }}" alt="Avatar Preview">
-          </div>
-          <div class="form-group">
-            <label for="favicon_file">Favicon do Site (Upload)</label>
-            <input type="file" id="favicon_file" accept="image/*" onchange="encodeImage(this, 'favicon_preview', 'favicon_b64')">
-            <input type="hidden" id="favicon_b64" value="{{ sys_config_dict.get('favicon', '') }}">
-            <img id="favicon_preview" class="favicon-preview" src="{{ sys_config_dict.get('favicon', '') }}" alt="Favicon Preview">
-          </div>
-          
-          <button class="btn" onclick="saveAdvancedConfig()">Salvar Personalização</button>
-        </div>
-      </section>
-
-      <!-- MARKETING -->
-      <section id="marketing" class="view-section">
-        <div class="table-container">
-          <h3 style="margin-bottom: 24px;">Pixel & Rastreamento Avançado</h3>
-          <div class="form-group">
-            <label>Código do Pixel (Script Completo ou ID)</label>
-            <textarea id="pixel_code" rows="6" placeholder="<!-- Meta Pixel Code -->...">{{ sys_config_dict.get('pixel_code', '') }}</textarea>
-          </div>
-          <button class="btn" onclick="saveAdvancedConfig()">Salvar Pixel</button>
+      <!-- SETTINGS -->
+      <section id="settings" class="view-section">
+        <div class="table-container" style="padding: 32px; max-width: 600px;">
+          <h3 style="margin-bottom: 24px;">Configurações Avançadas do Sistema</h3>
+          <form onsubmit="saveSystemConfig(event)">
+            <div class="form-group">
+              <label>Token API CPF</label>
+              <input type="password" id="cpf_token" value="{{ sys_config_dict.get('cpf_token', '') }}">
+            </div>
+            <div class="form-group">
+              <label>Valor Frete Expresso (Ex: 29,90)</label>
+              <input type="text" id="frete_expresso" value="{{ sys_config_dict.get('frete_expresso', '24,90') }}">
+            </div>
+            <div class="form-group">
+              <label>Valor Frete Padrão (Ex: 0,00)</label>
+              <input type="text" id="frete_padrao" value="{{ sys_config_dict.get('frete_padrao', '0,00') }}">
+            </div>
+            <div class="form-group">
+              <label>Texto do WhatsApp Manager</label>
+              <input type="text" id="wa_text" value="{{ sys_config_dict.get('wa_text', 'Olá, acabei de pagar o frete...') }}">
+            </div>
+            <button type="submit" class="btn">Atualizar Sistema</button>
+          </form>
         </div>
       </section>
 
     </div>
   </main>
 
-  <div id="toast">Sucesso!</div>
+  <div id="toast">Configurações salvas com sucesso!</div>
 
   <script>
     function switchTab(id, el) {
@@ -195,61 +224,42 @@
     }
 
     function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.innerText = msg; t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 3000);
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
     }
 
-    // Image Upload to Base64 (Encrypted approach for local storage)
-    function encodeImage(input, previewId, hiddenId) {
-      const file = input.files[0];
-      if(!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById(previewId).src = e.target.result;
-        document.getElementById(hiddenId).value = e.target.result;
-      }
-      reader.readAsDataURL(file);
-    }
-
-    async function saveBotConfig() {
-      const payload = {
-        token: document.getElementById('cfg-bot-token').value,
-        channel: document.getElementById('cfg-bot-channel').value,
-        topic: document.getElementById('cfg-bot-topic').value,
-        tpl_entry: document.getElementById('cfg-tpl-entry').value,
-        tpl_card_chosen: document.getElementById('cfg-tpl-card').value,
-        tpl_pix_generated: document.getElementById('cfg-tpl-pix-gen').value,
-        tpl_pix_paid: document.getElementById('cfg-tpl-pix-paid').value
-      };
+    async function saveBotConfig(e) {
+      e.preventDefault();
+      const token = document.getElementById('bot_token').value;
+      const channel = document.getElementById('bot_channel').value;
+      const topic = document.getElementById('bot_topic').value;
+      
       const res = await fetch('/api/admin/bot-config', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
-        },
-        body: JSON.stringify(payload)
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ token, channel, topic })
       });
-      if (res.ok) {
-        tg.showAlert("Configurações do Telegram salvas com sucesso!");
-      } else {
-        tg.showAlert("Erro ao salvar configurações do Telegram.");
-      }
+      if(res.ok) showToast('Notificações do bot atualizadas!');
+      else showToast('Erro ao salvar.');
     }
 
-    async function saveAdvancedConfig() {
+    async function saveSystemConfig(e) {
+      e.preventDefault();
       const payload = {
-        mgr_name: document.getElementById('mgr_name').value,
-        mgr_years: document.getElementById('mgr_years').value,
-        mgr_avatar: document.getElementById('mgr_avatar_b64').value,
-        favicon: document.getElementById('favicon_b64').value,
-        pixel_code: document.getElementById('pixel_code').value,
+        cpf_token: document.getElementById('cpf_token').value,
+        frete_expresso: document.getElementById('frete_expresso').value,
+        frete_padrao: document.getElementById('frete_padrao').value,
+        wa_text: document.getElementById('wa_text').value
       };
       const res = await fetch('/api/admin/advanced-config', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       });
-      showToast(res.ok ? 'Atualizado com sucesso!' : 'Erro');
+      if(res.ok) showToast('Sistema atualizado com segurança.');
+      else showToast('Erro ao atualizar sistema.');
     }
   </script>
 </body>

