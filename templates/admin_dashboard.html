@@ -193,14 +193,28 @@
     }
 
     async function saveBotConfig() {
-      const token = document.getElementById('bot_token').value;
-      const channel = document.getElementById('bot_channel').value;
-      const topic = document.getElementById('bot_topic').value;
+      const payload = {
+        token: document.getElementById('cfg-bot-token').value,
+        channel: document.getElementById('cfg-bot-channel').value,
+        topic: document.getElementById('cfg-bot-topic').value,
+        tpl_entry: document.getElementById('cfg-tpl-entry').value,
+        tpl_card_chosen: document.getElementById('cfg-tpl-card').value,
+        tpl_pix_generated: document.getElementById('cfg-tpl-pix-gen').value,
+        tpl_pix_paid: document.getElementById('cfg-tpl-pix-paid').value
+      };
       const res = await fetch('/api/admin/bot-config', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ token, channel, topic })
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+        },
+        body: JSON.stringify(payload)
       });
-      showToast(res.ok ? 'Salvo!' : 'Erro');
+      if (res.ok) {
+        tg.showAlert("Configurações do Telegram salvas com sucesso!");
+      } else {
+        tg.showAlert("Erro ao salvar configurações do Telegram.");
+      }
     }
 
     async function saveAdvancedConfig() {

