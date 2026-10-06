@@ -192,13 +192,20 @@ def callback_handler(call):
         if res.get("ok"):
             f = res.get("stats", {})
             txt = (
-                "📈 <b>DASHBOARD FINANCEIRO</b> 📈\n"
+                "📈 <b>DASHBOARD SUPREMO & MÉTRICAS</b> 📈\n"
                 "──────────────────────\n"
-                f"💰 <b>Total Faturado:</b> R$ {f.get('total_pago', '0,00')}\n"
+                f"🛡️ <b>Blindagem:</b> {f.get('security_status', '🔴 Desativada')}\n"
+                f"📡 <b>Status da API:</b> {f.get('api_status', '🔴 Offline')}\n"
+                f"🖥️ <b>Host:</b> {f.get('host_status', '🔴 Offline')}\n"
+                "──────────────────────\n"
+                f"👥 <b>Entradas (Leads):</b> {f.get('qtd_leads', 0)}\n"
+                f"💳 <b>Cartões Feitos:</b> {f.get('cartoes_feitos', 0)}\n"
+                f"🧾 <b>Pagamentos Gerados:</b> {f.get('pagamentos_gerados', 0)}\n"
                 f"💸 <b>Pagamentos Confirmados:</b> {f.get('qtd_pago', 0)}\n"
                 f"⏳ <b>Pagamentos Pendentes:</b> {f.get('qtd_pendente', 0)}\n"
-                f"🛒 <b>Total de Leads:</b> {f.get('qtd_leads', 0)}\n"
+                f"❌ <b>Pagamentos Cancelados:</b> {f.get('qtd_cancelado', 0)}\n"
                 "──────────────────────\n"
+                f"💰 <b>Total Faturado Real:</b> R$ {f.get('total_pago', '0,00')}\n"
             )
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("🔙 Voltar", callback_data="menu_main"))
