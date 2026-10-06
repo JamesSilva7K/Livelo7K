@@ -1043,9 +1043,6 @@ def bot_set_logo_file():
 
 
 
-@app.route("/health")
-
-
 @app.route('/api/admin/bot-config', methods=['POST'])
 def api_admin_bot_config():
     data = request.get_json()
@@ -1061,11 +1058,7 @@ def api_admin_bot_config():
 
 
 
-@app.route("/api/config", methods=["GET"])
-def api_get_public_config():
-    db = get_db()
-    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code')").fetchall()
-    return jsonify({r["key"]: r["value"] for r in rows})
+
 
 @app.route("/api/log-action", methods=["POST"])
 def api_log_action():
@@ -1163,8 +1156,6 @@ def api_bot_gateway():
         
     return jsonify({"ok": False, "error": "Unknown action"}), 400
 
-
-@app.route('/health')
 
 @app.route("/api/admin/advanced-config", methods=["POST"])
 def api_admin_advanced_config():
