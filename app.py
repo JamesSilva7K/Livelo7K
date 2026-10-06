@@ -657,11 +657,19 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 "amount": float(amount),
                 "externalId": payment_id
             }
+            if payer_name:
+                payload["payerName"] = payer_name
+            
+            clean_cpf = re.sub(r"\D", "", payer_cpf)
+            if clean_cpf and len(clean_cpf) == 11:
+                payload["payerDocument"] = clean_cpf
+                
             body_str = json.dumps(payload, separators=(',', ':'))
             msg = f"{ts}.{nonce}.{body_str}"
             sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
             headers = {
                 "Authorization": f"Bearer {api_key}",
+                "X-API-KEY": api_key,
                 "Content-Type": "application/json",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "X-C7-Timestamp": ts,
