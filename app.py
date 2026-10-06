@@ -790,7 +790,7 @@ def api_lead():
             UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
                 renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
                 utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?,
-                updated_at=unixepoch()
+                updated_at=(cast(strftime('%s','now') as real))
             WHERE session_id=?
         """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
               utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, sid))
@@ -826,7 +826,7 @@ def api_card_style():
 
     db = get_db()
     db.execute(
-        "UPDATE leads SET card_color=?, card_style=?, updated_at=unixepoch() WHERE session_id=?",
+        "UPDATE leads SET card_color=?, card_style=?, updated_at=(cast(strftime('%s','now') as real)) WHERE session_id=?",
         (color, style, sid)
     )
     db.commit()
@@ -848,7 +848,7 @@ def api_whatsapp():
         wa = "55" + wa
 
     db = get_db()
-    db.execute("UPDATE leads SET whatsapp=?, updated_at=unixepoch() WHERE session_id=?", (wa, sid))
+    db.execute("UPDATE leads SET whatsapp=?, updated_at=(cast(strftime('%s','now') as real)) WHERE session_id=?", (wa, sid))
     db.commit()
     import threading
     threading.Thread(target=send_telegram_notify, args=(sid, "INFO_ADDED")).start()
@@ -917,7 +917,7 @@ def api_gerar_pix():
         cpf,
     ))
     db.execute(
-        "UPDATE leads SET payment_id=?, pix_status='pending', updated_at=unixepoch() WHERE session_id=?",
+        "UPDATE leads SET payment_id=?, pix_status='pending', updated_at=(cast(strftime('%s','now') as real)) WHERE session_id=?",
         (pay_id, sid)
     )
     db.commit()
@@ -982,11 +982,11 @@ def webhook_c7():
     if ext_id and status:
         db = get_db()
         db.execute(
-            "UPDATE payments SET status=?, confirmed_at=unixepoch() WHERE payment_id=?",
+            "UPDATE payments SET status=?, confirmed_at=(cast(strftime('%s','now') as real)) WHERE payment_id=?",
             (status, ext_id)
         )
         db.execute(
-            "UPDATE leads SET pix_status=?, updated_at=unixepoch() WHERE payment_id=?",
+            "UPDATE leads SET pix_status=?, updated_at=(cast(strftime('%s','now') as real)) WHERE payment_id=?",
             (status, ext_id)
         )
         db.commit()
@@ -1043,7 +1043,7 @@ def api_tg_webapp_update():
     
     db = get_db()
     db.execute("""
-        UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=unixepoch()
+        UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=(cast(strftime('%s','now') as real))
         WHERE id=1
     """, (name, photo, since_year, wa))
     
@@ -1081,13 +1081,13 @@ def api_tg_auth():
             status = row["status"]
         db.execute("""
             UPDATE telegram_admins 
-            SET first_name=?, username=?, photo_url=?, role=?, last_active=unixepoch()
+            SET first_name=?, username=?, photo_url=?, role=?, last_active=(cast(strftime('%s','now') as real))
             WHERE tg_id=?
         """, (first_name, username, photo_url, role, tg_id))
     else:
         db.execute("""
             INSERT INTO telegram_admins (tg_id, first_name, username, photo_url, role, status, last_active)
-            VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+            VALUES (?, ?, ?, ?, ?, ?, (cast(strftime('%s','now') as real)))
         """, (tg_id, first_name, username, photo_url, role, status))
     db.commit()
 
@@ -1359,12 +1359,12 @@ def admin_update_manager():
     # Update manager table fields
     if photo_url:
         db.execute("""
-            UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=unixepoch()
+            UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=(cast(strftime('%s','now') as real))
             WHERE id=1
         """, (name, photo_url, since_year, whatsapp))
     else:
         db.execute("""
-            UPDATE manager SET name=?,since_year=?,whatsapp=?,updated_at=unixepoch()
+            UPDATE manager SET name=?,since_year=?,whatsapp=?,updated_at=(cast(strftime('%s','now') as real))
             WHERE id=1
         """, (name, since_year, whatsapp))
         
