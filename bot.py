@@ -8,7 +8,7 @@ import os
 # CONFIGURACOES DO BOT
 # ==========================================
 BOT_TOKEN      = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN", "SEU_TOKEN_AQUI"))
-ADMIN_CHAT_ID  = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI"))
+ADMIN_CHAT_ID  = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI")))
 BOT_SECRET     = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
 BASE_URL       = os.environ.get("RENDER_EXTERNAL_URL", os.environ.get("VERCEL_PROJECT_PRODUCTION_URL", "http://localhost:5050"))
 # Se a Vercel URL não tiver https, garantimos que tenha:

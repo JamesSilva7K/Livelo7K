@@ -78,7 +78,7 @@ def inject_config():
     except Exception:
         return {}
 
-app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+app.secret_key = os.environ.get("CHAVE_SECRETA", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
