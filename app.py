@@ -251,6 +251,12 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_leads_cpf     ON leads(cpf);
         CREATE INDEX IF NOT EXISTS idx_pay_session   ON payments(session_id);
         """)
+        
+        try:
+            db.execute("ALTER TABLE leads ADD COLUMN location TEXT")
+        except Exception:
+            pass
+            
         db.commit()
 
         # Seed default admin
