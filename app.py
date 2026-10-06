@@ -15,10 +15,7 @@ def generate_qr_b64(data: str) -> str:
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
         buffered = io.BytesIO()
-        try:
-            img.save(buffered, format="PNG")
-        except Exception:
-            img.save(buffered)
+        img.save(buffered)
         return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
     except Exception as e:
         # Fallback se a lib falhar por algum motivo
@@ -156,7 +153,7 @@ def init_db():
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             username   TEXT    NOT NULL UNIQUE,
             password   TEXT    NOT NULL,
-            created_at REAL    NOT NULL DEFAULT (unixepoch())
+            created_at REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real))
         );
 
         CREATE TABLE IF NOT EXISTS manager (
@@ -165,7 +162,7 @@ def init_db():
             photo_url  TEXT    NOT NULL DEFAULT '/static/images/manager_default.svg',
             since_year INTEGER NOT NULL DEFAULT 2025,
             whatsapp   TEXT    NOT NULL DEFAULT '5511999999999',
-            updated_at REAL    NOT NULL DEFAULT (unixepoch())
+            updated_at REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real))
         );
 
         CREATE TABLE IF NOT EXISTS sys_config (
@@ -198,8 +195,8 @@ def init_db():
             utm_term        TEXT,
             src             TEXT,
             sck             TEXT,
-            created_at      REAL    NOT NULL DEFAULT (unixepoch()),
-            updated_at      REAL    NOT NULL DEFAULT (unixepoch())
+            created_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
+            updated_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real))
         );
 
         CREATE TABLE IF NOT EXISTS telegram_admins (
@@ -223,7 +220,7 @@ def init_db():
             expires_at   TEXT,
             payer_name   TEXT,
             payer_cpf    TEXT,
-            created_at   REAL NOT NULL DEFAULT (unixepoch()),
+            created_at   REAL NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
             confirmed_at REAL
         );
 

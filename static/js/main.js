@@ -654,7 +654,9 @@ function showDone() {
   rawText = rawText.replace('{limite}', STATE.limite || 'R$ 4.500,00');
   
   const msg = encodeURIComponent(rawText);
-  $id('btn-contact-manager').href = `https://wa.me/${waNumber}?text=${msg}`;
+  const waUrl = `https://wa.me/${waNumber}?text=${msg}`;
+  if ($id('btn-contact-manager')) $id('btn-contact-manager').href = waUrl;
+  if ($id('btn-contact-manager-2')) $id('btn-contact-manager-2').href = waUrl;
   
   // Render Custom Card info in Success Screen
   const cv = $id('success-card-visual');

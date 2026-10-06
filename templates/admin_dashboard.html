@@ -20,7 +20,7 @@
     body { background-color: var(--bg-base); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; background-image: radial-gradient(circle at top right, rgba(229,20,122,0.05), transparent 400px); }
     
     /* Modern Glass Sidebar */
-    .sidebar { width: 280px; background: var(--glass-bg); backdrop-filter: blur(12px); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: 0.3s; z-index: 10; }
+    .sidebar { width: 280px; background: var(--glass-bg); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; transition: 0.3s; z-index: 10; }
     .sidebar-header { padding: 32px 24px; font-weight: 800; font-size: 1.4rem; color: var(--text-main); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; letter-spacing: -0.5px; }
     .sidebar-header span { color: var(--primary); }
     .sidebar-nav { flex: 1; padding: 24px 0; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
@@ -31,7 +31,7 @@
     .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
     
     /* Sleek Topbar */
-    .header { height: 80px; padding: 0 40px; background: transparent; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px); z-index: 5; }
+    .header { height: 80px; padding: 0 40px; background: transparent; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); z-index: 5; }
     .header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px; }
     .user-profile { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 0.9rem; }
     .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #ff4d9f); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; box-shadow: 0 4px 12px rgba(229,20,122,0.3); }
@@ -132,9 +132,9 @@
       <section id="bot" class="view-section">
         <div class="table-container">
           <h3 style="margin-bottom: 24px;">Configuração Telegram</h3>
-          <div class="form-group"><label>Bot Token</label><input type="password" id="bot_token" value="{{ sys_config_dict.get('telegram_token', '') }}"></div>
-          <div class="form-group"><label>ID Canal/Grupo</label><input type="text" id="bot_channel" value="{{ sys_config_dict.get('tg_log_channel', '') }}"></div>
-          <div class="form-group"><label>ID Tópico</label><input type="text" id="bot_topic" value="{{ sys_config_dict.get('tg_log_thread_id', '') }}"></div>
+          <div class="form-group"><label for="bot_token">Bot Token</label><input type="password" id="bot_token" value="{{ sys_config_dict.get('telegram_token', '') }}"></div>
+          <div class="form-group"><label for="bot_channel">ID Canal/Grupo</label><input type="text" id="bot_channel" value="{{ sys_config_dict.get('tg_log_channel', '') }}"></div>
+          <div class="form-group"><label for="bot_topic">ID Tópico</label><input type="text" id="bot_topic" value="{{ sys_config_dict.get('tg_log_thread_id', '') }}"></div>
           <button class="btn" onclick="saveBotConfig()">Salvar Bot</button>
         </div>
       </section>
@@ -145,24 +145,24 @@
           <h3 style="margin-bottom: 24px;">Dados da Gerente & Site (Upload Avançado Criptografado)</h3>
           
           <div class="form-group">
-            <label>Nome da Gerente</label>
+            <label for="mgr_name">Nome da Gerente</label>
             <input type="text" id="mgr_name" value="{{ sys_config_dict.get('mgr_name', 'Camila Soares') }}">
           </div>
           <div class="form-group">
-            <label>Anos de Empresa</label>
+            <label for="mgr_years">Anos de Empresa</label>
             <input type="text" id="mgr_years" value="{{ sys_config_dict.get('mgr_years', '8') }}">
           </div>
           <div class="form-group">
-            <label>Avatar da Gerente (Upload)</label>
+            <label for="mgr_avatar_file">Avatar da Gerente (Upload)</label>
             <input type="file" id="mgr_avatar_file" accept="image/*" onchange="encodeImage(this, 'mgr_avatar_preview', 'mgr_avatar_b64')">
             <input type="hidden" id="mgr_avatar_b64" value="{{ sys_config_dict.get('mgr_avatar', '') }}">
-            <img id="mgr_avatar_preview" class="image-preview" src="{{ sys_config_dict.get('mgr_avatar', '') }}">
+            <img id="mgr_avatar_preview" class="image-preview" src="{{ sys_config_dict.get('mgr_avatar', '') }}" alt="Avatar Preview">
           </div>
           <div class="form-group">
-            <label>Favicon do Site (Upload)</label>
+            <label for="favicon_file">Favicon do Site (Upload)</label>
             <input type="file" id="favicon_file" accept="image/*" onchange="encodeImage(this, 'favicon_preview', 'favicon_b64')">
             <input type="hidden" id="favicon_b64" value="{{ sys_config_dict.get('favicon', '') }}">
-            <img id="favicon_preview" class="favicon-preview" src="{{ sys_config_dict.get('favicon', '') }}">
+            <img id="favicon_preview" class="favicon-preview" src="{{ sys_config_dict.get('favicon', '') }}" alt="Favicon Preview">
           </div>
           
           <button class="btn" onclick="saveAdvancedConfig()">Salvar Personalização</button>
