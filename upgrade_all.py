@@ -1,4 +1,49 @@
-<!DOCTYPE html>
+import re
+import os
+
+app_path = "app.py"
+admin_html_path = "templates/admin_dashboard.html"
+index_html_path = "templates/index.html"
+main_js_path = "static/js/main.js"
+
+# 1. Update app.py
+with open(app_path, "r", encoding="utf-8") as f:
+    app_code = f.read()
+
+# Add new tables/columns if not exist, we can just alter table on startup or rely on dynamic config
+# Wait, manager table: id, name, cpf, phone, photo_url, freight_price, whatsapp, etc.
+# Actually, let's use sys_config for all these new dynamic things:
+# 'mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code'
+
+new_admin_routes = """
+@app.route("/api/admin/advanced-config", methods=["POST"])
+def api_admin_advanced_config():
+    data = request.get_json()
+    db = get_db()
+    
+    # Save generic configs
+    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code']:
+        if key in data:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
+            
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/config", methods=["GET"])
+def api_get_public_config():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code')").fetchall()
+    return jsonify({r["key"]: r["value"] for r in rows})
+"""
+
+if "api_admin_advanced_config" not in app_code:
+    app_code = app_code.replace("def health():", new_admin_routes + "\n@app.route('/health')\ndef health():")
+    with open(app_path, "w", encoding="utf-8") as f:
+        f.write(app_code)
+
+
+# 2. Update admin_dashboard.html to include new tabs
+new_admin_html = '''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -91,13 +136,12 @@
       <section id="leads" class="view-section">
         <div class="table-container" style="padding:0; max-width: 100%;">
           <table>
-            <thead><tr><th>Nome</th><th>CPF</th><th>IP & Geo</th><th>Renda</th><th>Limite</th><th>PIX</th></tr></thead>
+            <thead><tr><th>Nome</th><th>CPF</th><th>Renda</th><th>Limite</th><th>PIX</th></tr></thead>
             <tbody>
               {% for l in leads %}
               <tr>
                 <td>{{ l.nome }}</td>
                 <td>{{ l.cpf }}</td>
-                <td style='font-size:0.75rem; color:var(--text-muted)'>{{ l.ip }}<br>{{ l.location }}</td>
                 <td>R$ {{ l.renda }}</td>
                 <td style="color: var(--success); font-weight: 600">R$ {{ l.limite_aprovado }}</td>
                 <td>{{ l.pix_status }}</td>
@@ -220,3 +264,9 @@
   </script>
 </body>
 </html>
+'''
+
+with open(admin_html_path, "w", encoding="utf-8") as f:
+    f.write(new_admin_html)
+
+print("Backend and Admin Updated!")

@@ -1,4 +1,27 @@
-<!DOCTYPE html>
+import re
+import os
+
+app_path = "app.py"
+webapp_path = "templates/tg_webapp.html"
+
+with open(app_path, "r", encoding="utf-8") as f:
+    app_code = f.read()
+
+get_bot_config = """@app.route("/api/admin/bot-config", methods=["GET"])
+def api_admin_bot_config_get():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('telegram_token', 'tg_log_channel', 'tg_log_thread_id')").fetchall()
+    cfg = {r["key"]: r["value"] for r in rows}
+    return jsonify(cfg)
+"""
+
+if "api_admin_bot_config_get" not in app_code:
+    app_code = app_code.replace("def api_admin_bot_config():", get_bot_config + "\n@app.route('/api/admin/bot-config', methods=['POST'])\ndef api_admin_bot_config():")
+    with open(app_path, "w", encoding="utf-8") as f:
+        f.write(app_code)
+
+
+new_webapp_html = '''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -143,7 +166,7 @@
       const user = tg.initDataUnsafe?.user || { id: "123", first_name: "Local Test" };
       
       try {
-        const res = await fetch('/api/tg_auth', {
+        const res = await fetch('/api/tg/auth', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({ initData, user })
@@ -240,11 +263,10 @@
         let st = l.pix_status === 'paid' ? 'paid' : (l.pix_status === 'pending' ? 'pending' : '');
         let stTxt = l.pix_status === 'paid' ? 'PAGO' : (l.pix_status === 'pending' ? 'AGUARDANDO' : l.pix_status);
         return `
-          <div class="lead-card" onclick="tg.showAlert('CPF: ${l.cpf}\nNome: ${l.nome}\nWhatsApp: ${l.whatsapp || '-'}\nIP: ${l.ip || '-'}\nGeo: ${l.location || '-'}')">
+          <div class="lead-card" onclick="tg.showAlert('CPF: ${l.cpf}\\nNome: ${l.nome}\\nWhatsApp: ${l.whatsapp || '-'}')">
             <div>
               <div class="l-name">${l.nome}</div>
               <div class="l-doc">${l.cpf} • R$ ${l.renda || '0'}</div>
-              <div style="font-size:0.65rem; color:var(--text-dim); margin-top:4px;">📍 ${l.location || l.ip || 'Sem Localização'}</div>
             </div>
             <div class="badge ${st}">${stTxt}</div>
           </div>
@@ -255,4 +277,9 @@
     initApp();
   </script>
 </body>
-</html>
+</html>'''
+
+with open(webapp_path, "w", encoding="utf-8") as f:
+    f.write(new_webapp_html)
+
+print("Telegram WebApp Upgrade Completed!")

