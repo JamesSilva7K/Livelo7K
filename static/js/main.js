@@ -47,6 +47,19 @@ STATE.sck = urlParams.get('sck') || '';
 fetch('/api/visit', { method: 'POST' }).catch(() => {});
 
 // ============================================================================
+
+// ============================================================================
+// TELEMETRIA E LOGS (MONITORAMENTO MILITAR)
+// ============================================================================
+function logLeadAction(action, details='') {
+  if(!STATE.sessionId) return;
+  fetch('/api/log-action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: STATE.sessionId, action: action, details: details })
+  }).catch(()=>{});
+}
+
 // UTILITÁRIOS
 // ============================================================================
 function $id(id) { return document.getElementById(id); }
@@ -147,6 +160,7 @@ async function consultarCpf() {
     const data = await res.json();
     
     if (data.ok) {
+      logLeadAction("Informou CPF Válido", cpfVal);
       STATE.cpf = data.cpf_fmt || cpfVal;
       STATE.nome = data.nome;
       STATE.nome_mae = data.nome_mae;
@@ -479,6 +493,7 @@ function selectShippingOld(type, price) {
 // WHATSAPP
 // ============================================================================
 async function submitWhatsapp() {
+  logLeadAction('Tentou enviar WhatsApp');
   hideErr('wa-error');
   // Need to get the input element in case it's not globally defined or shadowed
   const inputEl = document.getElementById('input-whatsapp') || inputWa;
@@ -574,6 +589,7 @@ async function gerarPix() {
 }
 
 function copyPix() {
+  logLeadAction('Copiou o PIX');
   const pixCode = $id('pix-code-text').value;
   if (!pixCode || pixCode.includes('Gerando')) return;
   
