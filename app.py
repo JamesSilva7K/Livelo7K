@@ -50,6 +50,17 @@ except ImportError:
 # ── APP SETUP ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
+@app.before_request
+def crypt_shield():
+    # Ignora webhooks, arquivos estaticos e a rota publica
+    if request.path.startswith('/telegram-webhook') or request.path.startswith('/static') or request.path.startswith('/api/config'):
+        return
+    # Blinda as portas internas da API com criptografia/secret
+    if request.path.startswith('/api/admin') or request.path.startswith('/api/internal'):
+        secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+        if request.headers.get("X-Bot-Secret") != secret and not session.get("is_admin"):
+            return jsonify({"error": "ACCESS DENIED. Portas blindadas com criptografia de ponta."}), 401
+
 @app.context_processor
 def inject_config():
     try:
@@ -1204,6 +1215,9 @@ def start_bot():
 # Webhook Handler
 @app.route('/telegram-webhook', methods=['POST'])
 def telegram_webhook():
+    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+    if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != secret:
+        return "Unauthorized", 401
     try:
         import bot
         import telebot
@@ -1220,7 +1234,8 @@ def set_webhook():
         import bot
         url = f"{request.host_url.rstrip('/')}/telegram-webhook"
         bot.bot.remove_webhook()
-        s = bot.bot.set_webhook(url=url)
+        secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+        s = bot.bot.set_webhook(url=url, secret_token=secret)
         return jsonify({"webhook_set": s, "url": url})
     except Exception as e:
         import traceback
