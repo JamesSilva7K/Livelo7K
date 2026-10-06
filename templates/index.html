@@ -501,7 +501,9 @@ Melhor gerente 2023-2024
 <!-- Active template badge -->
 <div class="tpl-active-label" id="tpl-active-label">✦ Clássico</div>
 <!-- Horizontal template thumbnails -->
-<div class="tpl-scroll-container">
+<div class="tpl-scroll-wrapper" style="position:relative; width:100%; display:flex; align-items:center;">
+<button class="scroll-arrow" onclick="scrollTpl(-1)" style="position:absolute; left:-10px; z-index:10; background:var(--pink); color:white; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.2); font-weight:bold; display:flex; align-items:center; justify-content:center;">&#10094;</button>
+<div class="tpl-scroll-container" id="tpl-scroll-container">
 <div class="tpl-scroll">
 <button aria-label="Clássico" class="tpl-thumb tpl-thumb-active" data-template="classico" onclick="selectTemplate(this,'classico')">
 <div class="tpl-thumb-card" style="background:linear-gradient(135deg,#E5147A,#9C0E57)">
@@ -540,6 +542,8 @@ Melhor gerente 2023-2024
 </div>
 </button>
 </div>
+</div>
+<button class="scroll-arrow" onclick="scrollTpl(1)" style="position:absolute; right:-10px; z-index:10; background:var(--pink); color:white; border:none; border-radius:50%; width:30px; height:30px; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.2); font-weight:bold; display:flex; align-items:center; justify-content:center;">&#10095;</button>
 </div>
 <button class="btn-primary" onclick="submitCardStyle()" style="max-width:340px;margin-top:22px">Continuar →</button>
 
@@ -722,6 +726,7 @@ Continuar
 <div class="card-preview-sm" style="margin-bottom:24px;display:flex;justify-content:center">
 <!-- O JS vai injetar o background SVG aqui -->
 <div class="credit-card sm" id="summary-card-visual" style="background:linear-gradient(135deg,#059669,#064E3B)">
+<svg class="card-pattern-svg" id="summary-card-svg" viewBox="0 0 400 240" preserveAspectRatio="none"></svg>
 <div class="card-face">
 <div class="card-row-top">
 <img alt="Livelo" src="/static/images/logo-branco.png" style="height:32px; max-width:140px; object-fit:contain"/>

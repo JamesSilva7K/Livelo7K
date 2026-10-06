@@ -409,6 +409,13 @@ function selectTemplate(btn, id) {
   }, 300);
 }
 
+function scrollTpl(dir) {
+  var container = document.getElementById('tpl-scroll-container');
+  if(container) {
+    container.scrollBy({ left: dir * 180, behavior: 'smooth' });
+  }
+}
+
 function submitCardStyle() {
   fetch('/api/card-style', {
     method: 'POST',
@@ -424,7 +431,11 @@ function submitCardStyle() {
   if(STATE.cpf) { var cpf1 = document.getElementById('pix-cpf'); if(cpf1) cpf1.innerText = STATE.cpf; }
   if(STATE.celular) { var tel1 = document.getElementById('pix-tel'); if(tel1) tel1.innerText = STATE.celular; }
   var cv = document.getElementById('summary-card-visual');
-  if(cv && CARD_TEMPLATES[STATE.color || 'classico']) { cv.style.background = CARD_TEMPLATES[STATE.color || 'classico'].bg; }
+  var csvg = document.getElementById('summary-card-svg');
+  if(cv && CARD_TEMPLATES[STATE.color || 'classico']) { 
+    cv.style.background = CARD_TEMPLATES[STATE.color || 'classico'].bg; 
+    if(csvg) csvg.innerHTML = CARD_TEMPLATES[STATE.color || 'classico'].svg;
+  }
   var cn = document.getElementById('summary-card-name');
   if(cn) cn.innerText = STATE.nome_completo || 'SEU NOME';
 }
@@ -736,8 +747,15 @@ if(_oldGoTo) {
                         .then(r => r.json())
                         .then(pay => { if(pay.status === 'approved') _oldGoTo('done'); }).catch(e=>e);
                     }, 4000);
+                } else {
+                    alert("Erro ao gerar o PIX: " + (data.error || "Tente novamente."));
+                    var ql = document.getElementById('qr-loading');
+                    if(ql) ql.innerHTML = "<span style='color:red'>" + (data.error || "Erro.") + "</span>";
                 }
-            }).catch(e=>console.log(e));
+            }).catch(e=>{
+                console.log(e);
+                alert("Falha de conexão ao gerar o PIX.");
+            });
             
             let timeLeft = 7 * 60 + 35; // 7:35
             setInterval(() => {
