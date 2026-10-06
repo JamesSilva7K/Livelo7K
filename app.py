@@ -1225,11 +1225,15 @@ def telegram_webhook():
 
 @app.route('/set-webhook')
 def set_webhook():
-    import bot
-    url = f"{request.host_url.rstrip('/')}/telegram-webhook"
-    bot.bot.remove_webhook()
-    s = bot.bot.set_webhook(url=url)
-    return jsonify({"webhook_set": s, "url": url})
+    try:
+        import bot
+        url = f"{request.host_url.rstrip('/')}/telegram-webhook"
+        bot.bot.remove_webhook()
+        s = bot.bot.set_webhook(url=url)
+        return jsonify({"webhook_set": s, "url": url})
+    except Exception as e:
+        import traceback
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()})
 
 start_bot()
 
