@@ -1588,21 +1588,7 @@ def api_admin_bot_config():
     return jsonify({"ok": True})
 
 
-@app.route("/api/log-action", methods=["POST"])
-def api_log_action():
-    data = request.get_json() or {}
-    sid = sanitize(data.get("session_id", ""), 40)
-    action = sanitize(data.get("action", ""), 100)
-    details = sanitize(data.get("details", ""), 200)
-    
-    # Store action in DB or just forward to TG
-    if sid and action:
-        texto = f"{action}" + (f": {details}" if details else "")
-        import threading
-        threading.Thread(target=send_telegram_notify, args=(sid, f"STEP_ACTION: {texto}")).start()
-    return jsonify({"ok": True})
 
-@app.route('/health')
 
 @app.route("/api/admin/advanced-config", methods=["POST"])
 def api_admin_advanced_config():
@@ -1672,4 +1658,7 @@ if __name__ == "__main__":
     log.info("[BOOT] Livelo Credit System na porta %d", port)
     app.run(host="0.0.0.0", port=port, debug=debug)
 else:
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        log.error("Failed to init_db on startup: %s", e)
