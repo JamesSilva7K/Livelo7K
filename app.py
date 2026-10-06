@@ -478,7 +478,7 @@ def api_cpf():
     
     db = get_db()
     token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_token'").fetchone()
-    cpf_token = token_row["value"] if token_row else ""
+    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPF_API_TOKEN", "")
     
     # Exemplo de API genérica de CPF (Substitua pela API real do cliente)
     # Se o token estiver vazio, usamos um mock para não quebrar o sistema
