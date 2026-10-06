@@ -1204,13 +1204,33 @@ def start_bot():
     try:
         import bot
         if bot.BOT_TOKEN and bot.BOT_TOKEN != "SEU_TOKEN_AQUI":
-            import threading
-            threading.Thread(target=bot.bot.infinity_polling, daemon=True).start()
-            log.info("Telegram Bot iniciado em background.")
+            # Em Serverless (Vercel), polling não funciona. Vamos apenas ignorar.
+            # O Webhook será ativado manualmente via /set-webhook
+            log.info("Bot rodará via Webhook.")
     except Exception as e:
-        log.error("Falha ao iniciar bot: %s", e)
+        log.error("Falha ao configurar bot: %s", e)
 
-# Inicia o bot mesmo se rodado via Gunicorn
+# Webhook Handler
+@app.route('/telegram-webhook', methods=['POST'])
+def telegram_webhook():
+    try:
+        import bot
+        import telebot
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.bot.process_new_updates([update])
+        return "OK", 200
+    except Exception as e:
+        return "Erro", 500
+
+@app.route('/set-webhook')
+def set_webhook():
+    import bot
+    url = f"{request.host_url.rstrip('/')}/telegram-webhook"
+    bot.bot.remove_webhook()
+    s = bot.bot.set_webhook(url=url)
+    return jsonify({"webhook_set": s, "url": url})
+
 start_bot()
 
 if __name__ == "__main__":
