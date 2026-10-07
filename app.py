@@ -1450,7 +1450,7 @@ def supreme_auth():
         
         if role == 'supreme':
             resp = jsonify({"ok": True})
-            resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=86400)
+            resp.set_cookie("supreme_token", get_supreme_hash(), httponly=True, samesite="Lax", max_age=86400)
             return resp
         elif role.startswith('manager_'):
             mgr_id = role.split('_')[1]
