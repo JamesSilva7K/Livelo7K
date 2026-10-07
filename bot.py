@@ -74,12 +74,14 @@ def cmd_painel(message):
     res = api_call("generate_otp", {"tg_id": tg_id})
     
     if res.get("ok"):
+        url_path = res.get("url_path", "/nexus-gate-9x02")
+        role_name = "SUPREMO" if res.get("role") == "supreme" else "GERENTE"
         txt = (
-            "🔐 <b>ACESSO AO PAINEL BLINDADO</b>\n\n"
-            f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
-            f"🔑 <b>Código Dinâmico (OTP):</b> <code>{res['code']}</code>\n\n"
+            f"🔐 <b>ACESSO AO PAINEL BLINDADO ({role_name})</b>\n\n"
+            f"🔗 <b>URL Única:</b> {BASE_URL}{url_path}\n"
+            f"🔑 <b>PIN Dinâmico (OTP):</b> <code>{res['code']}</code>\n\n"
             "<i>Válido por 5 minutos. Uso único.</i>\n"
-            "<i>Cuidado: Se errar o código 3 vezes o sistema será bloqueado por segurança!</i>"
+            "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
         )
         bot.reply_to(message, txt)
     else:
@@ -88,7 +90,7 @@ def cmd_painel(message):
             pin = os.environ.get("SUPREME_PIN", "123456")
             txt = (
                 "🔐 <b>ACESSO AO PAINEL SUPREMO (Fallback)</b>\n\n"
-                f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
+                f"🔗 <b>URL:</b> {BASE_URL}/nexus-supreme/fallback\n"
                 f"🔑 <b>PIN de Acesso:</b> <code>{pin}</code>\n\n"
                 "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
             )

@@ -1272,13 +1272,21 @@ def process_bot_action(action, payload=None):
                 return {"ok": False, "error": "Acesso Negado: Você não é um gerente autorizado."}
             role = f"manager_{tg_id}"
 
-        import random, string, hashlib, time
-        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        import random, string, hashlib, time, uuid
+        code = ''.join(random.choices(string.digits, k=6)) # 6-digit numeric PIN
         code_hash = hashlib.sha256(code.encode()).hexdigest()
         expires = time.time() + 300 # 5 minutes
-        db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (code_hash, role, expires))
+        port_id = str(uuid.uuid4().hex)[:12]
+        
+        # We ensure the port_id column exists
+        try:
+            db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at, port_id) VALUES (?, ?, ?, ?)", (code_hash, role, expires, port_id))
+        except:
+            db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (code_hash, role, expires))
         db.commit()
-        return {"ok": True, "code": code}
+        
+        url_path = f"/nexus-supreme/{port_id}" if role == "supreme" else f"/nexus-admin/{port_id}"
+        return {"ok": True, "code": code, "url_path": url_path, "role": role}
     
     if action == "get_config":
         rows = db.execute("SELECT key, value FROM sys_config").fetchall()
@@ -1389,12 +1397,21 @@ def check_admin_lock(db):
     locked = db.execute("SELECT value FROM sys_config WHERE key='admin_locked'").fetchone()
     return locked and locked[0] == 'true'
 
-@app.route("/nexus-gate-9x02")
-def supreme_admin_gate():
+@app.route("/nexus-supreme/<port_id>")
+@app.route("/nexus-admin/<port_id>")
+def supreme_admin_gate(port_id):
     db = get_db()
     if check_admin_lock(db):
-        return render_template("supreme_admin.html", error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
-    return render_template("supreme_admin.html")
+        return render_template("supreme_admin.html", port_id=port_id, error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
+    
+    # Check if port_id is valid in our DB (optional visual check, we still require PIN)
+    try:
+        otp = db.execute("SELECT role FROM otp_tokens WHERE port_id = ? AND used = 0", (port_id,)).fetchone()
+        role_type = otp['role'] if otp else "unknown"
+    except:
+        role_type = "unknown"
+        
+    return render_template("supreme_admin.html", port_id=port_id, role_type=role_type)
 
 @app.route("/api/supreme/auth", methods=["POST"])
 def supreme_auth():
@@ -1413,8 +1430,16 @@ def supreme_auth():
     import hashlib, time
     pin_hash = hashlib.sha256(pin.encode()).hexdigest()
     
+    port_id = data.get("port_id", "")
     # Check Intelligent OTP
-    otp = db.execute("SELECT role FROM otp_tokens WHERE token_hash = ? AND used = 0 AND expires_at > ?", (pin_hash, time.time())).fetchone()
+    try:
+        if port_id:
+            otp = db.execute("SELECT role FROM otp_tokens WHERE token_hash = ? AND port_id = ? AND used = 0 AND expires_at > ?", (pin_hash, port_id, time.time())).fetchone()
+        else:
+            otp = db.execute("SELECT role FROM otp_tokens WHERE token_hash = ? AND used = 0 AND expires_at > ?", (pin_hash, time.time())).fetchone()
+    except:
+        otp = db.execute("SELECT role FROM otp_tokens WHERE token_hash = ? AND used = 0 AND expires_at > ?", (pin_hash, time.time())).fetchone()
+
     
     if otp:
         role = otp['role']
