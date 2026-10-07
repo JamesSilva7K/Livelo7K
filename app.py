@@ -706,7 +706,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 "Content-Type": "application/json",
                 "X-C7-Timestamp": ts,
                 "X-C7-Nonce": nonce,
-                "X-C7-Signature": sig
+                "X-C7-Signature": sig,
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             try:
                 resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
@@ -889,8 +890,12 @@ def api_status_pix(payment_id: str):
         api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", get_secure_c7_key())
         if api_key and _REQUESTS_OK:
             try:
+                hdrs = {
+                    "Authorization": f"Bearer {api_key}",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
                 resp = _req.get(f"https://api.carteirado7.com/v2/payment/{pay['c7_id']}/status", 
-                                headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
+                                headers=hdrs, timeout=5)
                 if resp.status_code == 200:
                     c7_data = resp.json()
                     if c7_data.get("ok"):
