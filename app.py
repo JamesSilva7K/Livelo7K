@@ -479,7 +479,10 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     if limite < 1500: limite = 1500
     if limite > 15000: limite = 15000
 
-    frete = 37.90
+    try:
+        frete = float(os.environ.get("FRETE_VALOR", "29.90").replace(",", "."))
+    except:
+        frete = 29.90
     return {"limite": limite, "frete": frete}
 
 # ── API CPF ───────────────────────────────────────────────────────────────

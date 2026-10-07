@@ -601,7 +601,7 @@ async function gerarPix() {
     const res = await fetch('/api/gerar-pix', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session_id: STATE.sessionId, amount: STATE.freteValor || 29.90 })
+      body: JSON.stringify({ session_id: STATE.sessionId, amount: STATE.frete_valor || 29.90 })
     });
     const data = await res.json();
     
