@@ -1280,6 +1280,12 @@ def process_bot_action(action, payload=None):
         rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         return {"ok": True, "config": {r["key"]: r["value"] for r in rows}}
         
+    elif action == "unlock_admin":
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_locked', 'false')")
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', '0')")
+        db.commit()
+        return {"ok": True}
+        
     elif action == "set_config":
         for k, v in payload.items():
             db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (k, v))
@@ -1375,12 +1381,23 @@ def supreme_required(f):
         return f(*args, **kwargs)
     return wrapped
 
+def check_admin_lock(db):
+    locked = db.execute("SELECT value FROM sys_config WHERE key='admin_locked'").fetchone()
+    return locked and locked[0] == 'true'
+
 @app.route("/nexus-gate-9x02")
 def supreme_admin_gate():
+    db = get_db()
+    if check_admin_lock(db):
+        return render_template("supreme_admin.html", error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
     return render_template("supreme_admin.html")
 
 @app.route("/api/supreme/auth", methods=["POST"])
 def supreme_auth():
+    db = get_db()
+    if check_admin_lock(db):
+        return jsonify({"ok": False, "error": "SISTEMA INATIVO: Bloqueio Ativado. Libere via Bot do Telegram (/liberar)."}), 403
+
     data = get_secure_json()
     pin = str(data.get("pin", ""))
     
@@ -1394,13 +1411,24 @@ def supreme_auth():
     
     if pin_hash == get_supreme_hash():
         reset_auth_fail(ip)
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', '0')")
+        db.commit()
         resp = jsonify({"ok": True})
         # Set Secure Cookie
         resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=86400)
         return resp
     else:
         record_auth_fail(ip)
-        return jsonify({"ok": False, "error": "PIN Incorreto."}), 401
+        fails = db.execute("SELECT value FROM sys_config WHERE key='admin_fails'").fetchone()
+        fails_count = int(fails[0]) if fails else 0
+        fails_count += 1
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', ?)", (str(fails_count),))
+        db.commit()
+        if fails_count >= 3:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_locked', 'true')")
+            db.commit()
+            return jsonify({"ok": False, "error": "SISTEMA BLOQUEADO. Limite de tentativas excedido."}), 429
+        return jsonify({"ok": False, "error": f"PIN Incorreto. Tentativa {fails_count}/3."}), 401
 
 @app.route("/api/supreme/dashboard", methods=["GET"])
 @supreme_required

@@ -65,6 +65,31 @@ def upload_file_to_api(file_url, endpoint="/api/internal/set-logo-file", field_n
 
 user_states = {}
 
+@bot.message_handler(commands=['painel'])
+def cmd_painel(message):
+    if not is_supreme(message.chat.id, message.from_user.id):
+        bot.reply_to(message, "Acesso negado. Apenas o Administrador Supremo pode solicitar o painel.")
+        return
+    pin = os.environ.get("SUPREME_PIN", "123456")
+    txt = (
+        "🔐 <b>ACESSO AO PAINEL SUPREMO</b>\n\n"
+        f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
+        f"🔑 <b>PIN de Acesso:</b> <code>{pin}</code>\n\n"
+        "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
+    )
+    bot.reply_to(message, txt)
+
+@bot.message_handler(commands=['liberar'])
+def cmd_liberar(message):
+    if not is_supreme(message.chat.id, message.from_user.id):
+        bot.reply_to(message, "Acesso negado. Apenas o Administrador Supremo pode liberar o sistema.")
+        return
+    res = api_call("unlock_admin")
+    if res.get("ok"):
+        bot.reply_to(message, "✅ <b>SISTEMA LIBERADO COM SUCESSO!</b>\nO bloqueio de segurança foi removido e as tentativas foram zeradas.")
+    else:
+        bot.reply_to(message, f"❌ Falha ao liberar sistema: {res.get('error', 'Erro Desconhecido')}")
+
 # --- COMANDOS AVANÇADOS DE REDE ---
 @bot.message_handler(commands=['id', 'info'])
 def cmd_info(message):
@@ -109,7 +134,7 @@ def cmd_setlog(message):
 
 
 # --- MENU INICIAL ---
-@bot.message_handler(commands=["start", "menu", "painel"])
+@bot.message_handler(commands=["start", "menu"])
 def send_welcome(message):
     if not is_admin(message.chat.id, message.from_user.id):
         bot.send_message(message.chat.id, "Acesso negado.")
