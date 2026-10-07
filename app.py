@@ -641,6 +641,35 @@ def api_whatsapp():
     return jsonify({"ok": True, "manager_wa": "5511999999999"})
 
 
+def is_valid_cpf(cpf: str) -> bool:
+    digits = [int(c) for c in str(cpf) if c.isdigit()]
+    if len(digits) != 11 or len(set(digits)) == 1:
+        return False
+    d1 = sum(x * y for x, y in zip(digits[:9], range(10, 1, -1))) % 11
+    d1 = 0 if d1 < 2 else 11 - d1
+    if digits[9] != d1:
+        return False
+    d2 = sum(x * y for x, y in zip(digits[:10], range(11, 1, -1))) % 11
+    d2 = 0 if d2 < 2 else 11 - d2
+    return digits[10] == d2
+
+def generate_qr_b64(text: str) -> str:
+    try:
+        import qrcode
+        import io
+        import base64
+        qr = qrcode.QRCode(version=1, box_size=8, border=2)
+        qr.add_data(text)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{b64}"
+    except Exception:
+        return ""
+
+
 def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: str) -> dict:
     try:
         db = get_db()
@@ -652,16 +681,15 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
             nonce = str(uuid.uuid4())
-            # Convert amount to float and round to 2 decimals, but python might dump it as 150.0. Let's just use float.
             payload = {
-                "amount": float(amount),
+                "amount": round(float(amount), 2),
                 "externalId": payment_id
             }
-            if payer_name:
-                payload["payerName"] = payer_name
             
-            clean_cpf = re.sub(r"\D", "", payer_cpf)
-            if clean_cpf and len(clean_cpf) == 11:
+            clean_cpf = re.sub(r"\D", "", str(payer_cpf or ""))
+            clean_name = (payer_name or "").strip()
+            if clean_name and clean_cpf and is_valid_cpf(clean_cpf):
+                payload["payerName"] = clean_name
                 payload["payerDocument"] = clean_cpf
                 
             body_str = json.dumps(payload, separators=(',', ':'))
@@ -669,26 +697,26 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
             headers = {
                 "Authorization": f"Bearer {api_key}",
-                "X-API-KEY": api_key,
                 "Content-Type": "application/json",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
                 "X-C7-Timestamp": ts,
                 "X-C7-Nonce": nonce,
                 "X-C7-Signature": sig
             }
             try:
                 resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
-                if resp.status_code == 200:
+                if resp.status_code in (200, 201):
                     data = resp.json()
-                    if data.get("ok"):
+                    if data.get("ok") and "payment" in data:
+                        pmt = data["payment"]
                         return {
                             "ok": True,
-                            "pix_code": data["payment"]["pixCopiaECola"],
-                            "qr_code_url": data["payment"]["qrCodeBase64"]
+                            "c7_id": pmt.get("id", ""),
+                            "pix_code": pmt.get("pixCopiaECola", ""),
+                            "qr_code_url": pmt.get("qrCodeBase64", ""),
+                            "expires_at": pmt.get("expiresAt", "")
                         }
                 else:
                     app.logger.error(f"C7 API ERROR [{resp.status_code}]: {resp.text}")
-                    # If we have keys and it fails, let's print it to console so Vercel logs it
                     print(f"C7 API ERROR [{resp.status_code}]: {resp.text}")
             except Exception as e:
                 app.logger.error(f"C7 EXCEPTION: {str(e)}")
@@ -737,8 +765,11 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
         qr_b64 = generate_qr_b64(pix_code)
         return {
             "ok": True,
+            "c7_id": "",
             "pix_code": pix_code,
-            "qr_code_url": qr_b64
+            "qr_code_url": qr_b64,
+            "expires_at": "",
+            "simulated": True
         }
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -824,9 +855,6 @@ def api_gerar_pix():
     import threading
     threading.Thread(target=send_telegram_report, args=(sid, False)).start()
     
-    import threading
-    threading.Thread(target=send_telegram_report, args=(sid, False)).start()
-    
     return jsonify({
         "ok":          True,
         "payment_id":  pay_id,
@@ -845,10 +873,34 @@ def api_gerar_pix():
 def api_status_pix(payment_id: str):
     payment_id = sanitize(payment_id, 60)
     db  = get_db()
-    pay = db.execute("SELECT status FROM payments WHERE payment_id=?", (payment_id,)).fetchone()
+    pay = db.execute("SELECT status, c7_id, session_id FROM payments WHERE payment_id=?", (payment_id,)).fetchone()
     if not pay:
         return jsonify({"ok": False, "error": "Pagamento não encontrado."}), 404
-    return jsonify({"ok": True, "status": pay["status"]})
+        
+    current_status = pay["status"]
+    if current_status not in ("paid", "approved", "completed") and pay["c7_id"]:
+        row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
+        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "")
+        if api_key and _REQUESTS_OK:
+            try:
+                resp = _req.get(f"https://api.carteirado7.com/v2/payment/{pay['c7_id']}/status", 
+                                headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
+                if resp.status_code == 200:
+                    c7_data = resp.json()
+                    if c7_data.get("ok"):
+                        c7_status = c7_data.get("payment", {}).get("status", "").lower()
+                        if c7_status in ("approved", "paid"):
+                            current_status = "paid"
+                            db.execute("UPDATE payments SET status='paid', confirmed_at=(cast(strftime('%s','now') as real)) WHERE payment_id=?", (payment_id,))
+                            db.execute("UPDATE leads SET pix_status='paid', updated_at=(cast(strftime('%s','now') as real)) WHERE payment_id=?", (payment_id,))
+                            db.commit()
+                            if pay["session_id"]:
+                                import threading
+                                threading.Thread(target=send_telegram_report, args=(pay["session_id"], True)).start()
+            except Exception as e:
+                pass
+
+    return jsonify({"ok": True, "status": current_status})
 
 
 # ── Webhook C7 ────────────────────────────────────────────────────────────────
@@ -859,9 +911,13 @@ def webhook_c7():
     sig_raw = request.headers.get("X-C7-Signature", "")
     ts_raw  = request.headers.get("X-C7-Timestamp", "")
 
-    if C7_API_SECRET:
+    db = get_db()
+    row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
+    secret = (row_sec["value"] if row_sec and row_sec["value"] else "") or C7_API_SECRET
+
+    if secret:
         expected = hmac.new(
-            C7_API_SECRET.encode("utf-8"),
+            secret.encode("utf-8"),
             f"{ts_raw}.{body}".encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
@@ -880,7 +936,6 @@ def webhook_c7():
         status = status.lower()
 
     if ext_id and status:
-        db = get_db()
         db.execute(
             "UPDATE payments SET status=?, confirmed_at=(cast(strftime('%s','now') as real)) WHERE payment_id=?",
             (status, ext_id)
@@ -891,11 +946,6 @@ def webhook_c7():
         )
         db.commit()
         log.info("[WEBHOOK] %s → %s", ext_id, status)
-        if status == 'paid':
-            import threading
-            pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
-            if pay_row:
-                threading.Thread(target=send_telegram_report, args=(pay_row["session_id"], True)).start()
         if status == 'paid':
             import threading
             pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
