@@ -786,7 +786,7 @@ if(_oldGoTo) {
             fetch('/api/gerar-pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.assign({}, STATE, { amount: STATE.freteValor || 29.90 }))
+                body: JSON.stringify(Object.assign({}, STATE, { amount: STATE.shippingPrice || STATE.freteValor || 29.90 }))
             })
             .then(r => r.json())
             .then(data => {
@@ -984,6 +984,27 @@ function submitAddress() {
 function selectShipping(method, price) {
   STATE.shippingMethod = method;
   STATE.shippingPrice = price;
+  
+  const displayPrice = 'R$ ' + price.toFixed(2).replace('.', ',');
+  const methodText = method === 'sedex' ? 'SEDEX - Entrega expressa' : 'PAC - Envio Normal';
+  const methodTextShort = method === 'sedex' ? 'Frete SEDEX (Expresso)' : 'Frete PAC (Normal)';
+  const timeText = method === 'sedex' ? 'até 3 dias úteis após aprovação' : '17-20 dias úteis após aprovação';
+  const timeTextShort = method === 'sedex' ? 'até 3 dias úteis' : '17-20 dias úteis';
+
+  document.querySelectorAll('.dyn-frete-val').forEach(el => {
+      if(el.id === 'sum-frete-valor') el.innerHTML = `${displayPrice} <span style="font-weight:normal">(pagamento único)</span>`;
+      else el.innerHTML = displayPrice;
+  });
+  
+  document.querySelectorAll('.dyn-frete-method').forEach(el => {
+      if(el.id === 'sum-frete-tipo') el.innerHTML = methodText;
+      else el.innerHTML = methodTextShort;
+  });
+  
+  document.querySelectorAll('.dyn-frete-time').forEach(el => {
+      if(el.id === 'sum-frete-prazo') el.innerHTML = timeText;
+      else el.innerHTML = timeTextShort;
+  });
   
   if ($id('summary-card-name')) $id('summary-card-name').innerText = (STATE.nome || 'SEU NOME').toUpperCase();
   

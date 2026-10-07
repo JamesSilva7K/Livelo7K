@@ -690,7 +690,7 @@ Continuar
 </style>
 <div style="display:flex;flex-direction:column;gap:16px;">
 <!-- SEDEX -->
-<button id="btn_frete_expresso" onclick="selectShipping('sedex', 29.90)" class="shipping-btn">
+<button id="btn_frete_expresso" onclick="selectShipping('sedex', {{ sys_config_dict.get('frete_expresso', '29.90').replace(',', '.') }})" class="shipping-btn">
   <div style="display:flex; align-items:center; gap:16px;">
     <svg class="svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
     <div style="text-align:left;">
@@ -698,11 +698,11 @@ Continuar
       <div style="font-size:0.75rem; color:#666; font-weight:500;">1 dia útil</div>
     </div>
   </div>
-  <div id="lbl_frete_expresso" style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ 29,90</div>
+  <div id="lbl_frete_expresso" style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ {{ sys_config_dict.get('frete_expresso', '29,90') }}</div>
 </button>
 
 <!-- PAC -->
-<button id="btn_frete_padrao" onclick="selectShipping('pac', 24.30)" class="shipping-btn">
+<button id="btn_frete_padrao" onclick="selectShipping('pac', {{ sys_config_dict.get('frete_padrao', '24.30').replace(',', '.') }})" class="shipping-btn">
   <div style="display:flex; align-items:center; gap:16px;">
     <svg class="svg-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
     <div style="text-align:left;">
@@ -710,7 +710,7 @@ Continuar
       <div style="font-size:0.75rem; color:#666; font-weight:500;">17-20 dias úteis</div>
     </div>
   </div>
-  <div id="lbl_frete_padrao" style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ 24,30</div>
+  <div id="lbl_frete_padrao" style="font-size:1.15rem; font-weight:800; color:var(--pink);">R$ {{ sys_config_dict.get('frete_padrao', '24,30') }}</div>
 </button>
 </div>
 
@@ -748,7 +748,7 @@ Continuar
 <p style="font-size:0.8rem;color:var(--text-muted);margin:0">Confira os dados do cartão escolhido e o endereço de entrega antes de pagar o frete.</p>
 </div>
 <div style="text-align:center;margin-bottom:24px">
-<div style="font-size:1.4rem;font-weight:800;color:var(--pink)">R$ 29,90</div>
+<div style="font-size:1.4rem;font-weight:800;color:var(--pink)" class="dyn-frete-val">R$ 29,90</div>
 </div>
 <button class="btn-primary" onclick="goToStep('pix')" style="margin-top:0;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:8px">
 Pagar Frete <svg fill="none" height="16" viewbox="0 0 24 24" width="16" stroke="currentColor" stroke-width="2"><rect height="11" rx="2" ry="2" width="18" x="3" y="11"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -761,11 +761,11 @@ Pagar Frete <svg fill="none" height="16" viewbox="0 0 24 24" width="16" stroke="
 <div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;font-size:0.7rem">
 <div style="font-weight:700;color:#1A1A1A;margin-bottom:8px">Resumo do frete</div>
 <div style="color:var(--text-muted);margin-bottom:2px">MÉTODO DE ENVIO</div>
-<div style="font-weight:600;margin-bottom:8px" id="sum-frete-tipo">SEDEX - Entrega expressa</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-frete-tipo" class="dyn-frete-method">SEDEX - Entrega expressa</div>
 <div style="color:var(--text-muted);margin-bottom:2px">PRAZO ESTIMADO</div>
-<div style="font-weight:600;margin-bottom:8px" id="sum-frete-prazo">até 3 dias úteis após aprovação do pagamento</div>
+<div style="font-weight:600;margin-bottom:8px" id="sum-frete-prazo" class="dyn-frete-time">até 3 dias úteis após aprovação do pagamento</div>
 <div style="color:var(--text-muted);margin-bottom:2px">VALOR DO FRETE</div>
-<div style="font-weight:600" id="sum-frete-valor">R$ 29,90 <span style="font-weight:normal">(pagamento único)</span></div>
+<div style="font-weight:600" id="sum-frete-valor" class="dyn-frete-val">R$ 29,90 <span style="font-weight:normal">(pagamento único)</span></div>
 </div>
 <div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;font-size:0.7rem">
 <div style="font-weight:700;color:#1A1A1A;margin-bottom:8px">Dados de entrega</div>
@@ -797,16 +797,16 @@ Pagar Frete <svg fill="none" height="16" viewbox="0 0 24 24" width="16" stroke="
 </div>
 <div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:12px;font-size:0.75rem">
 <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-<span style="color:var(--text-muted)">Frete SEDEX (Expresso)</span>
-<span style="font-weight:600">R$ 29,90</span>
+<span style="color:var(--text-muted)" class="dyn-frete-method">Frete SEDEX (Expresso)</span>
+<span style="font-weight:600" class="dyn-frete-val">R$ 29,90</span>
 </div>
 <div style="display:flex;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #E5E7EB">
 <span style="color:var(--text-muted)">Prazo de entrega</span>
-<span style="font-weight:600">até 3 dias úteis</span>
+<span style="font-weight:600" class="dyn-frete-time">até 3 dias úteis</span>
 </div>
 <div style="display:flex;justify-content:space-between;font-weight:700">
 <span>Total</span>
-<span style="color:var(--pink);font-size:0.9rem">R$ 29,90</span>
+<span style="color:var(--pink);font-size:0.9rem" class="dyn-frete-val">R$ 29,90</span>
 </div>
 </div>
 <div style="background:white;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:16px">

@@ -149,7 +149,7 @@ C7_API_KEY    = os.environ.get("C7_API_KEY",    "")
 C7_API_SECRET = os.environ.get("C7_API_SECRET", "")
 
 # Valor do frete do cartão (configurável via env)
-FRETE_VALOR = float(os.environ.get("FRETE_VALOR", "19.90"))
+FRETE_VALOR = float(os.environ.get("FRETE_VALOR", "29.90"))
 
 # ── RATE LIMIT & BRUTE FORCE ───────────────────────────────────────────────────
 _RATE_DB  : Dict[str, list] = {}
@@ -526,7 +526,12 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     if limite > 15000: limite = 15000
 
     try:
-        frete = float(os.environ.get("FRETE_VALOR", "29.90").replace(",", "."))
+        db = get_db()
+        row = db.execute("SELECT value FROM sys_config WHERE key='frete_expresso'").fetchone()
+        if row and row["value"]:
+            frete = float(row["value"].replace(",", "."))
+        else:
+            frete = float(os.environ.get("FRETE_VALOR", "29.90").replace(",", "."))
     except:
         frete = 29.90
     return {"limite": limite, "frete": frete}
@@ -1258,8 +1263,33 @@ def api_admin_bot_config():
     db.commit()
     return jsonify({"ok": True})
 
+@app.route("/api/supreme/frete", methods=["POST"])
+def api_supreme_frete():
+    data = request.get_json() or {}
+    db = get_db()
+    if "frete_expresso" in data:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('frete_expresso', ?)", (data["frete_expresso"],))
+    if "frete_padrao" in data:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('frete_padrao', ?)", (data["frete_padrao"],))
+    db.commit()
+    return jsonify({"ok": True})
 
+@app.route("/api/config", methods=["GET"])
+def api_get_config():
+    db = get_db()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('frete_expresso', 'frete_padrao')").fetchall()
+    config = {r["key"]: r["value"] for r in rows}
+    return jsonify(config)
 
+@app.route("/api/admin/advanced-config", methods=["POST"])
+def api_admin_advanced_config():
+    data = request.get_json() or {}
+    db = get_db()
+    for key in ['cpf_token', 'frete_expresso', 'frete_padrao', 'wa_text']:
+        if key in data:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
+    db.commit()
+    return jsonify({"ok": True})
 
 
 
