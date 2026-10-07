@@ -1,0 +1,742 @@
+import os
+from pathlib import Path
+import re
+
+app_file = Path("app.py")
+content = app_file.read_text("utf-8")
+
+if '"payments_data":' not in content:
+    content = content.replace(
+        'recent_leads = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 20").fetchall()',
+        'recent_leads = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 500").fetchall()\n    payments_data = db.execute("SELECT amount, status, created_at FROM payments WHERE status=\'approved\' OR status=\'pago\' ORDER BY created_at ASC").fetchall()'
+    )
+    content = content.replace(
+        '"leads": [dict(l) for l in recent_leads]',
+        '"leads": [dict(l) for l in recent_leads],\n        "payments_data": [dict(p) for p in payments_data]'
+    )
+    app_file.write_text(content, "utf-8")
+    print("app.py patched for finance data")
+
+html_content = """<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supreme Admin | Nexus Gate 9X Finance</title>
+    <!-- Leaflet for Satellite Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js for 3D Modern Finance Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        :root {
+            --bg-dark: #0A0A0A;
+            --bg-panel: rgba(20, 20, 20, 0.7);
+            --border-glow: rgba(229, 20, 122, 0.3);
+            --pink-accent: #E5147A;
+            --pink-glow: #ff1a8c;
+            --text-main: #FFFFFF;
+            --text-muted: #A0A0A0;
+            --green: #10B981;
+            --green-glow: #34d399;
+            --red: #EF4444;
+            --blue: #3B82F6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow-x: hidden; }
+
+        .glitch { position: relative; color: white; font-size: 2rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; }
+        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border-glow); border-radius: 20px; padding: 40px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); }
+        .input-glass { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.3s; }
+        .input-glass:focus { border-color: var(--pink-accent); }
+        .btn-glass { background: rgba(229, 20, 122, 0.2); color: white; border: 1px solid var(--pink-accent); padding: 12px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: all 0.3s; }
+        .btn-glass:hover { background: var(--pink-accent); box-shadow: 0 0 15px var(--pink-glow); transform: translateY(-2px); }
+
+        /* PIN Screen */
+        #pin-screen { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; z-index: 10; }
+        .pin-display { display: flex; gap: 12px; margin: 30px 0; }
+        .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--pink-accent); transition: all 0.2s; }
+        .pin-dot.filled { background: var(--pink-accent); box-shadow: 0 0 10px var(--pink-glow); }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; }
+        .num-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; font-size: 1.5rem; font-weight: 600; padding: 20px; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+        .num-btn:hover { background: rgba(229, 20, 122, 0.2); border-color: var(--pink-accent); }
+        .num-btn:active { transform: scale(0.95); }
+
+        /* Dashboard & Tabs */
+        #dashboard { display: none; width: 100%; max-width: 1500px; padding: 40px 20px; flex-direction: column; animation: fadeIn 0.5s ease-out; }
+        .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-glow); padding-bottom: 20px; }
+        
+        .tabs { display: flex; gap: 16px; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 16px; overflow-x: auto; }
+        .tab-btn { background: transparent; color: var(--text-muted); border: none; font-size: 1.1rem; font-weight: 800; cursor: pointer; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; white-space: nowrap; }
+        .tab-btn:hover { color: white; background: rgba(255,255,255,0.05); }
+        .tab-btn.active { color: var(--pink-accent); background: rgba(229, 20, 122, 0.1); text-shadow: 0 0 10px var(--pink-glow); }
+        
+        .tab-content { display: none; flex-direction: column; gap: 24px; animation: fadeIn 0.4s; }
+        .tab-content.active { display: flex; }
+
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .stat-card { padding: 24px; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--pink-accent); box-shadow: 0 0 15px var(--pink-glow); }
+        .stat-card.green::before { background: var(--green); box-shadow: 0 0 15px var(--green-glow); }
+        .stat-title { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .stat-value { font-size: 2.5rem; font-weight: 800; color: white; }
+
+        /* Progress Bars */
+        .bar-row { display: flex; align-items: center; gap: 12px; margin-top:8px; }
+        .bar-label { width: 90px; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
+        .bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; background: var(--pink-accent); box-shadow: 0 0 10px var(--pink-accent); border-radius: 4px; transition: width 1s; }
+        .bar-val { font-size: 0.8rem; font-weight: 800; min-width: 30px; text-align: right; }
+
+        /* Tables & Filters */
+        .filters { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-select { background: var(--bg-dark); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 8px; outline: none; }
+        .leads-table-container { width: 100%; overflow-x: auto; max-height: 500px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; position: sticky; top: 0; background: var(--bg-panel); backdrop-filter: blur(10px); }
+        tr:hover { background: rgba(229, 20, 122, 0.1); cursor: pointer; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+        .badge.approved { background: rgba(16, 185, 129, 0.2); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge.pending { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3); }
+        
+        /* Modal Profile */
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 100; opacity: 0; transition: opacity 0.3s; }
+        #lead-modal { background: var(--bg-dark); border: 1px solid var(--border-glow); border-radius: 16px; width: 90%; max-width: 1100px; max-height: 90vh; overflow-y: auto; padding: 0; display: flex; flex-direction: column; transform: scale(0.95); transition: transform 0.3s; }
+        .modal-header { padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; background: rgba(10,10,10,0.9); z-index: 10; }
+        .modal-body { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 768px) { .modal-body { grid-template-columns: 1fr; } }
+        
+        .profile-group { background: rgba(255,255,255,0.02); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .profile-item { margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 4px; }
+        .profile-item span:first-child { color: var(--text-muted); font-size: 0.8rem; }
+        .profile-item span:last-child { font-weight: 600; font-size: 0.85rem; color: white; text-align: right; }
+        
+        #map { width: 100%; height: 250px; border-radius: 12px; border: 1px solid var(--pink-accent); margin-top: 16px; }
+
+        /* Card Visual */
+        .credit-card {
+            width: 100%; max-width: 340px; height: 200px; border-radius: 16px; padding: 20px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            color: white; box-shadow: 0 15px 35px rgba(0,0,0,0.5), inset 0 2px 2px rgba(255,255,255,0.2);
+            position: relative; overflow: hidden; margin: 16px auto;
+        }
+        .card-chip { width: 45px; height: 35px; background: linear-gradient(135deg, #E6C27A, #997A3D); border-radius: 6px; position: relative; }
+        .card-row-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+        .card-label { font-size: 0.6rem; opacity: 0.8; margin-bottom: 4px; }
+        .card-value { font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .whatsapp-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: 800; margin-top: 16px; transition: 0.3s; }
+        .whatsapp-btn:hover { background: #1EBE55; transform: scale(1.02); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+    </style>
+</head>
+<body>
+
+    <!-- SECURE PIN LOGIN -->
+    <div id="pin-screen" class="glass-panel">
+        <div style="color:var(--green); font-size:0.85rem; font-weight:600; padding:8px 16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; margin-bottom:20px;">
+            NEXUS GATE BLINDADO
+        </div>
+        <h2 class="glitch" data-text="ACESSO RESTRITO">ACESSO RESTRITO</h2>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:10px;">Insira o PIN de 6 dígitos.</p>
+        
+        <div class="pin-display">
+            <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        </div>
+
+        <div class="numpad">
+            <button class="num-btn" onclick="addPin('1')">1</button>
+            <button class="num-btn" onclick="addPin('2')">2</button>
+            <button class="num-btn" onclick="addPin('3')">3</button>
+            <button class="num-btn" onclick="addPin('4')">4</button>
+            <button class="num-btn" onclick="addPin('5')">5</button>
+            <button class="num-btn" onclick="addPin('6')">6</button>
+            <button class="num-btn" onclick="addPin('7')">7</button>
+            <button class="num-btn" onclick="addPin('8')">8</button>
+            <button class="num-btn" onclick="addPin('9')">9</button>
+            <button class="num-btn" onclick="clearPin()" style="color:var(--red); font-size:1rem;">LIMPAR</button>
+            <button class="num-btn" onclick="addPin('0')">0</button>
+            <button class="num-btn" onclick="submitPin()" style="color:var(--pink-accent);">⮐</button>
+        </div>
+        <button onclick="recoverPin()" style="margin-top:20px; background:transparent; border:none; color:var(--text-muted); text-decoration:underline; cursor:pointer; font-size:0.8rem;">Esqueci o PIN (Enviar no Telegram Privado)</button>
+        <div id="pin-error" style="color:var(--red); font-size:0.8rem; margin-top:16px; height:16px;"></div>
+    </div>
+
+    <!-- SUPREME DASHBOARD -->
+    <div id="dashboard">
+        <div class="dash-header">
+            <div>
+                <h1 class="glitch" style="font-size:1.8rem;" data-text="SUPREME COMMAND">SUPREME COMMAND</h1>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;">Monitoramento Demográfico & Financeiro</p>
+            </div>
+            <div style="display:flex; gap:16px;">
+                <button class="btn-glass" onclick="location.reload()">ATUALIZAR DADOS</button>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('tab-overview', this)">Visão Geral</button>
+            <button class="tab-btn" onclick="switchTab('tab-finance', this)">Financeiro 3D</button>
+            <button class="tab-btn" onclick="switchTab('tab-leads', this)">Análise de Leads</button>
+            <button class="tab-btn" onclick="switchTab('tab-config', this)">Configurações</button>
+        </div>
+
+        <!-- TAB: OVERVIEW -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="grid-container">
+                <div class="glass-panel stat-card">
+                    <div class="stat-title">Leads Capturados (Entradas)</div>
+                    <div class="stat-value" id="val-entradas">0</div>
+                </div>
+                <div class="glass-panel stat-card">
+                    <div class="stat-title">Demografia: Gênero</div>
+                    <div class="chart-bars" id="gender-bars"></div>
+                </div>
+                <div class="glass-panel stat-card">
+                    <div class="stat-title">Demografia: Faixa Etária</div>
+                    <div class="chart-bars" id="age-bars"></div>
+                </div>
+                <div class="glass-panel stat-card green">
+                    <div class="stat-title">Receita Aprovada (Geral)</div>
+                    <div class="stat-value stat-green" id="val-receita">R$ 0,00</div>
+                </div>
+                
+                <div class="glass-panel stat-card" style="grid-column: span 2;">
+                    <div class="stat-title">Monitoramento Regional (Top 5)</div>
+                    <div class="chart-bars" id="region-bars"></div>
+                </div>
+                <div class="glass-panel stat-card" style="grid-column: span 2;">
+                    <div class="stat-title">Dispositivos Utilizados</div>
+                    <div class="chart-bars" id="device-bars"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: FINANCE -->
+        <div id="tab-finance" class="tab-content">
+            <div class="glass-panel" style="width:100%;">
+                <div class="stat-title" style="margin-bottom: 20px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Movimentação Financeira Real (Gráficos Dinâmicos)</span>
+                    <div class="filters">
+                        <button class="btn-glass" onclick="renderFinanceChart('day')" style="padding:6px 12px; font-size:0.8rem;">Hoje</button>
+                        <button class="btn-glass" onclick="renderFinanceChart('week')" style="padding:6px 12px; font-size:0.8rem;">Semana</button>
+                        <button class="btn-glass" onclick="renderFinanceChart('month')" style="padding:6px 12px; font-size:0.8rem;">Mês</button>
+                        <button class="btn-glass" onclick="renderFinanceChart('year')" style="padding:6px 12px; font-size:0.8rem;">Ano</button>
+                    </div>
+                </div>
+                
+                <div class="grid-container" style="margin-bottom:20px;">
+                    <div class="stat-card green" style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:16px;">
+                        <div class="stat-title">Ganho no Período Selecionado</div>
+                        <div class="stat-value stat-green" id="fin-period-total">R$ 0,00</div>
+                    </div>
+                    <div class="stat-card" style="background:rgba(229,20,122,0.05); border:1px solid rgba(229,20,122,0.2); border-radius:12px; padding:16px;">
+                        <div class="stat-title">Vendas (Qtd)</div>
+                        <div class="stat-value" id="fin-period-qtd" style="color:var(--pink-accent)">0</div>
+                    </div>
+                </div>
+
+                <div style="width:100%; height:400px; position:relative;">
+                    <canvas id="financeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: LEADS -->
+        <div id="tab-leads" class="tab-content">
+            <div class="glass-panel" style="width:100%;">
+                <div class="stat-title" style="margin-bottom: 20px; display:flex; justify-content:space-between;">
+                    <span>Análise de Leads (Clique para ver Perfil Completo e Localização Satélite)</span>
+                    <div class="filters">
+                        <select class="filter-select" id="filter-gender" onchange="renderLeads()"><option value="ALL">Todos Gêneros</option><option value="M">Homens</option><option value="F">Mulheres</option></select>
+                        <select class="filter-select" id="filter-status" onchange="renderLeads()"><option value="ALL">Todos Status</option><option value="approved">Pagos</option><option value="pending">Pendentes</option></select>
+                    </div>
+                </div>
+                <div class="leads-table-container">
+                    <table>
+                        <thead><tr><th>Data</th><th>Nome</th><th>Gênero</th><th>Idade</th><th>Região</th><th>Cartão</th><th>Limite</th><th>Status Pix</th></tr></thead>
+                        <tbody id="leads-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: CONFIG -->
+        <div id="tab-config" class="tab-content">
+            <div class="grid-container">
+                <!-- GERENTE CONFIG -->
+                <div class="glass-panel" style="grid-column: span 2;">
+                    <div class="stat-title" style="margin-bottom: 20px;">Gerenciar Perfil do Gerente</div>
+                    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:250px; display:flex; flex-direction:column; gap:16px;">
+                            <div><label style="font-size:0.8rem; color:var(--text-muted);">Nome</label><input type="text" id="mgr-name" class="input-glass"></div>
+                            <div><label style="font-size:0.8rem; color:var(--text-muted);">Tempo de Empresa</label><input type="number" id="mgr-since" class="input-glass"></div>
+                            <div><label style="font-size:0.8rem; color:var(--text-muted);">Foto (Upload Criptografado)</label><input type="file" id="mgr-photo" accept="image/*" class="input-glass"></div>
+                            <button class="btn-glass" onclick="saveManager()">SALVAR ALTERAÇÕES</button>
+                            <div id="mgr-status" style="color:var(--green); font-size:0.85rem;"></div>
+                        </div>
+                        <div style="flex:0.5; min-width:200px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.3); border-radius:12px; padding:20px;">
+                            <img id="mgr-preview" src="" style="width:120px; height:120px; border-radius:50%; border:3px solid var(--pink-accent); object-fit:cover; margin-bottom:16px;">
+                            <div id="mgr-name-preview" style="font-size:1.2rem; font-weight:800;">Nome</div>
+                            <div id="mgr-since-preview" style="font-size:0.85rem; color:var(--text-muted);">Desde 2025</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FRETE CONFIG -->
+                <div class="glass-panel stat-card" style="grid-column: span 2;">
+                    <div class="stat-title">Controle de Fretes</div>
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-top:10px; max-width:400px;">
+                        <div><label style="font-size:0.8rem; color:var(--text-muted);">Expresso (Ex: 29,90)</label><input type="text" id="frete_expresso" class="input-glass"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-muted);">Padrão (Ex: 24,30)</label><input type="text" id="frete_padrao" class="input-glass"></div>
+                        <button class="btn-glass" onclick="updateFrete()">SALVAR FRETES</button>
+                        <div id="frete-status" style="font-size:0.75rem; color:var(--green);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PROFILE -->
+    <div id="modal-overlay">
+        <div id="lead-modal">
+            <div class="modal-header">
+                <h2 style="color:white; font-size:1.4rem;">Perfil Detalhado do Lead</h2>
+                <button onclick="closeModal()" style="background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; flex-direction:column; gap:24px;">
+                    <div class="profile-group" id="prof-dados"></div>
+                    <div class="profile-group" id="prof-card-visual" style="text-align:center; padding:10px;">
+                        <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; font-weight:600; text-transform:uppercase;">Identidade do Cartão Escolhido</div>
+                        <div class="credit-card" id="lead-cc-preview" style="background: linear-gradient(135deg, #111, #333);">
+                            <div style="text-align:right; font-weight:800; font-style:italic;">Livelo</div>
+                            <div class="card-chip"></div>
+                            <div style="font-size:1.2rem; letter-spacing:3px; margin:15px 0;">**** **** **** 8790</div>
+                            <div class="card-row-bottom">
+                                <div><div class="card-label">TITULAR</div><div class="card-value" id="cc-name">NOME</div></div>
+                                <div><div class="card-label">VAL</div><div class="card-value">12/30</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-group">
+                    <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; font-weight:600; text-transform:uppercase;">Rastreamento Geográfico Satélite</div>
+                    <div id="prof-geo"></div>
+                    <div id="map"></div>
+                    <a href="#" target="_blank" id="btn-whatsapp" class="whatsapp-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.66-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+                        Falar com Cliente no WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPin = "";
+        let allLeads = [];
+        let allPayments = [];
+        let mapInstance = null;
+        let mapMarker = null;
+        let chartInstance = null;
+        
+        window.onload = () => { if(document.cookie.includes('supreme_token=')) loadDashboard(); };
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            // Resize chart if needed
+            if(tabId === 'tab-finance' && chartInstance) chartInstance.resize();
+        }
+
+        function addPin(num) { if(currentPin.length < 6) { currentPin += num; updateDots(); if(currentPin.length === 6) submitPin(); } }
+        function clearPin() { currentPin = ""; updateDots(); document.getElementById('pin-error').innerText = ""; }
+        function updateDots() { document.querySelectorAll('.pin-dot').forEach((dot, index) => index < currentPin.length ? dot.classList.add('filled') : dot.classList.remove('filled')); }
+        
+        async function recoverPin() {
+            try {
+                const res = await fetch('/api/supreme/recover-pin', {method: 'POST'});
+                const data = await res.json();
+                if(data.ok) alert("✅ PIN enviado no Privado do Telegram do Admin Supremo!");
+                else alert("❌ Erro: " + data.error);
+            } catch(e) { alert("Erro de conexão."); }
+        }
+
+        async function submitPin() {
+            if(currentPin.length !== 6) return;
+            const errDiv = document.getElementById('pin-error');
+            errDiv.innerText = "Verificando criptografia...";
+            try {
+                const res = await fetch('/api/supreme/auth', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({pin: currentPin}) });
+                const data = await res.json();
+                if(data.ok) {
+                    errDiv.innerText = "Acesso Concedido."; errDiv.style.color = "var(--green)";
+                    setTimeout(() => { document.getElementById('pin-screen').style.display = 'none'; loadDashboard(); }, 500);
+                } else throw new Error(data.error || "Acesso Negado.");
+            } catch(e) {
+                errDiv.innerText = e.message;
+                const p = document.getElementById('pin-screen'); p.style.animation='none'; p.offsetHeight; p.style.animation='shake 0.4s';
+                currentPin = ""; setTimeout(updateDots, 400);
+            }
+        }
+        
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/supreme/dashboard');
+                if(res.status === 403 || res.status === 401) { document.getElementById('pin-screen').style.display = 'flex'; document.getElementById('dashboard').style.display = 'none'; return; }
+                const data = await res.json();
+                if(data.ok) {
+                    document.getElementById('pin-screen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'flex';
+                    allPayments = data.stats.payments_data || [];
+                    processLeads(data.stats.leads);
+                    populateDash(data.stats);
+                    loadManager();
+                    loadConfig();
+                    renderFinanceChart('month'); // default finance view
+                }
+            } catch(e) {}
+        }
+        
+        function processLeads(leads) {
+            allLeads = leads.map(l => {
+                let age = "-";
+                if(l.data_nasc && l.data_nasc.includes('/')) {
+                    const parts = l.data_nasc.split('/');
+                    if(parts.length===3) {
+                        const birth = new Date(parts[2], parts[1]-1, parts[0]);
+                        const diff = Date.now() - birth.getTime();
+                        age = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+                    }
+                }
+                l._age = age;
+                
+                let gender = "U";
+                if(l.nome) {
+                    const first = l.nome.split(' ')[0].toLowerCase();
+                    if(first.endsWith('a') || first.endsWith('e')) gender = "F";
+                    else gender = "M";
+                    if(['joao','lucas','marcos','matheus','pedro','jose','gabriel'].includes(first)) gender = "M";
+                    if(['aline','ariane','rose','cleide','simone'].includes(first)) gender = "F";
+                }
+                l._gender = gender;
+                return l;
+            });
+            renderLeads();
+        }
+
+        function renderLeads() {
+            const filterG = document.getElementById('filter-gender').value;
+            const filterS = document.getElementById('filter-status').value;
+            
+            const filtered = allLeads.filter(l => {
+                if(filterG !== 'ALL' && l._gender !== filterG) return false;
+                if(filterS !== 'ALL' && (l.pix_status||'pending') !== filterS) return false;
+                return true;
+            });
+            
+            const tbody = document.getElementById('leads-body');
+            tbody.innerHTML = '';
+            filtered.forEach(l => {
+                const d = new Date(l.created_at * 1000);
+                let badgeClass = l.pix_status === 'approved' ? 'approved' : 'pending';
+                let badgeText = l.pix_status === 'approved' ? 'PAGO' : 'PENDENTE';
+                let gText = l._gender === 'M' ? '🧔 Homem' : '👩 Mulher';
+                
+                tbody.innerHTML += `
+                    <tr onclick='openProfile(${JSON.stringify(l).replace(/'/g, "&apos;")})'>
+                        <td style="color:var(--text-muted)">${d.toLocaleDateString()}</td>
+                        <td style="font-weight:600">${l.nome ? l.nome.split(' ')[0] : 'Desc.'}</td>
+                        <td>${gText}</td>
+                        <td>${l._age} anos</td>
+                        <td style="color:var(--text-muted)">${l.location || '-'}</td>
+                        <td style="color:var(--pink-accent);font-weight:600">${l.card_style||'-'}</td>
+                        <td style="color:var(--green);font-weight:600">R$ ${l.limite_aprovado||'0'}</td>
+                        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                    </tr>
+                `;
+            });
+            renderDemographics(filtered);
+        }
+
+        function renderDemographics(data) {
+            let mCount = data.filter(l => l._gender === 'M').length;
+            let fCount = data.filter(l => l._gender === 'F').length;
+            const genMax = Math.max(mCount, fCount, 1);
+            document.getElementById('gender-bars').innerHTML = `
+                <div class="bar-row"><div class="bar-label">Homens</div><div class="bar-track"><div class="bar-fill" style="width:${(mCount/genMax)*100}%"></div></div><div class="bar-val">${mCount}</div></div>
+                <div class="bar-row"><div class="bar-label">Mulheres</div><div class="bar-track"><div class="bar-fill" style="width:${(fCount/genMax)*100}%"></div></div><div class="bar-val">${fCount}</div></div>
+            `;
+            
+            const ages = { '18-25':0, '26-35':0, '36-45':0, '46+':0 };
+            data.forEach(l => {
+                if(l._age === "-") return;
+                if(l._age <= 25) ages['18-25']++;
+                else if(l._age <= 35) ages['26-35']++;
+                else if(l._age <= 45) ages['36-45']++;
+                else ages['46+']++;
+            });
+            const maxAge = Math.max(...Object.values(ages), 1);
+            let ageHtml = '';
+            for(let k in ages) ageHtml += `<div class="bar-row"><div class="bar-label">${k} anos</div><div class="bar-track"><div class="bar-fill" style="width:${(ages[k]/maxAge)*100}%"></div></div><div class="bar-val">${ages[k]}</div></div>`;
+            document.getElementById('age-bars').innerHTML = ageHtml;
+        }
+
+        function populateDash(stats) {
+            document.getElementById('val-entradas').innerText = stats.entradas;
+            document.getElementById('val-receita').innerText = `R$ ${stats.receita.toFixed(2).replace('.', ',')}`;
+            
+            const regContainer = document.getElementById('region-bars'); regContainer.innerHTML = '';
+            const maxReg = Math.max(...stats.regions.map(r => r.count), 1);
+            stats.regions.forEach(r => regContainer.innerHTML += `<div class="bar-row"><div class="bar-label">${r.name.substring(0,12)}</div><div class="bar-track"><div class="bar-fill" style="width: ${(r.count/maxReg)*100}%"></div></div><div class="bar-val">${r.count}</div></div>`);
+            
+            const devContainer = document.getElementById('device-bars'); devContainer.innerHTML = '';
+            const maxDev = Math.max(...stats.devices.map(d => d.count), 1);
+            stats.devices.forEach(d => devContainer.innerHTML += `<div class="bar-row"><div class="bar-label">${d.name}</div><div class="bar-track"><div class="bar-fill" style="width: ${(d.count/maxDev)*100}%"></div></div><div class="bar-val">${d.count}</div></div>`);
+        }
+
+        // FINANCE CHART 3D
+        function renderFinanceChart(period) {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            if(chartInstance) chartInstance.destroy();
+            
+            // Filter logic based on period
+            const now = new Date();
+            let filtered = [];
+            let labels = [];
+            let dataPoints = [];
+            
+            if(period === 'day') {
+                filtered = allPayments.filter(p => {
+                    const d = new Date(p.created_at * 1000);
+                    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                });
+                // Group by hour
+                const hours = Array(24).fill(0);
+                filtered.forEach(p => { const h = new Date(p.created_at * 1000).getHours(); hours[h] += p.amount; });
+                labels = Array.from({length:24}, (_,i) => i+'h');
+                dataPoints = hours;
+            } else if(period === 'week') {
+                const oneWeekAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+                filtered = allPayments.filter(p => (p.created_at * 1000) >= oneWeekAgo);
+                // Group by Day Name
+                const days = { 'Dom':0, 'Seg':0, 'Ter':0, 'Qua':0, 'Qui':0, 'Sex':0, 'Sáb':0 };
+                const dayNames = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+                filtered.forEach(p => { const d = new Date(p.created_at * 1000); days[dayNames[d.getDay()]] += p.amount; });
+                labels = dayNames;
+                dataPoints = Object.values(days);
+            } else if(period === 'month') {
+                filtered = allPayments.filter(p => {
+                    const d = new Date(p.created_at * 1000);
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                });
+                // Group by day of month
+                const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+                const days = Array(daysInMonth).fill(0);
+                filtered.forEach(p => { const d = new Date(p.created_at * 1000); days[d.getDate()-1] += p.amount; });
+                labels = Array.from({length:daysInMonth}, (_,i) => i+1);
+                dataPoints = days;
+            } else if(period === 'year') {
+                filtered = allPayments.filter(p => new Date(p.created_at * 1000).getFullYear() === now.getFullYear());
+                const months = Array(12).fill(0);
+                filtered.forEach(p => { const d = new Date(p.created_at * 1000); months[d.getMonth()] += p.amount; });
+                labels = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+                dataPoints = months;
+            }
+
+            const total = dataPoints.reduce((a,b)=>a+b, 0);
+            document.getElementById('fin-period-total').innerText = `R$ ${total.toFixed(2).replace('.',',')}`;
+            document.getElementById('fin-period-qtd').innerText = filtered.length;
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(16, 185, 129, 0.5)'); // Green glow
+            gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Receita (R$)',
+                        data: dataPoints,
+                        borderColor: '#10B981',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#10B981',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        tension: 0.4 // Smooth curve
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { size: 14, family: 'Inter' },
+                            bodyFont: { size: 16, weight: 'bold', family: 'Inter' },
+                            callbacks: {
+                                label: function(context) { return 'R$ ' + context.parsed.y.toFixed(2).replace('.',','); }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#A0A0A0' } },
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#A0A0A0' }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Profile Modal
+        async function openProfile(l) {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => { overlay.style.opacity = '1'; document.getElementById('lead-modal').style.transform = 'scale(1)'; }, 10);
+            
+            let pData = `
+                <div style="font-size:0.9rem; color:var(--text-muted); margin-bottom:12px; font-weight:600; text-transform:uppercase;">Respostas do Funil</div>
+                <div class="profile-item"><span>Nome Completo</span><span>${l.nome||'-'}</span></div>
+                <div class="profile-item"><span>CPF</span><span>${l.cpf||'-'}</span></div>
+                <div class="profile-item"><span>Data de Nasc. (Idade)</span><span>${l.data_nasc||'-'} (${l._age} anos)</span></div>
+                <div class="profile-item"><span>Nome da Mãe</span><span>${l.nome_mae||'-'}</span></div>
+                <div class="profile-item"><span>Renda Mensal</span><span>${l.renda||'-'}</span></div>
+                <div class="profile-item"><span>Profissão</span><span>${l.tipo_renda||'-'}</span></div>
+                <div class="profile-item"><span>Motivo do Cartão</span><span>${l.motivo_credito||'-'}</span></div>
+                <div class="profile-item"><span>Dia de Vencimento</span><span>${l.dia_vencimento||'-'}</span></div>
+                <div class="profile-item"><span>WhatsApp</span><span>${l.whatsapp||'-'}</span></div>
+                <div class="profile-item" style="border-top:1px solid rgba(229,20,122,0.5); padding-top:12px; margin-top:12px;"><span>Design do Cartão</span><span style="color:var(--pink-accent)">${l.card_style||'-'} (${l.card_color||'-'})</span></div>
+                <div class="profile-item"><span>Limite Aprovado</span><span style="color:var(--green)">R$ ${l.limite_aprovado||'0'}</span></div>
+            `;
+            document.getElementById('prof-dados').innerHTML = pData;
+            
+            // Build visual card
+            const cc = document.getElementById('lead-cc-preview');
+            document.getElementById('cc-name').innerText = l.nome ? l.nome.toUpperCase() : 'NOME';
+            let bg = 'linear-gradient(135deg, #111, #333)';
+            if(l.card_color === 'Rosa') bg = 'linear-gradient(135deg, #E5147A, #8B0045)';
+            if(l.card_color === 'Black') bg = 'linear-gradient(135deg, #222, #000)';
+            if(l.card_color === 'Gold') bg = 'linear-gradient(135deg, #D4AF37, #997A3D)';
+            if(l.card_color === 'Silver') bg = 'linear-gradient(135deg, #E0E0E0, #888)';
+            if(l.card_color === 'Green') bg = 'linear-gradient(135deg, #10B981, #047857)';
+            cc.style.background = bg;
+
+            // Geo & WhatsApp
+            document.getElementById('prof-geo').innerHTML = `
+                <div class="profile-item"><span>Endereço IP</span><span>${l.ip||'-'}</span></div>
+                <div class="profile-item"><span>Região/Estado</span><span>${l.location||'-'}</span></div>
+                <div class="profile-item"><span>Aparelho</span><span>${l.device_brand||'-'}</span></div>
+                <div class="profile-item" id="geo-status"><span style="color:var(--pink-accent)">Carregando Satélite...</span></div>
+            `;
+            
+            const wa = l.whatsapp ? l.whatsapp.replace(/\D/g, '') : '';
+            const btnWa = document.getElementById('btn-whatsapp');
+            if(wa) {
+                btnWa.style.display = 'flex';
+                btnWa.href = `https://wa.me/55${wa}?text=Ol%C3%A1%20${l.nome.split(' ')[0]}!%20Aqui%20%C3%A9%20o%20seu%20gerente%20Livelo.`;
+            } else {
+                btnWa.style.display = 'none';
+            }
+
+            if(mapInstance) { mapInstance.remove(); mapInstance = null; mapMarker = null; }
+            document.getElementById('map').innerHTML = "<div id='map-container' style='width:100%; height:100%; border-radius:12px;'></div>";
+            
+            if(l.ip && l.ip !== "127.0.0.1") {
+                try {
+                    const res = await fetch(`http://ip-api.com/json/${l.ip}`);
+                    const geo = await res.json();
+                    if(geo.status === 'success') {
+                        document.getElementById('geo-status').innerHTML = `<span>Coordenadas</span><span>Lat: ${geo.lat}, Lon: ${geo.lon}</span>`;
+                        initMap(geo.lat, geo.lon);
+                    } else document.getElementById('geo-status').innerHTML = `<span>Satélite</span><span>Indisponível</span>`;
+                } catch(e) {}
+            }
+        }
+        
+        function initMap(lat, lon) {
+            mapInstance = L.map('map-container').setView([lat, lon], 15);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' }).addTo(mapInstance);
+            mapMarker = L.marker([lat, lon]).addTo(mapInstance);
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.opacity = '0';
+            document.getElementById('lead-modal').style.transform = 'scale(0.95)';
+            setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        async function loadManager() {
+            try {
+                const res = await fetch('/api/supreme/manager'); const data = await res.json();
+                if(data.ok) {
+                    document.getElementById('mgr-name').value = data.manager.name;
+                    document.getElementById('mgr-since').value = data.manager.since_year;
+                    document.getElementById('mgr-preview').src = data.manager.photo_url;
+                    document.getElementById('mgr-name-preview').innerText = data.manager.name;
+                    document.getElementById('mgr-since-preview').innerText = "Desde " + data.manager.since_year;
+                }
+            } catch(e) {}
+        }
+        
+        async function saveManager() {
+            const payload = { name: document.getElementById('mgr-name').value, since_year: document.getElementById('mgr-since').value };
+            const fileInput = document.getElementById('mgr-photo');
+            if(fileInput.files.length > 0) {
+                const r = new FileReader(); r.readAsDataURL(fileInput.files[0]);
+                r.onload = async function() { payload.photo_url = r.result; await sendManagerUpdate(payload); };
+            } else await sendManagerUpdate(payload);
+        }
+        async function sendManagerUpdate(payload) {
+            try {
+                const res = await fetch('/api/supreme/manager', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+                if((await res.json()).ok) { document.getElementById('mgr-status').innerText = "✅ Salvo!"; loadManager(); setTimeout(()=>document.getElementById('mgr-status').innerText="", 3000); }
+            } catch(e) {}
+        }
+        
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                document.getElementById('frete_expresso').value = data.frete_expresso || '29,90';
+                document.getElementById('frete_padrao').value = data.frete_padrao || '24,30';
+            } catch(e) {}
+        }
+        
+        async function updateFrete() {
+            const expresso = document.getElementById('frete_expresso').value;
+            const padrao = document.getElementById('frete_padrao').value;
+            try {
+                const res = await fetch('/api/supreme/frete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({frete_expresso: expresso, frete_padrao: padrao})});
+                if((await res.json()).ok) { document.getElementById('frete-status').innerText = "✅ Fretes Atualizados!"; setTimeout(()=>document.getElementById('frete-status').innerText="", 3000); }
+            } catch(e) {}
+        }
+    </script>
+</body>
+</html>
+"""
+
+html_path = Path("templates/supreme_admin.html")
+html_path.write_text(html_content, "utf-8")
+print("Templates patched.")
