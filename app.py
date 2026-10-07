@@ -52,7 +52,7 @@ def record_auth_fail(ip):
 def reset_auth_fail(ip):
     if ip in failed_attempts:
         del failed_attempts[ip]
-, re, time, uuid, json, hmac, hashlib, sqlite3, secrets, logging, base64
+import re, time, uuid, json, hmac, hashlib, sqlite3, secrets, logging, base64
 from functools import wraps
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -1676,13 +1676,13 @@ def api_manager_invite():
     domain = request.host_url.rstrip('/')
     link = f"{domain}/nexus-manager/{link_hash}"
     
-    msg = f"🔐 *Acesso Gerado*
+    msg = f"""🔐 *Acesso Gerado*
 
 Seu link único e criptografado: {link}
 
 Seu código de acesso: `{access_code}`
 
-_Este link é de uso único._"
+_Este link é de uso único._"""
     
     if bot_token:
         try:
