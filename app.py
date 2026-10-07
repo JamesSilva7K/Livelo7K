@@ -79,6 +79,8 @@ def get_secure_c7_secret():
 
 # ── APP SETUP ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder="templates", static_folder="static")
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+log = logging.getLogger(__name__)
 
 @app.before_request
 def crypt_shield():
@@ -212,8 +214,6 @@ def init_db():
 
         db.executescript("""
         -- Migrations
-        ALTER TABLE leads ADD COLUMN location TEXT;
-        ALTER TABLE leads ADD COLUMN device_brand TEXT;
         
         CREATE TABLE IF NOT EXISTS admin (
             id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -601,6 +601,7 @@ def api_lead():
     
     client_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
     client_loc = "BR"
+    device_brand = sanitize(data.get("device_brand", "Desconhecido"), 50)
     
     analise = calc_limite(renda, tipo_renda, motivo)
     limite = analise["limite"]
@@ -711,7 +712,7 @@ def generate_qr_b64(text: str) -> str:
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
         buf = io.BytesIO()
-        img.save(buf, format="PNG")
+        img.save(buf)
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
         return f"data:image/png;base64,{b64}"
     except Exception:
