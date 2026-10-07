@@ -674,9 +674,9 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
     try:
         db = get_db()
         row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "")
+        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "c7_live_cdbd8be1a34c09a4488233ea72e798a16ba4e54962e50b39cf1b77b1df48b5c7")
         row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-        api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", "")
+        api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", "9c602a1b01239a89541024b17a605942104bb944ebb46366b8fec04fb1550678bd26a7df640a63e5d08c0d83bb7e87db635fa4c5486d45714fa7c88a49cb4886")
         
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
@@ -880,7 +880,7 @@ def api_status_pix(payment_id: str):
     current_status = pay["status"]
     if current_status not in ("paid", "approved", "completed") and pay["c7_id"]:
         row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "")
+        api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", "c7_live_cdbd8be1a34c09a4488233ea72e798a16ba4e54962e50b39cf1b77b1df48b5c7")
         if api_key and _REQUESTS_OK:
             try:
                 resp = _req.get(f"https://api.carteirado7.com/v2/payment/{pay['c7_id']}/status", 
@@ -913,7 +913,7 @@ def webhook_c7():
 
     db = get_db()
     row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-    secret = (row_sec["value"] if row_sec and row_sec["value"] else "") or C7_API_SECRET
+    secret = (row_sec["value"] if row_sec and row_sec["value"] else "") or os.environ.get("C7_API_SECRET", "9c602a1b01239a89541024b17a605942104bb944ebb46366b8fec04fb1550678bd26a7df640a63e5d08c0d83bb7e87db635fa4c5486d45714fa7c88a49cb4886")
 
     if secret:
         expected = hmac.new(
