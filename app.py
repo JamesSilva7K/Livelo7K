@@ -1502,6 +1502,31 @@ def supreme_dashboard():
     recent_leads = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT 500").fetchall()
     payments_data = db.execute("SELECT amount, status, created_at FROM payments WHERE status='approved' OR status='pago' ORDER BY created_at ASC").fetchall()
     
+    # Conversions
+    conversao_cartao = round((cartoes_emitidos / leads_count * 100) if leads_count > 0 else 0, 1)
+    conversao_pago = round((pagos[1] / cartoes_emitidos * 100) if cartoes_emitidos > 0 else 0, 1)
+
+    admin_profile = {"name": "Supremo", "avatar": "https://ui-avatars.com/api/?name=Supremo&background=random", "role": "Supreme Admin"}
+    admin_id = os.environ.get("ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
+    bot_token = os.environ.get('BOT_TOKEN', os.environ.get('TELEGRAM_BOT_TOKEN'))
+    if not bot_token:
+        row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+        bot_token = row["value"] if row else None
+
+    if admin_id and bot_token and _REQUESTS_OK:
+        try:
+            chat_res = _req.get(f"https://api.telegram.org/bot{bot_token}/getChat?chat_id={admin_id}").json()
+            if chat_res.get("ok"):
+                admin_profile["name"] = chat_res["result"].get("first_name", "Supremo")
+            photo_res = _req.get(f"https://api.telegram.org/bot{bot_token}/getUserProfilePhotos?user_id={admin_id}&limit=1").json()
+            if photo_res.get("ok") and photo_res["result"]["total_count"] > 0:
+                file_id = photo_res["result"]["photos"][0][0]["file_id"]
+                file_res = _req.get(f"https://api.telegram.org/bot{bot_token}/getFile?file_id={file_id}").json()
+                if file_res.get("ok"):
+                    admin_profile["avatar"] = f"https://api.telegram.org/file/bot{bot_token}/{file_res['result']['file_path']}"
+        except:
+            pass
+
     stats = {
         "entradas": leads_count,
         "cartoes": cartoes_emitidos,
@@ -1511,7 +1536,9 @@ def supreme_dashboard():
         "regions": regions,
         "devices": devices,
         "leads": [dict(l) for l in recent_leads],
-        "payments_data": [dict(p) for p in payments_data]
+        "payments_data": [dict(p) for p in payments_data],
+        "admin_profile": admin_profile,
+        "conversoes": {"cartao_pct": conversao_cartao, "pago_pct": conversao_pago}
     }
     
     return jsonify({"ok": True, "stats": stats})
@@ -1555,21 +1582,62 @@ def supreme_manager():
 
 @app.route("/api/supreme/recover-pin", methods=["POST"])
 def supreme_recover_pin():
-    pin = os.environ.get("SUPREME_PIN", "123456")
-    admin_id = os.environ.get("ADMIN_SUPREMO")
-    token = os.environ.get("BOT_TOKEN")
+    data = get_secure_json()
+    port_id = data.get("port_id", "fallback")
+    
+    admin_id = os.environ.get("ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
+    token = os.environ.get("BOT_TOKEN", os.environ.get("TELEGRAM_BOT_TOKEN"))
+    
+    db = get_db()
+    if not token:
+        row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+        token = row["value"] if row else None
+        
     if not admin_id or not token:
-        return jsonify({"ok": False, "error": "Bot ou Admin não configurados na Vercel."})
+        return jsonify({"ok": False, "error": "Bot ou Admin não configurados."})
+    
+    import random, string, hashlib, time
+    new_pin = ''.join(random.choices(string.digits, k=6))
+    pin_hash = hashlib.sha256(new_pin.encode()).hexdigest()
+    expires = time.time() + 600
+    
+    try:
+        db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at, port_id) VALUES (?, ?, ?, ?)", (pin_hash, 'supreme', expires, port_id))
+    except:
+        db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (pin_hash, 'supreme', expires))
+    db.commit()
     
     import requests
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": admin_id,
-        "text": f"🔐 <b>Solicitação de Recuperação (Nexus Gate)</b>\n\nO seu PIN Blindado é: <code>{pin}</code>\n\n<i>Se não foi você que solicitou, ignore.</i>",
+        "text": f"🔐 <b>Novo PIN de Acesso Gerado</b>\n\nPIN: <code>{new_pin}</code>\n\nVálido por 10 minutos para a porta: {port_id}",
         "parse_mode": "HTML"
     }
     requests.post(url, json=payload)
     return jsonify({"ok": True})
+
+@app.route("/api/supreme/c7-balance", methods=["GET"])
+@supreme_required
+def supreme_c7_balance():
+    db = get_db()
+    row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
+    api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", get_secure_c7_key())
+    
+    if api_key and _REQUESTS_OK:
+        try:
+            hdrs = {
+                "Authorization": f"Bearer {api_key}",
+                "User-Agent": "Mozilla/5.0"
+            }
+            resp = _req.get("https://api.carteirado7.com/v2/account/balance", headers=hdrs, timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                balance = data.get("balance", data.get("amount", 0))
+                return jsonify({"ok": True, "balance": balance})
+        except:
+            pass
+    return jsonify({"ok": False, "balance": 0})
 
 @app.route("/api/supreme/frete", methods=["POST"])
 @supreme_required

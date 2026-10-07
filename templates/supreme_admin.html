@@ -42,7 +42,7 @@
         
         .role-badge { display: inline-flex; align-items: center; gap: 8px; color: #fff; font-size: 0.75rem; font-weight: 800; letter-spacing: 2px; padding: 8px 16px; background: linear-gradient(90deg, rgba(229,20,122,0.3), rgba(0,0,0,0)); border-left: 3px solid var(--pink-accent); border-radius: 4px; margin-bottom: 30px; text-transform: uppercase; }
         
-        .pin-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #aaa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
+        .pin-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; background: linear-gradient(135deg, #fff, #aaa); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
         
         .pin-display { display: flex; gap: 16px; margin: 40px 0; }
         .pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5); }
@@ -162,7 +162,7 @@
             <button class="num-btn" onclick="addPin('9')">9</button>
             <button class="num-btn action-btn clear-btn" onclick="clearPin()">DEL</button>
             <button class="num-btn" onclick="addPin('0')">0</button>
-            <button class="num-btn action-btn submit-btn" onclick="submitPin()">
+            <button class="num-btn action-btn submit-btn" onclick="submitPin()" aria-label="Submit PIN" title="Submit PIN">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
         </div>
@@ -178,7 +178,14 @@
                 <h1 class="glitch" style="font-size:1.8rem;" data-text="SUPREME COMMAND">SUPREME COMMAND</h1>
                 <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;">Monitoramento Demográfico & Financeiro</p>
             </div>
-            <div style="display:flex; gap:16px;">
+            <div style="display:flex; gap:16px; align-items:center;">
+                <div id="admin-profile" style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.05); padding:8px 16px; border-radius:12px; border:1px solid var(--border-glow);">
+                    <img id="admin-avatar" src="https://ui-avatars.com/api/?name=Admin&background=random" style="width:40px; height:40px; border-radius:50%; border:2px solid var(--pink-accent); object-fit:cover;">
+                    <div style="display:flex; flex-direction:column;">
+                        <span id="admin-name" style="font-weight:800; font-size:0.9rem;">Carregando...</span>
+                        <span id="admin-role" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Reconhecendo...</span>
+                    </div>
+                </div>
                 <button class="btn-glass" onclick="location.reload()">ATUALIZAR DADOS</button>
             </div>
         </div>
@@ -210,6 +217,20 @@
                 <div class="glass-panel stat-card green">
                     <div class="stat-title">Receita Aprovada (Geral)</div>
                     <div class="stat-value stat-green" id="val-receita">R$ 0,00</div>
+                </div>
+                <div class="glass-panel stat-card" style="border-color: rgba(59, 130, 246, 0.3);">
+                    <div class="stat-title" style="color:var(--blue);">Saldo Carteira C7</div>
+                    <div class="stat-value" id="val-c7-balance" style="color:var(--blue); text-shadow:0 0 10px rgba(59,130,246,0.5);">R$ 0,00</div>
+                    <button class="btn-glass" onclick="loadC7Balance()" style="margin-top:10px; font-size:0.75rem; padding:6px 12px; border-color:var(--blue); color:var(--blue); background:rgba(59,130,246,0.1);">Atualizar Saldo C7</button>
+                </div>
+                
+                <div class="glass-panel stat-card" style="border-left-color:var(--pink-accent);">
+                    <div class="stat-title">Conversão Lead ➔ Cartão</div>
+                    <div class="stat-value" id="val-conv-cartao">0%</div>
+                </div>
+                <div class="glass-panel stat-card green">
+                    <div class="stat-title">Conversão Cartão ➔ Pago</div>
+                    <div class="stat-value stat-green" id="val-conv-pago">0%</div>
                 </div>
                 
                 <div class="glass-panel stat-card" style="grid-column: span 2;">
@@ -382,7 +403,7 @@
                 document.querySelector('.role-badge').style.borderLeftColor = "#3B82F6";
                 document.querySelector('.role-badge').style.background = "linear-gradient(90deg, rgba(59,130,246,0.3), rgba(0,0,0,0))";
             }
-            if(document.cookie.includes('supreme_token=')) loadDashboard(); 
+            loadDashboard(); 
         };
 
         function switchTab(tabId, btn) {
@@ -401,9 +422,14 @@
         
         async function recoverPin() {
             try {
-                const res = await fetch('/api/supreme/recover-pin', {method: 'POST'});
+                const portId = "{{ port_id|default('fallback') }}";
+                const res = await fetch('/api/supreme/recover-pin', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({port_id: portId})
+                });
                 const data = await res.json();
-                if(data.ok) alert("✅ PIN enviado no Privado do Telegram do Admin Supremo!");
+                if(data.ok) alert("✅ PIN enviado no Privado do Telegram do Admin!");
                 else alert("❌ Erro: " + data.error);
             } catch(e) { alert("Erro de conexão."); }
         }
@@ -448,6 +474,7 @@
                     loadManager();
                     loadConfig();
                     loadManagers();
+                    loadC7Balance();
                     renderFinanceChart('month'); // default finance view
                 }
             } catch(e) {}
@@ -541,6 +568,17 @@
             document.getElementById('val-entradas').innerText = stats.entradas;
             document.getElementById('val-receita').innerText = `R$ ${stats.receita.toFixed(2).replace('.', ',')}`;
             
+            if (stats.conversoes) {
+                document.getElementById('val-conv-cartao').innerText = `${stats.conversoes.cartao_pct}%`;
+                document.getElementById('val-conv-pago').innerText = `${stats.conversoes.pago_pct}%`;
+            }
+
+            if (stats.admin_profile) {
+                document.getElementById('admin-name').innerText = stats.admin_profile.name;
+                document.getElementById('admin-avatar').src = stats.admin_profile.avatar;
+                document.getElementById('admin-role').innerText = stats.admin_profile.role;
+            }
+
             const regContainer = document.getElementById('region-bars'); regContainer.innerHTML = '';
             const maxReg = Math.max(...stats.regions.map(r => r.count), 1);
             stats.regions.forEach(r => regContainer.innerHTML += `<div class="bar-row"><div class="bar-label">${r.name.substring(0,12)}</div><div class="bar-track"><div class="bar-fill" style="width: ${(r.count/maxReg)*100}%"></div></div><div class="bar-val">${r.count}</div></div>`);
@@ -650,6 +688,18 @@
                     }
                 }
             });
+        }
+        
+        async function loadC7Balance() {
+            try {
+                const res = await fetch('/api/supreme/c7-balance');
+                const data = await res.json();
+                if(data.ok) {
+                    document.getElementById('val-c7-balance').innerText = `R$ ${data.balance.toFixed(2).replace('.', ',')}`;
+                } else {
+                    document.getElementById('val-c7-balance').innerText = `R$ 0,00`;
+                }
+            } catch(e) {}
         }
 
         // Profile Modal
