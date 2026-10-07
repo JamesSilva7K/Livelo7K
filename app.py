@@ -277,6 +277,13 @@ def init_db():
             last_active REAL
         );
 
+        CREATE TABLE IF NOT EXISTS otp_tokens (
+            token_hash TEXT PRIMARY KEY,
+            role TEXT,
+            expires_at REAL,
+            used INTEGER DEFAULT 0
+        );
+
         CREATE TABLE IF NOT EXISTS payments (
             payment_id   TEXT PRIMARY KEY,
             c7_id        TEXT,
@@ -1276,6 +1283,26 @@ def process_bot_action(action, payload=None):
     payload = payload or {}
     db = get_db()
     
+    if action == "generate_otp":
+        tg_id = str(payload.get("tg_id", ""))
+        supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID", "none")))
+        
+        if tg_id == supreme_id:
+            role = "supreme"
+        else:
+            mgr = db.execute("SELECT id FROM managers WHERE telegram_id = ?", (tg_id,)).fetchone()
+            if not mgr:
+                return {"ok": False, "error": "Acesso Negado: Você não é um gerente autorizado."}
+            role = f"manager_{tg_id}"
+
+        import random, string, hashlib, time
+        code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+        expires = time.time() + 300 # 5 minutes
+        db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (code_hash, role, expires))
+        db.commit()
+        return {"ok": True, "code": code}
+    
     if action == "get_config":
         rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         return {"ok": True, "config": {r["key"]: r["value"] for r in rows}}
@@ -1406,9 +1433,29 @@ def supreme_auth():
     if is_blocked(ip):
         return jsonify({"ok": False, "error": "IP Bloqueado por brute-force."}), 429
         
-    import hashlib
+    import hashlib, time
     pin_hash = hashlib.sha256(pin.encode()).hexdigest()
     
+    # Check Intelligent OTP
+    otp = db.execute("SELECT role FROM otp_tokens WHERE token_hash = ? AND used = 0 AND expires_at > ?", (pin_hash, time.time())).fetchone()
+    
+    if otp:
+        role = otp['role']
+        db.execute("UPDATE otp_tokens SET used = 1 WHERE token_hash = ?", (pin_hash,))
+        reset_auth_fail(ip)
+        db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', '0')")
+        db.commit()
+        
+        if role == 'supreme':
+            resp = jsonify({"ok": True})
+            resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=86400)
+            return resp
+        elif role.startswith('manager_'):
+            mgr_id = role.split('_')[1]
+            resp = jsonify({"ok": True, "redirect": "/manager-panel"})
+            resp.set_cookie("manager_token", mgr_id, httponly=True, samesite="Lax", max_age=86400)
+            return resp
+
     if pin_hash == get_supreme_hash():
         reset_auth_fail(ip)
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', '0')")
@@ -1750,6 +1797,11 @@ def manager_auth():
     resp = jsonify({"ok": True})
     resp.set_cookie("manager_token", link['telegram_id'], httponly=True, samesite="Lax", max_age=43200) # 12 hours
     return resp
+
+@app.route("/manager-panel")
+@manager_required
+def manager_panel():
+    return render_template("manager_dashboard.html", hash="auth")
 
 @app.route("/api/manager/dashboard", methods=["GET"])
 @manager_required

@@ -382,7 +382,13 @@
                 const data = await res.json();
                 if(data.ok) {
                     errDiv.innerText = "Acesso Concedido."; errDiv.style.color = "var(--green)";
-                    setTimeout(() => { document.getElementById('pin-screen').style.display = 'none'; loadDashboard(); }, 500);
+                    setTimeout(() => { 
+                        if(data.redirect) window.location.href = data.redirect;
+                        else {
+                            document.getElementById('pin-screen').style.display = 'none'; 
+                            loadDashboard(); 
+                        }
+                    }, 500);
                 } else throw new Error(data.error || "Acesso Negado.");
             } catch(e) {
                 errDiv.innerText = e.message;

@@ -65,19 +65,36 @@ def upload_file_to_api(file_url, endpoint="/api/internal/set-logo-file", field_n
 
 user_states = {}
 
-@bot.message_handler(commands=['painel'])
+@bot.message_handler(commands=['painel', 'acesso'])
 def cmd_painel(message):
-    if not is_supreme(message.chat.id, message.from_user.id):
-        bot.reply_to(message, "Acesso negado. Apenas o Administrador Supremo pode solicitar o painel.")
-        return
-    pin = os.environ.get("SUPREME_PIN", "123456")
-    txt = (
-        "🔐 <b>ACESSO AO PAINEL SUPREMO</b>\n\n"
-        f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
-        f"🔑 <b>PIN de Acesso:</b> <code>{pin}</code>\n\n"
-        "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
-    )
-    bot.reply_to(message, txt)
+    tg_id = str(message.from_user.id)
+    chat_id = str(message.chat.id)
+    
+    # Try to generate an intelligent OTP code
+    res = api_call("generate_otp", {"tg_id": tg_id})
+    
+    if res.get("ok"):
+        txt = (
+            "🔐 <b>ACESSO AO PAINEL BLINDADO</b>\n\n"
+            f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
+            f"🔑 <b>Código Dinâmico (OTP):</b> <code>{res['code']}</code>\n\n"
+            "<i>Válido por 5 minutos. Uso único.</i>\n"
+            "<i>Cuidado: Se errar o código 3 vezes o sistema será bloqueado por segurança!</i>"
+        )
+        bot.reply_to(message, txt)
+    else:
+        # Fallback if the user is not authorized or an error occurs
+        if is_supreme(chat_id, tg_id):
+            pin = os.environ.get("SUPREME_PIN", "123456")
+            txt = (
+                "🔐 <b>ACESSO AO PAINEL SUPREMO (Fallback)</b>\n\n"
+                f"🔗 <b>URL:</b> {BASE_URL}/nexus-gate-9x02\n"
+                f"🔑 <b>PIN de Acesso:</b> <code>{pin}</code>\n\n"
+                "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
+            )
+            bot.reply_to(message, txt)
+        else:
+            bot.reply_to(message, f"❌ Acesso Negado: {res.get('error', 'Sem permissão.')}")
 
 @bot.message_handler(commands=['liberar'])
 def cmd_liberar(message):
