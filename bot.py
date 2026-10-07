@@ -29,6 +29,14 @@ def is_admin(chat_id, user_id=None):
 
 def api_call(action, payload=None):
     try:
+        try:
+            from app import process_bot_action
+            # If this runs without raising an exception, we are inside Flask context
+            # and can bypass the HTTP overhead!
+            return process_bot_action(action, payload)
+        except Exception as local_e:
+            pass
+
         r = requests.post(
             f"{API_BASE}/api/internal/bot-gateway",
             json={"action": action, "payload": payload or {}},
