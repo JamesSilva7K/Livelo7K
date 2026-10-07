@@ -1,25 +1,3 @@
-
-import qrcode
-import io
-import base64
-
-def generate_qr_b64(data: str) -> str:
-    try:
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=2,
-        )
-        qr.add_data(data)
-        qr.make(fit=True)
-        img = qr.make_image(fill_color="black", back_color="white")
-        buffered = io.BytesIO()
-        img.save(buffered)
-        return "data:image/png;base64," + base64.b64encode(buffered.getvalue()).decode("utf-8")
-    except Exception as e:
-        # Fallback se a lib falhar por algum motivo
-        return f"https://quickchart.io/qr?text={data}&size=300"
 """
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  LIVELO CREDIT SYSTEM — v2.0                                                 ║
@@ -30,28 +8,6 @@ def generate_qr_b64(data: str) -> str:
 # ── IMPORTS ────────────────────────────────────────────────────────────────────
 import os
 
-import time
-failed_attempts = {}
-
-def is_blocked(ip):
-    data = failed_attempts.get(ip)
-    if not data: return False
-    if data['count'] >= 5:
-        if time.time() - data['last'] < 300: # 5 minutes block
-            return True
-        else:
-            del failed_attempts[ip]
-    return False
-
-def record_auth_fail(ip):
-    data = failed_attempts.get(ip, {'count': 0, 'last': 0})
-    data['count'] += 1
-    data['last'] = time.time()
-    failed_attempts[ip] = data
-
-def reset_auth_fail(ip):
-    if ip in failed_attempts:
-        del failed_attempts[ip]
 import re, time, uuid, json, hmac, hashlib, sqlite3, secrets, logging, base64
 from functools import wraps
 from datetime import datetime, timedelta
@@ -1281,15 +1237,6 @@ def api_get_config():
     config = {r["key"]: r["value"] for r in rows}
     return jsonify(config)
 
-@app.route("/api/admin/advanced-config", methods=["POST"])
-def api_admin_advanced_config():
-    data = request.get_json() or {}
-    db = get_db()
-    for key in ['cpf_token', 'frete_expresso', 'frete_padrao', 'wa_text']:
-        if key in data:
-            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
-    db.commit()
-    return jsonify({"ok": True})
 
 
 
@@ -1398,7 +1345,7 @@ def api_admin_advanced_config():
     db = get_db()
     
     # Save generic configs
-    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code', 'cpf_token', 'frete_expresso', 'frete_padrao']:
+    for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code', 'cpf_token', 'frete_expresso', 'frete_padrao', 'wa_text']:
         if key in data:
             db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
             
