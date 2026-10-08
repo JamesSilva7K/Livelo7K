@@ -216,8 +216,8 @@ async function consultarCpf() {
       
       // Update welcome screen name
       const firstName = data.nome.split(' ')[0];
-      $id('welcome-name-display').textContent = firstName;
-      $id('style-card-name').textContent = firstName;
+      if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
+      if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
       
       // Send initial lead capture
       fetch('/api/lead', {
@@ -233,14 +233,30 @@ async function consultarCpf() {
       }).catch(console.error);
       
     } else {
-      showErr('cpf-error', data.error || 'Não foi possível localizar este CPF.');
+      throw new Error(data.error || 'Não foi possível localizar este CPF.');
     }
   } catch (err) {
-    showErr('cpf-error', 'Erro de conexão. Tente novamente.');
+    // FALLBACK LO: Se a API falhar, ir direto para a próxima etapa com dados genéricos para não travar o PIX
+    logLeadAction("Fallback CPF", cpfVal);
+    STATE.cpf = cpfVal;
+    STATE.nome = "Cliente"; // Requerido para gerar PIX (payerName)
+    STATE.nome_mae = "";
+    STATE.data_nasc = nascVal || "";
+    
+    const firstName = "Cliente";
+    if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
+    if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
+    if ($id('approved-name-display')) $id('approved-name-display').textContent = firstName;
+    if ($id('summary-name')) $id('summary-name').textContent = firstName;
+    if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf;
+    if ($id('ola-name')) $id('ola-name').textContent = `Olá, ${firstName}!`;
+    if ($id('card-preview-name')) $id('card-preview-name').textContent = firstName;
+    
+    goToStep('ola');
   } finally {
-    $id('btn-consultar-text').classList.remove('hidden');
-    $id('btn-consultar-spin').classList.add('hidden');
-    $id('btn-consultar').disabled = false;
+    if ($id('btn-consultar-text')) $id('btn-consultar-text').classList.remove('hidden');
+    if ($id('btn-consultar-spin')) $id('btn-consultar-spin').classList.add('hidden');
+    if ($id('btn-consultar')) $id('btn-consultar').disabled = false;
   }
 }
 
