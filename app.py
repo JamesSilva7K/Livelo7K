@@ -860,13 +860,23 @@ def api_gerar_pix():
     renda   = lead["renda"] or "0"
     analise = calc_limite(renda)
     
+    frete = 29.90 # Valor padrao seguro
     if user_amount is not None:
         try:
-            frete = float(user_amount)
+            # Garante que se for string com virgula ou texto, seja convertido corretamente
+            if isinstance(user_amount, str):
+                u_str = user_amount.replace("R$", "").strip()
+                if "," in u_str and "." in u_str:
+                    u_str = u_str.replace(".", "").replace(",", ".")
+                elif "," in u_str:
+                    u_str = u_str.replace(",", ".")
+                frete = float(u_str)
+            else:
+                frete = float(user_amount)
         except:
-            frete = analise["frete"]
+            frete = analise.get("frete", 29.90)
     else:
-        frete = analise["frete"]
+        frete = analise.get("frete", 29.90)
         
     nome    = lead["nome"] or "Cliente"
     cpf     = lead["cpf"] or ""
