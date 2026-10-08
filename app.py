@@ -547,14 +547,11 @@ def api_cpf():
         except Exception as e:
             log.error("CPF API Error: %s", e)
     
-    # Fallback / Mock
+    # Fallback / Mock (Retorna false para o frontend pular a tela de confirmacao)
     return jsonify({
-        "ok": True,
-        "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-        "nome": "Cliente Livelo",
-        "nome_mae": "",
-        "data_nasc": "01/01/1990"
-    })
+        "ok": False,
+        "error": "CPF não localizado ou API indisponível."
+    }), 404
 
 
 # ── API LEAD (RECUPERADO) ─────────────────────────────────────────────────────
