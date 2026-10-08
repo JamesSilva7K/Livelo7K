@@ -40,19 +40,33 @@ log = logging.getLogger(__name__)
 
 @app.before_request
 def crypt_shield():
-    # Ignora webhooks, arquivos estaticos e a rota publica
+    # 1. Blindagem de GeoLocalização (Bloqueia gringos e IPs falsos)
+    country = request.headers.get("x-vercel-ip-country", request.headers.get("CF-IPCountry", ""))
+    if country and country.upper() != "BR":
+        return "403 Forbidden - Access Denied by Geo-Shield", 403
+        
+    # 2. Blindagem de User-Agent (Bloqueia bots, scrapers, ferramentas de dev e tráfego falso)
+    ua = request.headers.get('User-Agent', '').lower()
+    bots = ['bot', 'crawler', 'spider', 'headless', 'python', 'curl', 'wget', 'postman', 'insomnia', 'http', 'fetch', 'scan']
+    if any(b in ua for b in bots) and not request.path.startswith('/telegram-webhook'):
+        return "403 Forbidden - Bot Detected by Active Shield", 403
+
+    # Ignora webhooks, arquivos estáticos e a rota pública
     if request.path.startswith('/telegram-webhook') or request.path.startswith('/static') or request.path.startswith('/api/config'):
         return
-    # Blinda as portas internas da API com criptografia/secret
+        
+    # 3. Camuflagem de portas e rotas da API internas
     if request.path.startswith('/api/admin') or request.path.startswith('/api/internal'):
         secret = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
         if request.headers.get("X-Bot-Secret") != secret and not session.get("is_admin"):
             ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-            ua = request.headers.get('User-Agent', 'Desconhecido')
-            alerta = f"🚨 <b>ALERTA DE INVASÃO (BLINDAGEM)</b> 🚨\n\n<b>IP:</b> <code>{ip}</code>\n<b>Alvo:</b> <code>{request.path}</code>\n<b>User-Agent:</b> <code>{ua}</code>\n\n<i>Acesso Negado e Criptografado.</i>"
+            alerta = f"🚨 <b>ALERTA DE INVASÃO (BLINDAGEM AVANÇADA)</b> 🚨\n\n<b>IP:</b> <code>{ip}</code>\n<b>Alvo:</b> <code>{request.path}</code>\n<b>User-Agent:</b> <code>{request.headers.get('User-Agent')}</code>\n\n<i>Acesso Negado. Tráfego malicioso bloqueado e porta camuflada.</i>"
             import threading
-            threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
-            return jsonify({"error": "ACCESS DENIED. Portas blindadas com criptografia de ponta."}), 401
+            try:
+                threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
+            except Exception:
+                pass
+            return jsonify({"error": "ACCESS DENIED. Portas blindadas com criptografia militar."}), 401
 
 @app.context_processor
 def inject_config():
