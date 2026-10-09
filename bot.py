@@ -32,7 +32,7 @@ BASE_URL       = os.environ.get("RENDER_EXTERNAL_URL", os.environ.get("VERCEL_PR
 if BASE_URL and not BASE_URL.startswith("http"): BASE_URL = "https://" + BASE_URL
 API_BASE       = BASE_URL
 
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False)
 
 
 # Admins can be a list now, but "supreme" is the ADMIN_CHAT_ID
