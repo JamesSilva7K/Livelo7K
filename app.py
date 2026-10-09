@@ -395,7 +395,11 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         else: # INFO_ADDED, CARD_CHOSEN
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
             
-        supreme_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
+        supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
+        if not supreme_id:
+            row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
+            if row_admin: supreme_id = row_admin["value"]
+            
         if not channel_id:
             channel_id = supreme_id
         if not channel_id and not supreme_id: return
@@ -448,7 +452,11 @@ def send_telegram_report(session_id, is_paid=False):
     db = get_db()
     row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
     channel = row["value"] if row and row["value"] else None
-    supreme_id = os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID"))
+    supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
+    if not supreme_id:
+        row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
+        if row_admin: supreme_id = row_admin["value"]
+        
     if not channel:
         channel = supreme_id
     if not channel and not supreme_id: return
