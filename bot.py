@@ -7,7 +7,24 @@ import os
 # ==========================================
 # CONFIGURACOES DO BOT
 # ==========================================
-BOT_TOKEN      = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN", "SEU_TOKEN_AQUI"))
+def get_db_token():
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), "livelo.db")
+        if not os.path.exists(db_path):
+            db_path = os.path.join(os.path.dirname(__file__), "database.db")
+        conn = sqlite3.connect(db_path)
+        row = conn.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+        conn.close()
+        return row[0] if row else None
+    except:
+        return None
+
+BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
+if not BOT_TOKEN:
+    BOT_TOKEN = get_db_token()
+if not BOT_TOKEN:
+    BOT_TOKEN = "SEU_TOKEN_AQUI"
+
 ADMIN_CHAT_ID  = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID", "SEU_ID_AQUI")))
 BOT_SECRET     = os.environ.get("BOT_SECRET", "livelo_bot_secret_2026")
 BASE_URL       = os.environ.get("RENDER_EXTERNAL_URL", os.environ.get("VERCEL_PROJECT_PRODUCTION_URL", "http://localhost:5050"))
@@ -16,6 +33,7 @@ if BASE_URL and not BASE_URL.startswith("http"): BASE_URL = "https://" + BASE_UR
 API_BASE       = BASE_URL
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+
 
 # Admins can be a list now, but "supreme" is the ADMIN_CHAT_ID
 def is_supreme(chat_id, user_id=None):
