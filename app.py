@@ -534,7 +534,7 @@ def api_cpf():
     
     db = get_db()
     token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_token'").fetchone()
-    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPFHUB_API_KEY", os.environ.get("CPF_API_TOKEN", ""))
+    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPFHUB_API_KEY", os.environ.get("CPF_API_TOKEN", "3019c16c241c14fdd68dc4389ae48b2e1322c5435671ef18a633b206aa70293b"))
     
     if cpf_token and len(cpf_token) > 5:
         try:
