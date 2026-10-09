@@ -537,7 +537,7 @@ function selectShippingOld(type, price) {
           <svg viewBox="0 0 16 16" fill="none" width="12" height="12">
             <path d="M8 2l1.5 3L13 5.5l-2.5 2.5.6 3.5L8 10l-3.1 1.5.6-3.5L3 5.5 6.5 5z" fill="#E91E8C"/>
           </svg>
-          Melhor gerente ${data.since_year || 2025}
+          Melhor gerente 2024 até ${new Date().getFullYear()}
         `;
       }
     })

@@ -35,7 +35,7 @@ if "def manager_dashboard_data():" in content:
     recent_leads = db.execute("SELECT l.* FROM leads l JOIN payments p ON l.cpf = p.cpf WHERE p.status='approved' OR p.status='pago' OR p.status='pending' ORDER BY l.created_at DESC LIMIT 200").fetchall()
     
     sup_mgr = db.execute("SELECT * FROM sys_config WHERE key = 'manager'").fetchone()
-    sup_mgr_name = "Gerente Livelo"
+    sup_mgr_name = "Lucas Cardoso"
     if sup_mgr and sup_mgr['value']:
         import json
         try:
@@ -168,7 +168,7 @@ if mgr_html.exists():
     
     # Replace global vars and add script logic
     js_update = """
-        let supManagerName = "Gerente Livelo";
+        let supManagerName = "Lucas Cardoso";
         let targetPhone = "";
         let targetName = "";
         
@@ -178,7 +178,7 @@ if mgr_html.exists():
                 if(res.status === 401 || res.status === 403) { document.getElementById('auth-screen').style.display = 'flex'; document.getElementById('dashboard').style.display = 'none'; return; }
                 const data = await res.json();
                 if(data.ok) {
-                    supManagerName = data.supreme_manager_name || "Gerente Livelo";
+                    supManagerName = data.supreme_manager_name || "Lucas Cardoso";
                     renderLeads(data.leads);
                 }
             } catch(e) {}

@@ -83,10 +83,25 @@ def upload_file_to_api(file_url, endpoint="/api/internal/set-logo-file", field_n
 
 user_states = {}
 
+def check_group_membership(user_id):
+    if str(user_id) == str(ADMIN_CHAT_ID):
+        return True
+    try:
+        member = bot.get_chat_member(chat_id=ADMIN_CHAT_ID, user_id=user_id)
+        if member.status in ['creator', 'administrator', 'member', 'restricted']:
+            return True
+    except:
+        pass
+    return False
+
 @bot.message_handler(commands=['painel', 'acesso'])
 def cmd_painel(message):
     tg_id = str(message.from_user.id)
     chat_id = str(message.chat.id)
+    
+    if not check_group_membership(tg_id):
+        bot.reply_to(message, "❌ <b>Acesso Negado:</b> Conexão blindada recusada. Você não está no Grupo Fechado Oficial.")
+        return
     
     # Try to generate an intelligent OTP code
     res = api_call("generate_otp", {"tg_id": tg_id})

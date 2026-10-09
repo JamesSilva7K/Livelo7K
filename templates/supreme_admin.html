@@ -909,6 +909,12 @@
                 if((await res.json()).ok) { document.getElementById('frete-status').innerText = "✅ Fretes Atualizados!"; setTimeout(()=>document.getElementById('frete-status').innerText="", 3000); }
             } catch(e) {}
         }
+        // Auto-sincronização em tempo real
+        setInterval(() => {
+            if (document.getElementById('dashboard').style.display === 'flex') {
+                loadDashboard();
+            }
+        }, 8000);
     </script>
 </body>
 </html>

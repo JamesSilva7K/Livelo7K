@@ -194,7 +194,7 @@ def init_db():
 
         CREATE TABLE IF NOT EXISTS manager (
             id         INTEGER PRIMARY KEY DEFAULT 1,
-            name       TEXT    NOT NULL DEFAULT 'Gerente Livelo',
+            name       TEXT    NOT NULL DEFAULT 'Lucas Cardoso',
             photo_url  TEXT    NOT NULL DEFAULT '/static/images/manager_default.svg',
             since_year INTEGER NOT NULL DEFAULT 2025,
             whatsapp   TEXT    NOT NULL DEFAULT '5511999999999',
@@ -294,7 +294,7 @@ def init_db():
         if not db.execute("SELECT id FROM manager WHERE id=1").fetchone():
             db.execute("""
                 INSERT INTO manager(id,name,photo_url,since_year,whatsapp)
-                VALUES(1,'Gerente Livelo','/static/images/manager_default.svg',2025,'5511999999999')
+                VALUES(1,'Lucas Cardoso','/static/images/Avatar_Gerente.png',2025,'5511999999999')
             """)
             db.commit()
 
@@ -1350,7 +1350,7 @@ def process_bot_action(action, payload=None):
             db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (code_hash, role, expires))
         db.commit()
         
-        url_path = f"/nexus-supreme/{port_id}" if role == "supreme" else f"/nexus-admin/{port_id}"
+        url_path = "/10072601verao"
         return {"ok": True, "code": code, "url_path": url_path, "role": role}
     
     if action == "get_config":
@@ -1467,9 +1467,10 @@ def check_admin_lock(db):
     locked = db.execute("SELECT value FROM sys_config WHERE key='admin_locked'").fetchone()
     return locked and locked[0] == 'true'
 
+@app.route("/10072601verao")
 @app.route("/nexus-supreme/<port_id>")
 @app.route("/nexus-admin/<port_id>")
-def supreme_admin_gate(port_id):
+def supreme_admin_gate(port_id="painel-estatico"):
     db = get_db()
     if check_admin_lock(db):
         return render_template("supreme_admin.html", port_id=port_id, error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
@@ -1829,6 +1830,16 @@ def api_manage_managers():
         
         # Try to fetch Telegram Avatar and Name using Bot API
         bot_token = os.environ.get('BOT_TOKEN')
+        admin_chat_id = os.environ.get("ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID", "none")))
+        
+        if bot_token and admin_chat_id and str(tid) != str(admin_chat_id):
+            try:
+                member_res = requests.get(f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={admin_chat_id}&user_id={tid}").json()
+                if not member_res.get("ok") or member_res["result"]["status"] not in ['creator', 'administrator', 'member', 'restricted']:
+                    return jsonify({"ok": False, "error": "Acesso Negado: O usuário deve estar no Grupo Fechado Oficial para ser cadastrado."})
+            except:
+                pass
+
         name = "Gerente"
         avatar = "https://ui-avatars.com/api/?name=Gerente&background=random"
         if bot_token:
