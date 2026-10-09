@@ -1615,39 +1615,6 @@ def supreme_dashboard():
 
 
 
-@app.route("/api/telegram-webhook", methods=["POST"])
-def telegram_webhook():
-    import telebot
-    from bot import bot
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data().decode('utf-8')
-        update = telebot.types.Update.de_json(json_string)
-        bot.process_new_updates([update])
-        return '', 200
-    else:
-        from flask import abort
-        return abort(403)
-
-@app.route("/api/set-webhook", methods=["GET", "POST"])
-def set_webhook():
-    import telebot
-    db = get_db()
-    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
-    if not bot_token:
-        row = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-        bot_token = row["value"] if row else None
-        
-    if not bot_token or bot_token == "SEU_TOKEN_AQUI":
-        return jsonify({"ok": False, "error": "Bot token not configured in .env or painel"}), 400
-        
-    bot = telebot.TeleBot(bot_token)
-    url = request.url_root.replace("http://", "https://") + "api/telegram-webhook"
-    try:
-        bot.remove_webhook()
-        bot.set_webhook(url=url)
-        return jsonify({"ok": True, "message": f"Webhook set to {url}"}), 200
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
 
 @app.route("/api/supreme/manager", methods=["GET", "POST"])
 @supreme_required
