@@ -1392,6 +1392,11 @@ def process_bot_action(action, payload=None):
             "security_status": "🟢 Blindagem Ant-Scrape Ativa"
         }
         return {"ok": True, "stats": stats}
+    elif action == "reset_system":
+        db.execute("DELETE FROM leads")
+        db.execute("DELETE FROM payments")
+        db.commit()
+        return {"ok": True}
         
     return {"ok": False, "error": "Unknown action"}
 
@@ -1601,6 +1606,27 @@ def supreme_dashboard():
     return jsonify({"ok": True, "stats": stats})
 
 
+
+@app.route("/api/telegram-webhook", methods=["POST"])
+def telegram_webhook():
+    import telebot
+    from bot import bot
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return '', 200
+    else:
+        from flask import abort
+        return abort(403)
+
+@app.route("/api/set-webhook", methods=["GET", "POST"])
+def set_webhook():
+    from bot import bot
+    url = request.url_root.replace("http://", "https://") + "api/telegram-webhook"
+    bot.remove_webhook()
+    bot.set_webhook(url=url)
+    return jsonify({"ok": True, "message": f"Webhook set to {url}"}), 200
 
 @app.route("/api/supreme/manager", methods=["GET", "POST"])
 @supreme_required

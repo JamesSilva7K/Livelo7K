@@ -109,6 +109,37 @@ def cmd_liberar(message):
     else:
         bot.reply_to(message, f"❌ Falha ao liberar sistema: {res.get('error', 'Erro Desconhecido')}")
 
+@bot.message_handler(commands=['reiniciar', 'resetar'])
+def cmd_reiniciar(message):
+    if not is_supreme(message.chat.id, message.from_user.id):
+        bot.reply_to(message, "Acesso negado. Apenas o Administrador Supremo pode reiniciar o banco de dados.")
+        return
+    res = api_call("reset_system")
+    if res.get("ok"):
+        bot.reply_to(message, "⚠️ <b>SISTEMA REINICIADO COM SUCESSO!</b>\nTodos os Leads e Pagamentos antigos foram apagados. O sistema está 100% limpo e pronto para rodar 24/7.")
+    else:
+        bot.reply_to(message, f"❌ Erro ao reiniciar: {res.get('error', 'Desconhecido')}")
+
+@bot.message_handler(commands=['backup', 'salvar'])
+def cmd_backup(message):
+    if not is_supreme(message.chat.id, message.from_user.id):
+        return
+    bot.reply_to(message, "⏳ Preparando backup de segurança do sistema...")
+    try:
+        # Pega o arquivo do banco de dados localmente (caso esteja na mesma pasta)
+        db_path = os.path.join(os.path.dirname(__file__), "livelo.db")
+        if not os.path.exists(db_path):
+            db_path = os.path.join(os.path.dirname(__file__), "database.db")
+        
+        if os.path.exists(db_path):
+            with open(db_path, "rb") as f:
+                bot.send_document(message.chat.id, f, caption="🛡️ <b>BACKUP DO COMANDO SUPREMO</b> 🛡️\n\nAqui está o seu banco de dados completo. Guarde com segurança para não perder nenhuma informação!")
+        else:
+            bot.reply_to(message, "❌ Erro: O arquivo do banco de dados local não foi encontrado.")
+    except Exception as e:
+        bot.reply_to(message, f"❌ Falha ao gerar backup: {str(e)}")
+
+
 # --- COMANDOS AVANÇADOS DE REDE ---
 @bot.message_handler(commands=['id', 'info'])
 def cmd_info(message):
