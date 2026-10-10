@@ -1545,7 +1545,7 @@ def process_bot_action(action, payload=None):
             db.execute("INSERT INTO otp_tokens (token_hash, role, expires_at) VALUES (?, ?, ?)", (code_hash, role, expires))
         db.commit()
         
-        url_path = "/10072601verao"
+        url_path = f"/nexus-gate-{port_id}"
         return {"ok": True, "code": code, "url_path": url_path, "role": role}
     
     if action == "get_config":
@@ -1676,6 +1676,14 @@ def check_admin_lock(db):
     locked = db.execute("SELECT value FROM sys_config WHERE key='admin_locked'").fetchone()
     return locked and locked[0] == 'true'
 
+@app.route("/nexus-gate-<port_id>")
+def nexus_gate(port_id):
+    """Porta de entrada dinâmica para gerentes usando OTP."""
+    db = get_db()
+    if check_admin_lock(db):
+        return render_template("tg_webapp.html", error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
+    return render_template("nexus_login.html", port_id=port_id)
+
 @app.route("/admin")
 @app.route("/tg-nexus")
 def tg_nexus():
@@ -1722,12 +1730,12 @@ def supreme_auth():
         
         if role == 'supreme':
             resp = jsonify({"ok": True})
-            resp.set_cookie("supreme_token", get_supreme_hash(), httponly=True, samesite="Lax", max_age=86400)
+            resp.set_cookie("supreme_token", get_supreme_hash(), httponly=True, samesite="Lax", max_age=31536000)
             return resp
         elif role.startswith('manager_'):
             mgr_id = role.split('_')[1]
             resp = jsonify({"ok": True, "redirect": "/manager-panel"})
-            resp.set_cookie("manager_token", mgr_id, httponly=True, samesite="Lax", max_age=86400)
+            resp.set_cookie("manager_token", mgr_id, httponly=True, samesite="Lax", max_age=31536000)
             return resp
 
     if pin_hash == get_supreme_hash():
@@ -1735,8 +1743,8 @@ def supreme_auth():
         db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('admin_fails', '0')")
         db.commit()
         resp = jsonify({"ok": True})
-        # Set Secure Cookie
-        resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=86400)
+        # Set Secure Cookie (1 year)
+        resp.set_cookie("supreme_token", pin_hash, httponly=True, samesite="Lax", max_age=31536000)
         return resp
     else:
         record_auth_fail(ip)
