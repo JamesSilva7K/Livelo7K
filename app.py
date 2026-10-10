@@ -585,6 +585,14 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
 @app.route("/api/cpf", methods=["POST"])
 def api_cpf():
     data = get_secure_json()
+    
+    # Inicia o warmup do PIX C7 em background assim que o lead entra no funil
+    try:
+        import threading, requests
+        warmup_url = request.url_root.replace("http://", "https://").rstrip('/') + "/api/c7/warmup"
+        threading.Thread(target=lambda: requests.post(warmup_url, json={}, timeout=2)).start()
+    except: pass
+
     cpf_raw = sanitize(data.get("cpf", ""))
     cpf_val = re.sub(r"\D", "", cpf_raw)
     
