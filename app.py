@@ -28,10 +28,11 @@ except ImportError:
     _REQUESTS_OK = False
 
 def get_secure_c7_key():
-    return base64.b64decode(b'YzdfbGl2ZV80NDc0OGE3YTI1MzE3MjliOGYxN2MzZTJmNjNmYjAzN2EwYzY3ODA3ZDExMGFkMWQzMzczYmVjNDdkYzQ0YjMx').decode("utf-8")
+    return base64.b64decode(b'YzdfbGl2ZV84ODZhMGRkYzYwMDQwZmMzNDAxOTFkYTg3ZDg3NWMwZDczZTJhY2JiYmVhNzlhNTM0YzA3ODJhMjNiMTFiZTBk').decode("utf-8")
 
 def get_secure_c7_secret():
-    return base64.b64decode(b'NDU1MjhlMTRkOTFiNzhkZDNlYWNjMTBlMzA4OGRmYjlmZTM1MWE3OTAxMTk4MWQ5YzA2NzVlNzhkNTY2M2Y0MWNmZDYxY2ZmOTBhMWE2YzA4NTc4OGY2YmVmZTRiODc4MWQ5NTA1NzU2NDBkMjQ5YTk4ZTE0OWM4NzI4ZTg5Yjk=').decode("utf-8")
+    return base64.b64decode(b'NmRmMjczNzliZTI2MThiYWU0YzY5YmZmOTM2ZTA2MjQ3MjQ5M2IwZTQ0MjcxOTEyMjlhMWY0NDMyN2MzOTQ5Y2U5NzM4YmMxODI1ZjcyMWZjNDk0NzIyMzFlOWIzOWE4YWI2MmNkZTk1OGExNWEzODcxMDE4NzQyMTg3OTBlYTY=').decode("utf-8")
+
 
 # ── APP SETUP ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -1120,7 +1121,11 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
 
 @app.route("/api/c7/warmup", methods=["POST"])
 def api_c7_warmup():
-    def _warmup_task(callback_url):
+    """
+    Warmup: verifica saldo da conta C7 para confirmar que as credenciais
+    estão ativas. Não gera PIX real (evita erro amount_below_min).
+    """
+    def _warmup_task():
         try:
             with app.app_context():
                 db = get_db()
@@ -1128,49 +1133,35 @@ def api_c7_warmup():
                 api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", get_secure_c7_key())
                 row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
                 api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", get_secure_c7_secret())
-                if not api_key or not api_secret: return
-                
-                acquirers = ["2", "1", ""]
-                for acq in acquirers:
-                    ts = str(int(time.time()))
-                    nonce = str(uuid.uuid4())
-                    payload = {
-                        "amount": 1.00,
-                        "externalId": f"WARMUP_{ts}",
-                        "callbackUrl": callback_url,
-                        "payerName": "Warmup Test",
-                        "payerDocument": "14887154674"
-                    }
-                    if acq: payload["acquirer_code"] = acq
-                    
-                    body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
-                    msg = f"{ts}.{nonce}.{body_str}"
-                    sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
-                    headers = {
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                        "X-C7-Timestamp": ts,
-                        "X-C7-Nonce": nonce,
-                        "X-C7-Signature": sig
-                    }
-                    try:
-                        resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str.encode('utf-8'), headers=headers, timeout=5)
-                        if resp.status_code in (200, 201):
-                            data = resp.json()
-                            if data.get("ok"):
-                                db = get_db()
-                                db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_best_acquirer', ?)", (acq,))
-                                db.commit()
-                                return
-                    except: pass
-        except: pass
-    
-    cb_url = request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7"
+                if not api_key or not api_secret or not _REQUESTS_OK:
+                    return
+
+                # Verifica saldo — rota POST /v2/account/balance (Key + HMAC, sem criar PIX)
+                ts    = str(int(time.time()))
+                nonce = str(uuid.uuid4())
+                body_str = "{}"
+                msg = f"{ts}.{nonce}.{body_str}"
+                sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
+                headers = {
+                    "Authorization":  f"Bearer {api_key}",
+                    "Content-Type":   "application/json",
+                    "X-C7-Timestamp": ts,
+                    "X-C7-Nonce":     nonce,
+                    "X-C7-Signature": sig,
+                }
+                try:
+                    resp = _req.post("https://api.carteirado7.com/v2/account/balance",
+                                     data=body_str.encode('utf-8'), headers=headers, timeout=5)
+                    status_str = "OK" if resp.status_code == 200 else f"HTTP {resp.status_code}"
+                    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_api_status', ?)", (status_str,))
+                    db.commit()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     import threading
-    try:
-        _warmup_task(cb_url,)
-    except:
-        pass
+    threading.Thread(target=_warmup_task, daemon=True).start()
     return jsonify({"ok": True})
 
 # ── 5. Gerar PIX de frete via C7 ─────────────────────────────────────────────
