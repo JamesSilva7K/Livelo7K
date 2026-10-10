@@ -900,11 +900,16 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                         data = resp.json()
                         if data.get("ok") and "payment" in data:
                             pmt = data["payment"]
+                            pix = pmt.get("pixCopiaECola", "")
+                            qr = pmt.get("qrCodeBase64", "")
+                            if not qr and pix:
+                                qr = generate_qr_b64(pix)
+                                
                             return {
                                 "ok": True,
                                 "c7_id": pmt.get("id", ""),
-                                "pix_code": pmt.get("pixCopiaECola", ""),
-                                "qr_code_url": pmt.get("qrCodeBase64", ""),
+                                "pix_code": pix,
+                                "qr_code_url": qr,
                                 "expires_at": pmt.get("expiresAt", "")
                             }
                     else:
