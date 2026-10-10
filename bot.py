@@ -1,5 +1,5 @@
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 import requests
 import sqlite3
 import os
@@ -123,12 +123,16 @@ def cmd_painel(message):
         role_name = "SUPREMO" if res.get("role") == "supreme" else "GERENTE"
         txt = (
             f"🔐 <b>ACESSO AO PAINEL BLINDADO ({role_name})</b>\n\n"
-            f"🔗 <b>URL Única:</b> {BASE_URL}{url_path}\n"
-            f"🔑 <b>PIN Dinâmico (OTP):</b> <code>{res['code']}</code>\n\n"
-            "<i>Válido por 5 minutos. Uso único.</i>\n"
-            "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
+            f"🔗 <b>Acesso via Senha OTP:</b>\n{BASE_URL}{url_path}\n"
+            f"🔑 <b>PIN Dinâmico:</b> <code>{res['code']}</code>\n"
+            "<i>(Válido por 5 min. Uso único)</i>\n\n"
+            "⚡ <b>Ou clique abaixo para entrar sem senha usando sua conta Telegram:</b>"
         )
-        bot.reply_to(message, txt)
+        markup = InlineKeyboardMarkup()
+        btn = InlineKeyboardButton("📱 Acessar Painel Direto (Auto-Login)", web_app=WebAppInfo(url=f"{BASE_URL}/admin"))
+        markup.add(btn)
+        
+        bot.reply_to(message, txt, reply_markup=markup)
     else:
         # Fallback if the user is not authorized or an error occurs
         if is_supreme(chat_id, tg_id):
@@ -137,9 +141,13 @@ def cmd_painel(message):
                 "🔐 <b>ACESSO AO PAINEL SUPREMO (Fallback)</b>\n\n"
                 f"🔗 <b>URL:</b> {BASE_URL}/nexus-supreme/fallback\n"
                 f"🔑 <b>PIN de Acesso:</b> <code>{pin}</code>\n\n"
-                "<i>Cuidado: Se errar o PIN 3 vezes o sistema será bloqueado por segurança!</i>"
+                "⚡ <b>Ou tente o acesso direto pelo Telegram:</b>"
             )
-            bot.reply_to(message, txt)
+            markup = InlineKeyboardMarkup()
+            btn = InlineKeyboardButton("📱 Acessar Painel Direto", web_app=WebAppInfo(url=f"{BASE_URL}/admin"))
+            markup.add(btn)
+            
+            bot.reply_to(message, txt, reply_markup=markup)
         else:
             bot.reply_to(message, f"❌ Acesso Negado: {res.get('error', 'Sem permissão.')}")
 
