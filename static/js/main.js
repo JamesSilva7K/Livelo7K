@@ -389,6 +389,21 @@ async function submitBilling() {
 function startAnalysis() {
   goToStep('analysis');
   
+  // Realiza a chamada em background para obter o limite calculado com base nas respostas
+  fetch('/api/lead', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(STATE)
+  }).then(res => res.json()).then(data => {
+    if (data.ok && data.limite) {
+      STATE.limite = data.limite;
+      if ($id('approved-limit')) {
+        $id('approved-limit').innerHTML = `<span class="dynamic-limit-full">${parseFloat(data.limite).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>`;
+      }
+      if ($id('done-limite')) $id('done-limite').textContent = parseFloat(data.limite).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+    }
+  }).catch(console.error);
+
   let pct = 0;
   const pctEl = $id('analysis-pct');
   const circleEl = $id('analysis-progress-circle');
@@ -492,8 +507,24 @@ function submitCardStyle() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ session_id: STATE.sessionId, color: STATE.color, style: STATE.style })
   }).catch(console.error);
-  // Vai para tela de sucesso
-  goToStep('manager');
+
+  // Carrega os dados do gerente e avança
+  fetch('/api/manager')
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        if ($id('manager-name')) $id('manager-name').textContent = data.name;
+        if ($id('manager-photo-div') && data.photo_url) {
+            $id('manager-photo-div').style.backgroundImage = `url('${data.photo_url}')`;
+        }
+      }
+    })
+    .catch(console.error)
+    .finally(() => {
+      // Vai para tela do gerente
+      goToStep('manager');
+    });
+
   const leadName = STATE.nome_completo || STATE.nome || 'SEU NOME';
   var n1 = document.getElementById('sum-nome'); if(n1) n1.innerText = leadName; 
   var n2 = document.getElementById('pix-nome'); if(n2) n2.innerText = leadName; 
