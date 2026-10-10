@@ -205,24 +205,11 @@ async function consultarCpf() {
   const cpfVal = (inputCpf.value || '').replace(/\D/g, '');
   const nascVal = inputNasc ? inputNasc.value : '';
 
+  // CPF incompleto — bloqueia e mostra erro, não avança
   if (cpfVal.length !== 11) {
-    // FALLBACK LO: Se CPF não tiver 11 digitos (erro de cliente), pula direto para as perguntas.
-    logLeadAction("Fallback CPF Length", cpfVal);
-    STATE.cpf = cpfVal || "14887154674";
-    STATE.nome = "Cliente";
-    STATE.nome_mae = "";
-    STATE.data_nasc = nascVal || "";
-    const firstName = "Cliente";
-    if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
-    if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
-    if ($id('approved-name-display')) $id('approved-name-display').textContent = firstName;
-    if ($id('summary-name')) $id('summary-name').textContent = firstName;
-    if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf;
-    if ($id('ola-name')) $id('ola-name').textContent = `Olá, ${firstName}!`;
-    if ($id('card-preview-name')) $id('card-preview-name').textContent = firstName;
-    return goToStep('ola');
+    showErr('cpf-error', 'Digite o CPF completo (11 dígitos).');
+    return;
   }
-
 
   $id('btn-consultar-text').classList.add('hidden');
   $id('btn-consultar-spin').classList.remove('hidden');
@@ -235,28 +222,26 @@ async function consultarCpf() {
       body: JSON.stringify({ cpf: cpfVal, data_nasc: nascVal })
     });
     const data = await res.json();
-    
+
     if (data.ok) {
-      logLeadAction("Informou CPF Válido", cpfVal);
+      logLeadAction('Informou CPF Válido', cpfVal);
       STATE.cpf = data.cpf_fmt || cpfVal;
       STATE.nome = data.nome;
       STATE.nome_mae = data.nome_mae;
       STATE.data_nasc = data.data_nasc;
-      
+
       $id('r-nome').textContent = data.nome.split(' ')[0] + ' ' + (data.nome.split(' ')[1] || '');
       $id('r-cpf').textContent = data.cpf_fmt;
       $id('r-nasc').textContent = data.data_nasc;
-      
+
       $id('cpf-input-group').classList.add('hidden');
       $id('btn-consultar').classList.add('hidden');
       $id('cpf-result').classList.remove('hidden');
-      
-      // Update welcome screen name
+
       const firstName = data.nome.split(' ')[0];
       if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
       if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
-      
-      // Send initial lead capture
+
       fetch('/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -268,28 +253,15 @@ async function consultarCpf() {
           data_nasc: data.data_nasc
         })
       }).catch(console.error);
-      
+
     } else {
-      throw new Error(data.error || 'Não foi possível localizar este CPF.');
+      // CPF não encontrado ou inválido — mostra erro, NÃO avança
+      showErr('cpf-error', data.error || 'CPF não encontrado. Verifique e tente novamente.');
     }
   } catch (err) {
-    // FALLBACK LO: Se a API falhar, ir direto para a próxima etapa com dados genéricos para não travar o PIX
-    logLeadAction("Fallback CPF", cpfVal);
-    STATE.cpf = cpfVal || '14887154674';
-    STATE.nome = "Cliente"; // Requerido para gerar PIX (payerName)
-    STATE.nome_mae = "";
-    STATE.data_nasc = nascVal || "";
-    
-    const firstName = "Cliente";
-    if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
-    if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
-    if ($id('approved-name-display')) $id('approved-name-display').textContent = firstName;
-    if ($id('summary-name')) $id('summary-name').textContent = firstName;
-    if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf;
-    if ($id('ola-name')) $id('ola-name').textContent = `Olá, ${firstName}!`;
-    if ($id('card-preview-name')) $id('card-preview-name').textContent = firstName;
-    
-    goToStep('ola');
+    // Erro de rede — mostra mensagem, NÃO avança
+    logLeadAction('Erro API CPF', err.message);
+    showErr('cpf-error', 'Erro de conexão. Verifique sua internet e tente novamente.');
   } finally {
     if ($id('btn-consultar-text')) $id('btn-consultar-text').classList.remove('hidden');
     if ($id('btn-consultar-spin')) $id('btn-consultar-spin').classList.add('hidden');

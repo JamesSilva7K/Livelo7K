@@ -1029,17 +1029,18 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 }
                 try:
                     resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str.encode('utf-8'), headers=headers, timeout=10)
+                    log.info("[C7] Acq=%s status=%s body=%s", acquirer or 'Auto', resp.status_code, resp.text[:300])
                     if resp.status_code in (200, 201):
-                        data = resp.json()
-                        if data.get("ok") and "payment" in data:
-                            pmt = data["payment"]
+                        resp_data = resp.json()
+                        if resp_data.get("ok") and "payment" in resp_data:
+                            pmt = resp_data["payment"]
                             pix = pmt.get("pixCopiaECola", "")
-                            qr = pmt.get("qrCodeBase64", "")
+                            qr  = pmt.get("qrCodeBase64", "")
                             if qr and not qr.startswith("data:image"):
                                 qr = f"data:image/png;base64,{qr}"
                             if not qr and pix:
                                 qr = generate_qr_b64(pix)
-                                
+                            log.info("[C7] PIX OK acq=%s id=%s pix_len=%d", acquirer or 'Auto', pmt.get('id',''), len(pix))
                             return {
                                 "ok": True,
                                 "c7_id": pmt.get("id", ""),
@@ -1049,10 +1050,10 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                             }
                     else:
                         c7_error_log += f"Acq {acquirer or 'Auto'}: {resp.status_code} "
-                        print(f"C7_REJECTED (Acquirer {acquirer}): {resp.status_code} - {resp.text[:100]}")
+                        log.error("[C7] REJECTED acq=%s status=%s resp=%s", acquirer or 'Auto', resp.status_code, resp.text[:200])
                 except Exception as e:
                     c7_error_log += f"Acq {acquirer or 'Auto'}: Exception "
-                    print(f"C7_EXCEPTION (Acquirer {acquirer}): {str(e)}")
+                    log.error("[C7] EXCEPTION acq=%s err=%s", acquirer or 'Auto', str(e))
             
             # Se chegou aqui, TODAS as adquirentes falharam
             print("Todas as adquirentes da C7 falharam.")
