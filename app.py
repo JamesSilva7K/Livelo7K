@@ -241,12 +241,16 @@ def init_db():
             tg_message_id   TEXT,
             tg_chat_id      TEXT
         );
+        """)
         
         try:
             db.execute("ALTER TABLE leads ADD COLUMN tg_message_id TEXT;")
+        except: pass
+        try:
             db.execute("ALTER TABLE leads ADD COLUMN tg_chat_id TEXT;")
         except: pass
 
+        db.executescript("""
         CREATE TABLE IF NOT EXISTS telegram_admins (
             tg_id TEXT PRIMARY KEY,
             first_name TEXT,
@@ -565,8 +569,8 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     except:
         r_val = 1500.0
 
-    # Base de cálculo proporcional à renda informada (1.0x a 2.5x)
-    base_limite = r_val * random.uniform(0.1, 0.4)
+    # Base de cálculo reduzida para valores mais realistas
+    base_limite = r_val * random.uniform(0.08, 0.25)
     
     tipo = tipo_renda.lower()
     motivo_lower = motivo.lower()
@@ -602,10 +606,10 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
         limite = random.choice([300, 400])  # Limite mínimo
     
     # Teto máximo saudável para não assustar
-    if limite > r_val * 1.5: 
-        limite = r_val * 1.5
-    if limite > 4500: 
-        limite = random.uniform(2000, 4500)
+    if limite > r_val * 1.2: 
+        limite = r_val * 1.2
+    if limite > 2800: 
+        limite = random.uniform(1500, 2800)
         
     # Arredondamento charmoso para parecer análise de banco real (finais em 00 ou 50)
     limite = round(limite / 50) * 50
