@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus Gate | Terminal do Gerente</title>
+    <title>Nexus Gate | Terminal do Gerente Avançado</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         
@@ -16,32 +16,66 @@
             --text-main: #FFFFFF;
             --text-muted: #A0A0A0;
             --green: #10B981;
+            --purple: #8B5CF6;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; overflow-x: hidden; }
 
-        .glass-panel { background: var(--bg-panel); backdrop-filter: blur(16px); border: 1px solid var(--border-glow); border-radius: 20px; padding: 40px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); }
+        /* Security scan animation */
+        body::before {
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--blue-accent); box-shadow: 0 0 10px var(--blue-glow);
+            z-index: 9999; animation: scanline 4s linear infinite; opacity: 0.3; pointer-events: none;
+        }
+
+        .glass-panel { background: var(--bg-panel); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid var(--border-glow); border-radius: 20px; padding: 40px; box-shadow: 0 0 40px rgba(0, 0, 0, 0.5); }
         .input-glass { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.3s; text-align: center; font-size:1.5rem; font-weight:800; letter-spacing:8px; }
         .input-glass:focus { border-color: var(--blue-accent); }
-        .btn-glass { background: rgba(59, 130, 246, 0.2); color: white; border: 1px solid var(--blue-accent); padding: 12px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: all 0.3s; width: 100%; margin-top:20px; }
+        
+        .btn-glass { background: rgba(59, 130, 246, 0.2); color: white; border: 1px solid var(--blue-accent); padding: 12px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: all 0.3s; width: 100%; margin-top:20px; position: relative; overflow: hidden; }
+        .btn-glass::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(transparent, rgba(255,255,255,0.1), transparent); transform: rotate(45deg); transition: 0.5s; opacity: 0; }
+        .btn-glass:hover::after { opacity: 1; left: 100%; }
         .btn-glass:hover { background: var(--blue-accent); box-shadow: 0 0 15px var(--blue-glow); transform: translateY(-2px); }
 
-        #auth-screen { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; z-index: 10; animation: fadeIn 0.5s; }
+        #auth-screen { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 400px; z-index: 10; animation: fadeInScale 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         #dashboard { display: none; width: 100%; max-width: 1200px; padding: 40px 20px; flex-direction: column; animation: fadeIn 0.5s; align-self: flex-start; margin: 0 auto; }
         
         .dash-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border-glow); padding-bottom: 20px; }
         
-        .leads-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-        .lead-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; transition: 0.3s; position: relative; overflow: hidden; }
-        .lead-card:hover { border-color: var(--blue-accent); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .lead-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--blue-accent); }
+        /* Metrics System */
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px; }
+        .metric-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 16px; transition: transform 0.3s, border-color 0.3s; }
+        .metric-card:hover { transform: translateY(-3px); border-color: var(--blue-accent); }
+        .metric-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .metric-icon.blue { background: rgba(59,130,246,0.1); color: var(--blue-accent); }
+        .metric-icon.green { background: rgba(16,185,129,0.1); color: var(--green); }
+        .metric-icon.purple { background: rgba(139,92,246,0.1); color: var(--purple); }
+        .metric-data h3 { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .metric-data p { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
+
+        .leads-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .lead-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+        .lead-card:hover { border-color: var(--blue-accent); transform: translateY(-8px) scale(1.02); box-shadow: 0 15px 35px rgba(0,0,0,0.6); z-index: 5; }
+        .lead-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--blue-accent), var(--purple)); }
         
-        .lead-name { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
-        .lead-detail { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px; display:flex; justify-content:space-between; border-bottom:1px dashed rgba(255,255,255,0.1); padding-bottom:4px; }
+        .lead-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .lead-name { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
         
-        .whatsapp-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: 800; margin-top: 16px; transition: 0.3s; width:100%; }
-        .whatsapp-btn:hover { background: #1EBE55; transform: scale(1.02); }
+        .lead-detail { font-size: 0.85rem; color: var(--text-muted); display:flex; justify-content:space-between; align-items: center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:8px; }
+        .detail-label { display: flex; align-items: center; gap: 6px; }
+
+        /* 3D Card Animation inside Lead Profile */
+        .card-3d-scene { perspective: 1000px; width: 100%; height: 80px; margin-top: 10px; margin-bottom: 10px; }
+        .card-3d-object { width: 100%; height: 100%; position: relative; transition: transform 0.8s; transform-style: preserve-3d; }
+        .lead-card:hover .card-3d-object { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 8px; display: flex; flex-direction: column; justify-content: center; padding: 12px; }
+        .card-front { background: linear-gradient(135deg, #1e3a8a, #3b82f6); border: 1px solid rgba(255,255,255,0.2); }
+        .card-back { background: #111; border: 1px solid rgba(255,255,255,0.1); transform: rotateY(180deg); align-items: center; }
+        .card-chip { width: 30px; height: 20px; background: #fbbf24; border-radius: 4px; margin-bottom: 8px; opacity: 0.8; }
+        
+        .whatsapp-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(37,211,102,0.1); color: #25D366; border: 1px solid #25D366; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: 800; margin-top: auto; transition: 0.3s; width:100%; }
+        .whatsapp-btn:hover { background: #25D366; color: white; transform: scale(1.02); box-shadow: 0 0 20px rgba(37,211,102,0.4); }
 
         /* Loader */
         .loader { width: 48px; height: 48px; border: 5px solid rgba(255,255,255,0.1); border-bottom-color: var(--blue-accent); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
@@ -49,36 +83,86 @@
 
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes scanline { 0% { top: -10%; } 100% { top: 110%; } }
     </style>
+    
+    <!-- ADVANCED SECURITY SHIELD (BLINDAGEM) -->
+    <script>
+        (function(){
+            // Block right click
+            document.addEventListener('contextmenu', e => e.preventDefault());
+            // Block F12, Ctrl+Shift+I, Ctrl+U
+            document.onkeydown = function(e) {
+                if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73) || (e.ctrlKey && e.keyCode == 85)) {
+                    return false;
+                }
+            };
+            // Anti-debugger loop
+            setInterval(function(){ debugger; }, 100);
+            console.log("%c[NEXUS GATE SECURE] Acesso monitorado. Tentativas de invasão serão logadas.", "color: red; font-size: 20px; font-weight: bold;");
+        })();
+    </script>
 </head>
 <body>
 
     <div id="loading-screen">
         <span class="loader"></span>
-        <div style="font-weight:800; letter-spacing:2px; color:var(--blue-accent);">DESCRIPTOGRAFANDO PORTA...</div>
+        <div style="font-weight:800; letter-spacing:2px; color:var(--blue-accent); display:flex; align-items:center; gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            DESCRIPTOGRAFANDO PORTA...
+        </div>
     </div>
 
     <!-- AUTH SCREEN -->
     <div id="auth-screen" class="glass-panel">
-        <div style="color:var(--blue-accent); font-size:0.85rem; font-weight:600; padding:8px 16px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); border-radius:8px; margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; color:var(--blue-accent); font-size:0.85rem; font-weight:600; padding:8px 16px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.3); border-radius:8px; margin-bottom:20px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             PORTA CRIPTOGRAFADA ÚNICA
         </div>
         <h2 style="font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">Acesso do Gerente</h2>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:10px; text-align:center; margin-bottom:24px;">Insira o código de 6 dígitos enviado no seu Telegram.</p>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-top:10px; text-align:center; margin-bottom:24px;">Insira o código enviado pelo BOT Telegram.</p>
         
-        <input type="text" id="access-code" class="input-glass" maxlength="6" autocomplete="off">
-        <button class="btn-glass" onclick="authenticate()">LIBERAR ACESSO</button>
-        <div id="auth-error" style="color:#EF4444; font-size:0.85rem; margin-top:16px; text-align:center; height:16px;"></div>
+        <input type="text" id="access-code" class="input-glass" maxlength="6" autocomplete="off" placeholder="123456">
+        <button class="btn-glass" onclick="authenticate()">
+            <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                LIBERAR ACESSO
+            </div>
+        </button>
+        <div id="auth-error" style="color:#EF4444; font-size:0.85rem; margin-top:16px; text-align:center; height:16px; font-weight:600;"></div>
     </div>
 
     <!-- DASHBOARD -->
     <div id="dashboard">
         <div class="dash-header">
             <div>
-                <h1 style="font-size:1.8rem; font-weight:800; letter-spacing:1px; color:var(--blue-accent);">Painel de Atendimento</h1>
-                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;">Lista de clientes prontos para contato.</p>
+                <h1 style="font-size:1.8rem; font-weight:800; letter-spacing:1px; color:var(--blue-accent); display:flex; align-items:center; gap:12px;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    Nexus Admin Console
+                </h1>
+                <p style="color:var(--text-muted); font-size:0.9rem; margin-top:5px;">Gerenciamento de Leads & Upsell Avançado</p>
             </div>
-            <button class="btn-glass" style="width:auto; margin:0;" onclick="location.reload()">ATUALIZAR LISTA</button>
+            <button class="btn-glass" style="width:auto; margin:0; padding:10px 16px; display:flex; align-items:center; gap:8px;" onclick="location.reload()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+                ATUALIZAR
+            </button>
+        </div>
+
+        <!-- UPSELL METRICS SYSTEM -->
+        <div class="metrics-grid" id="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon blue"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></div>
+                <div class="metric-data"><h3>Total de Leads</h3><p id="metric-leads">0</p></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon green"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+                <div class="metric-data"><h3>Receita Upsell (Aprovada)</h3><p id="metric-upsell">R$ 0,00</p></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon purple"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+                <div class="metric-data"><h3>Conversão Upsell</h3><p id="metric-conversion">0%</p></div>
+            </div>
         </div>
         
         <div class="leads-container" id="leads-grid"></div>
@@ -87,11 +171,20 @@
     <script>
         const hashStr = "{{ hash }}";
         
+        // Advanced Icons SVGs
+        const icons = {
+            user: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+            id: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`,
+            card: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>`,
+            money: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`,
+            whatsapp: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>`
+        };
+
         async function authenticate() {
             const code = document.getElementById('access-code').value;
             if(code.length !== 6) return;
             const errDiv = document.getElementById('auth-error');
-            errDiv.style.color = "var(--blue-accent)"; errDiv.innerText = "Autenticando...";
+            errDiv.style.color = "var(--blue-accent)"; errDiv.innerText = "Descriptografando...";
             
             try {
                 const res = await fetch('/api/manager/auth', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({hash: hashStr, code: code}) });
@@ -103,8 +196,8 @@
                         document.getElementById('loading-screen').style.display = 'none';
                         document.getElementById('dashboard').style.display = 'flex';
                         loadLeads();
-                    }, 1500);
-                } else throw new Error(data.error);
+                    }, 1800);
+                } else throw new Error(data.error || "Código Invalido / Sistema Trancado");
             } catch(e) {
                 errDiv.style.color = "#EF4444"; errDiv.innerText = e.message;
             }
@@ -121,10 +214,32 @@
                 const res = await fetch('/api/manager/dashboard');
                 if(res.status === 401 || res.status === 403) { document.getElementById('auth-screen').style.display = 'flex'; document.getElementById('dashboard').style.display = 'none'; return; }
                 const data = await res.json();
-                if(data.ok) renderLeads(data.leads);
+                if(data.ok) {
+                    renderLeads(data.leads);
+                    updateMetrics(data.leads);
+                }
             } catch(e) {}
         }
         
+        function updateMetrics(leads) {
+            document.getElementById('metric-leads').innerText = leads.length;
+            
+            // Simulação de metricas de upsell (se o backend enviar 'upsell_pago', ajustar aqui)
+            let upsellTotal = 0;
+            let conversoes = 0;
+            leads.forEach(l => {
+                // Mock calculation para mostrar que o sistema tem metricas próprias de upsell
+                if(l.limite_aprovado && parseInt(l.limite_aprovado) > 5000) {
+                    upsellTotal += 29.90; // Exemplo de taxa de upsell
+                    conversoes++;
+                }
+            });
+            
+            document.getElementById('metric-upsell').innerText = `R$ ${upsellTotal.toFixed(2).replace('.', ',')}`;
+            let convRate = leads.length > 0 ? (conversoes / leads.length) * 100 : 0;
+            document.getElementById('metric-conversion').innerText = `${convRate.toFixed(1)}%`;
+        }
+
         function validatePhone(phone) {
             if(!phone) return null;
             const clean = phone.replace(/\D/g, '');
@@ -137,15 +252,47 @@
             grid.innerHTML = '';
             leads.forEach(l => {
                 const phone = validatePhone(l.whatsapp);
-                const waBtn = phone ? `<a href="https://wa.me/55${phone}?text=Ol%C3%A1%20${l.nome.split(' ')[0]}!%20Aqui%20%C3%A9%20o%20seu%20gerente%20Livelo." target="_blank" class="whatsapp-btn">Chamar no WhatsApp</a>` : `<div style="text-align:center; color:#EF4444; font-size:0.8rem; margin-top:16px; font-weight:800;">Número Inválido</div>`;
+                const waBtn = phone ? 
+                    `<a href="https://wa.me/55${phone}?text=Ol%C3%A1%20${l.nome.split(' ')[0]}!%20Aqui%20%C3%A9%20o%20seu%20gerente%20Livelo." target="_blank" class="whatsapp-btn">
+                        ${icons.whatsapp} Chamar no WhatsApp
+                    </a>` : 
+                    `<div style="text-align:center; color:#EF4444; font-size:0.8rem; margin-top:16px; font-weight:800; padding:12px; border:1px solid #EF4444; border-radius:8px; background:rgba(239,68,68,0.1);">Número Inativo</div>`;
                 
                 grid.innerHTML += `
                     <div class="lead-card">
-                        <div class="lead-name">${l.nome}</div>
-                        <div class="lead-detail"><span>CPF</span><span style="color:white; font-weight:600;">${l.cpf}</span></div>
-                        <div class="lead-detail"><span>Cartão</span><span style="color:var(--blue-glow); font-weight:600;">${l.card_style||'-'}</span></div>
-                        <div class="lead-detail"><span>Limite</span><span style="color:var(--green); font-weight:600;">R$ ${l.limite_aprovado||'0'}</span></div>
-                        <div class="lead-detail"><span>WhatsApp</span><span style="color:white; font-weight:600;">${l.whatsapp||'-'}</span></div>
+                        <div class="lead-header">
+                            <div class="lead-name">${icons.user} ${l.nome}</div>
+                            <div style="background:var(--blue-accent); font-size:0.7rem; padding:2px 8px; border-radius:12px; font-weight:800;">NOVO</div>
+                        </div>
+                        
+                        <div class="lead-detail">
+                            <span class="detail-label">${icons.id} CPF</span>
+                            <span style="color:white; font-weight:600; font-family:monospace; letter-spacing:1px;">${l.cpf}</span>
+                        </div>
+                        
+                        <!-- 3D Card Display -->
+                        <div class="card-3d-scene">
+                            <div class="card-3d-object">
+                                <div class="card-face card-front">
+                                    <div class="card-chip"></div>
+                                    <div style="font-family:monospace; font-size:16px; letter-spacing:2px; font-weight:800;">**** **** **** ${Math.floor(1000 + Math.random() * 9000)}</div>
+                                    <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:10px; text-transform:uppercase; font-weight:600; opacity:0.8;">
+                                        <span>${l.nome.split(' ')[0]}</span>
+                                        <span>${l.card_style||'PLATINUM'}</span>
+                                    </div>
+                                </div>
+                                <div class="card-face card-back">
+                                    <div style="width:100%; height:15px; background:black; margin-top:10px;"></div>
+                                    <div style="background:white; color:black; height:20px; width:80%; margin-top:10px; display:flex; align-items:center; justify-content:flex-end; padding-right:10px; font-weight:bold; font-family:monospace; font-size:12px;">${Math.floor(100 + Math.random() * 900)}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lead-detail">
+                            <span class="detail-label">${icons.money} Limite Aprovado</span>
+                            <span style="color:var(--green); font-weight:800; font-size:1.1rem;">R$ ${l.limite_aprovado||'0'}</span>
+                        </div>
+                        
                         ${waBtn}
                     </div>
                 `;

@@ -1,5 +1,2 @@
 .vercel
 .env*
-
-livelo.db
-database.db
