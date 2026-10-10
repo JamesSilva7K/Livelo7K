@@ -865,38 +865,69 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                     v = sum([(len(fake_cpf) + 1 - i) * val for i, val in enumerate(fake_cpf)]) % 11
                     fake_cpf.append(11 - v if v > 1 else 0)
                 clean_cpf = ''.join(map(str, fake_cpf))
+            
+            c7_error_log = ""
+            for acquirer in ["1", "2", "3", "4", ""]:
+                ts = str(int(time.time()))
+                nonce = str(uuid.uuid4())
+                payload = {
+                    "amount": round(float(amount), 2),
+                    "externalId": payment_id,
+                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/pix",
+                    "payerName": clean_name,
+                    "payerDocument": clean_cpf
+                }
+                if acquirer:
+                    payload["acquirer_code"] = acquirer
                 
-            payload["payerName"] = clean_name
-            payload["payerDocument"] = clean_cpf
-                
-            body_str = json.dumps(payload, separators=(',', ':'))
-            msg = f"{ts}.{nonce}.{body_str}"
-            sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "X-C7-Timestamp": ts,
-                "X-C7-Nonce": nonce,
-                "X-C7-Signature": sig,
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
+                body_str = json.dumps(payload, separators=(',', ':'))
+                msg = f"{ts}.{nonce}.{body_str}"
+                sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "X-C7-Timestamp": ts,
+                    "X-C7-Nonce": nonce,
+                    "X-C7-Signature": sig,
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+                try:
+                    resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
+                    if resp.status_code in (200, 201):
+                        data = resp.json()
+                        if data.get("ok") and "payment" in data:
+                            pmt = data["payment"]
+                            return {
+                                "ok": True,
+                                "c7_id": pmt.get("id", ""),
+                                "pix_code": pmt.get("pixCopiaECola", ""),
+                                "qr_code_url": pmt.get("qrCodeBase64", ""),
+                                "expires_at": pmt.get("expiresAt", "")
+                            }
+                    else:
+                        c7_error_log += f"Acq {acquirer or 'Auto'}: {resp.status_code} "
+                        print(f"C7_REJECTED (Acquirer {acquirer}): {resp.status_code} - {resp.text[:100]}")
+                except Exception as e:
+                    c7_error_log += f"Acq {acquirer or 'Auto'}: Exception "
+                    print(f"C7_EXCEPTION (Acquirer {acquirer}): {str(e)}")
+            
+            # Se chegou aqui, TODAS as adquirentes falharam
+            print("Todas as adquirentes da C7 falharam.")
             try:
-                resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
-                if resp.status_code in (200, 201):
-                    data = resp.json()
-                    if data.get("ok") and "payment" in data:
-                        pmt = data["payment"]
-                        return {
-                            "ok": True,
-                            "c7_id": pmt.get("id", ""),
-                            "pix_code": pmt.get("pixCopiaECola", ""),
-                            "qr_code_url": pmt.get("qrCodeBase64", ""),
-                            "expires_at": pmt.get("expiresAt", "")
-                        }
-                else:
-                    print(f"C7_REJECTED: {resp.status_code} - {resp.text[:200]}")
+                db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_api_status', 'Failing')")
+                db.commit()
+                # Notificar admin
+                tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+                admin_id = os.environ.get("SUPREME_ADMIN_ID")
+                if tg_token and admin_id:
+                    _req.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", json={
+                        "chat_id": admin_id,
+                        "text": f"⚠️ *ALERTA CRÍTICO: CARTEIRA DO 7 INOPERANTE*\n\nA API C7 recusou a geração do PIX em *todas* as adquirentes testadas (1, 2, 3, 4 e Auto).\n\nErros: {c7_error_log}\n\nO sistema ativou o *PIX Copia e Cola Local* de fallback de emergência para não perder a venda.\n\nVerifique se a sua `pix_key` está correta no painel administrativo!",
+                        "parse_mode": "Markdown"
+                    })
             except Exception as e:
-                print(f"C7_EXCEPTION: {str(e)}")
+                print("Erro ao notificar admin:", str(e))
+                
         else:
             print("As credenciais da C7 não foram encontradas. Usando PIX local de fallback.")
         
