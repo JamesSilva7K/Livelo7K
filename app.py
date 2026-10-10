@@ -945,8 +945,12 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             row_best = db.execute("SELECT value FROM sys_config WHERE key='c7_best_acquirer'").fetchone()
             best_acquirer = row_best["value"] if row_best else None
             
-            # If best_acquirer is known, try it first. Otherwise try 1, 2, auto
-            acquirers_to_try = [best_acquirer] if best_acquirer is not None else ["1", "2", ""]
+            # Prioriza a 2, depois 1, depois auto ("")
+            default_acq = ["2", "1", ""]
+            if best_acquirer is not None:
+                acquirers_to_try = [best_acquirer] + [a for a in default_acq if a != best_acquirer]
+            else:
+                acquirers_to_try = default_acq
             
             for acquirer in acquirers_to_try:
                 ts = str(int(time.time()))
@@ -1083,7 +1087,7 @@ def api_c7_warmup():
                 api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", get_secure_c7_secret())
                 if not api_key or not api_secret: return
                 
-                acquirers = ["1", "2", ""]
+                acquirers = ["2", "1", ""]
                 for acq in acquirers:
                     ts = str(int(time.time()))
                     nonce = str(uuid.uuid4())
