@@ -883,7 +883,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 if acquirer:
                     payload["acquirer_code"] = acquirer
                 
-                body_str = json.dumps(payload, separators=(',', ':'))
+                body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
                 msg = f"{ts}.{nonce}.{body_str}"
                 sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
                 headers = {
