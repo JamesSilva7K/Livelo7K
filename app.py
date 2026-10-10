@@ -1236,8 +1236,15 @@ def api_tg_auth():
     if not tg_id:
         return jsonify({"ok": False, "error": "No Telegram ID"}), 400
 
-    supreme_id = os.environ.get("SUPREME_ADMIN_ID", "")
-    group_id = os.environ.get("SUPREME_GROUP_ID", supreme_id) # Falls back to supreme ID if no group
+    db = get_db()
+    supreme_env = os.environ.get("SUPREME_ADMIN_ID", "")
+    group_env = os.environ.get("SUPREME_GROUP_ID", supreme_env)
+    
+    r_adm = db.execute("SELECT value FROM sys_config WHERE key='supreme_admin_id'").fetchone()
+    r_grp = db.execute("SELECT value FROM sys_config WHERE key='supreme_group_id'").fetchone()
+    
+    supreme_id = str(r_adm["value"]) if r_adm else supreme_env
+    group_id = str(r_grp["value"]) if r_grp else group_env
 
     is_supreme = (tg_id == supreme_id)
     is_basic = False

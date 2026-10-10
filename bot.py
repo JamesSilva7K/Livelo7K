@@ -35,10 +35,24 @@ API_BASE       = BASE_URL
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False)
 
 
-# Admins can be a list now, but "supreme" is the ADMIN_CHAT_ID
+def get_dynamic_supreme_id():
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), "livelo.db")
+        if not os.path.exists(db_path):
+            db_path = os.path.join(os.path.dirname(__file__), "database.db")
+        conn = sqlite3.connect(db_path)
+        r = conn.execute("SELECT value FROM sys_config WHERE key='supreme_admin_id'").fetchone()
+        conn.close()
+        if r and r[0]: return str(r[0])
+    except:
+        pass
+    return str(ADMIN_CHAT_ID)
+
+# Admins can be a list now, but "supreme" is the dynamic creator or env
 def is_supreme(chat_id, user_id=None):
-    if str(chat_id) == str(ADMIN_CHAT_ID): return True
-    if user_id and str(user_id) == str(ADMIN_CHAT_ID): return True
+    sup_id = get_dynamic_supreme_id()
+    if str(chat_id) == sup_id: return True
+    if user_id and str(user_id) == sup_id: return True
     return False
 
 def is_admin(chat_id, user_id=None):
@@ -540,29 +554,54 @@ def handle_image_input(message):
         
     del user_states[chat_id]
 
-@bot.message_handler(content_types=['new_chat_members'])
+def _do_smart_mapping(chat_id, thread_id):
+    try:
+        admins = bot.get_chat_administrators(chat_id)
+        creator = next((a.user for a in admins if a.status == 'creator'), None)
+        
+        if creator:
+            # Set all the configs via API!
+            api_call("set_config", {
+                "supreme_group_id": str(chat_id),
+                "supreme_admin_id": str(creator.id),
+                "tg_log_channel": str(chat_id),
+                "tg_log_leads": str(chat_id),
+                "tg_log_pagamentos": str(chat_id),
+                "tg_log_acessos": str(chat_id)
+            })
+            
+            bot.send_message(
+                chat_id, 
+                f"🤖 <b>MAPEAMENTO INTELIGENTE AVANÇADO CONCLUÍDO!</b>\n\n"
+                f"Fui adicionado no grupo e realizei um escaneamento profundo:\n\n"
+                f"👑 <b>Criador do Grupo Encontrado:</b> {creator.first_name} (ID: <code>{creator.id}</code>)\n"
+                f"🎯 <b>ID do Grupo:</b> <code>{chat_id}</code>\n\n"
+                f"O criador do grupo foi registrado automaticamente como o <b>Admin Supremo</b> do sistema, garantindo acesso exclusivo ao Painel de Configurações.\n"
+                f"Toda a blindagem e canais de log foram apontados para este grupo sem necessidade de configurações manuais! ✅",
+                message_thread_id=thread_id
+            )
+        else:
+            bot.send_message(chat_id, "❌ Não foi possível localizar o criador do grupo. Talvez o Telegram não esteja me retornando a lista de administradores corretamente.", message_thread_id=thread_id)
+    except Exception as e:
+        bot.send_message(chat_id, f"❌ Erro na inteligência de mapeamento: {e}", message_thread_id=thread_id)
+
+@bot.message_handler(commands=['setup_supremo', 'mapear'])
+def smart_mapping_manual(message):
+    if message.chat.type in ['group', 'supergroup']:
+        _do_smart_mapping(message.chat.id, message.message_thread_id)
+    else:
+        bot.reply_to(message, "❌ Este comando inteligente só funciona dentro de um Grupo!")
+
+@bot.message_handler(content_types=['new_chat_members', 'group_chat_created'])
 def smart_group_mapping(message):
-    # Se alguém adicionar um novo membro ao grupo
-    for member in message.new_chat_members:
-        # Verifica se quem foi adicionado foi o nosso bot
+    # Se o chat acabou de ser criado (group_chat_created) ou fomos adicionados
+    if getattr(message, 'group_chat_created', False):
+        _do_smart_mapping(message.chat.id, message.message_thread_id)
+        return
+        
+    for member in getattr(message, 'new_chat_members', []):
         if member.id == bot.get_me().id:
-            adder_id = message.from_user.id
-            # O bot só obedece e mapeia automaticamente se foi o ADMIN SUPREMO quem adicionou
-            if is_supreme(adder_id, adder_id):
-                chat_id = message.chat.id
-                thread_id = message.message_thread_id or ""
-                
-                # Mapeia todos os logs e canais para este grupo
-                api_call("set_config", {"tg_log_channel": str(chat_id)})
-                api_call("set_config", {"tg_log_leads": str(chat_id)})
-                api_call("set_config", {"tg_log_pagamentos": str(chat_id)})
-                api_call("set_config", {"tg_log_acessos": str(chat_id)})
-                
-                bot.send_message(chat_id, "🤖 <b>MAPEAMENTO INTELIGENTE CONCLUÍDO!</b>\n\nFui adicionado pelo <b>Admin Supremo</b>. Acabei de realizar o mapeamento completo!\n\nA partir de agora trabalharei de forma limpa e organizada: Todos os alertas de <b>Leads, Pagamentos e Acessos</b> chegarão diretamente neste grupo! ✅", message_thread_id=thread_id)
-            else:
-                # Se um intruso adicionar o bot, ele sai do grupo imediatamente
-                bot.send_message(message.chat.id, "❌ Não fui adicionado pelo Admin Supremo. Saindo...")
-                bot.leave_chat(message.chat.id)
+            _do_smart_mapping(message.chat.id, message.message_thread_id)
 
 if __name__ == "__main__":
     print("Bot Telegram Admin 3.0 Iniciado!")
