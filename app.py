@@ -902,6 +902,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                             pmt = data["payment"]
                             pix = pmt.get("pixCopiaECola", "")
                             qr = pmt.get("qrCodeBase64", "")
+                            if qr and not qr.startswith("data:image"):
+                                qr = f"data:image/png;base64,{qr}"
                             if not qr and pix:
                                 qr = generate_qr_b64(pix)
                                 
