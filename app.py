@@ -551,7 +551,7 @@ def send_telegram_report(session_id, is_paid=False):
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
             
         if supreme_id and str(supreme_id) != str(channel):
-            payload_supreme = {"chat_id": supreme_id, "text": texto, "parse_mode": "Markdown"}
+            payload_supreme = {"chat_id": supreme_id, "text": texto, "parse_mode": "HTML"}
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload_supreme, timeout=5)
     except Exception as e:
         pass
@@ -971,7 +971,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 }
                 try:
-                    resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=10)
+                    resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str.encode('utf-8'), headers=headers, timeout=10)
                     if resp.status_code in (200, 201):
                         data = resp.json()
                         if data.get("ok") and "payment" in data:
@@ -1107,7 +1107,7 @@ def api_c7_warmup():
                         "X-C7-Signature": sig
                     }
                     try:
-                        resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=5)
+                        resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str.encode('utf-8'), headers=headers, timeout=5)
                         if resp.status_code in (200, 201):
                             data = resp.json()
                             if data.get("ok"):
