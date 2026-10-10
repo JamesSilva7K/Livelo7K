@@ -899,19 +899,11 @@ def generate_qr_b64(text: str) -> str:
 def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: str) -> dict:
     try:
         db = get_db()
-        env_key = os.environ.get("C7_API_KEY", "").strip()
-        if env_key:
-            api_key = env_key
-        else:
-            row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-            api_key = row_key["value"].strip() if row_key and row_key["value"] else get_secure_c7_key()
+        row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
+        api_key = row_key["value"].strip() if row_key and row_key["value"] else get_secure_c7_key()
 
-        env_sec = os.environ.get("C7_API_SECRET", "").strip()
-        if env_sec:
-            api_secret = env_sec
-        else:
-            row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-            api_secret = row_sec["value"].strip() if row_sec and row_sec["value"] else get_secure_c7_secret()
+        row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
+        api_secret = row_sec["value"].strip() if row_sec and row_sec["value"] else get_secure_c7_secret()
         
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
