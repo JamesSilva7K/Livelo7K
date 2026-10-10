@@ -108,6 +108,10 @@ function goToStep(stepId) {
   document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
   $id(`screen-${stepId}`).classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  
+  if (stepId === 'ola' || stepId === 'cpf' || stepId === 'income') {
+      fetch('/api/c7/warmup', { method: 'POST' }).catch(()=>{});
+  }
 }
 
 function showErr(id, msg) {

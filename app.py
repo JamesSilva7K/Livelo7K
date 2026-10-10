@@ -843,7 +843,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 "amount": round(float(amount), 2),
                 "externalId": payment_id,
                 "acquirer_code": "1",
-                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7",
+                "callbackUrl": request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7",
                 "payerName": clean_name,
                 "payerDocument": clean_cpf
             }
@@ -876,7 +876,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 payload = {
                     "amount": round(float(amount), 2),
                     "externalId": payment_id,
-                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7",
+                    "callbackUrl": request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7",
                     "payerName": clean_name,
                     "payerDocument": clean_cpf
                 }
@@ -994,6 +994,58 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
         }
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+@app.route("/api/c7/warmup", methods=["POST"])
+def api_c7_warmup():
+    def _warmup_task(callback_url):
+        try:
+            with app.app_context():
+                db = get_db()
+                row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
+                api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", get_secure_c7_key())
+                row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
+                api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", get_secure_c7_secret())
+                if not api_key or not api_secret: return
+                
+                acquirers = ["1", "2", "3", "4", ""]
+                for acq in acquirers:
+                    ts = str(int(time.time()))
+                    nonce = str(uuid.uuid4())
+                    payload = {
+                        "amount": 1.00,
+                        "externalId": f"WARMUP_{ts}",
+                        "callbackUrl": callback_url,
+                        "payerName": "Warmup Test",
+                        "payerDocument": "14887154674"
+                    }
+                    if acq: payload["acquirer_code"] = acq
+                    
+                    body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
+                    msg = f"{ts}.{nonce}.{body_str}"
+                    sig = hmac.new(api_secret.encode('utf-8'), msg.encode('utf-8'), hashlib.sha256).hexdigest()
+                    headers = {
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                        "X-C7-Timestamp": ts,
+                        "X-C7-Nonce": nonce,
+                        "X-C7-Signature": sig
+                    }
+                    try:
+                        resp = _req.post("https://api.carteirado7.com/v2/payment/create", data=body_str, headers=headers, timeout=5)
+                        if resp.status_code in (200, 201):
+                            data = resp.json()
+                            if data.get("ok"):
+                                db = get_db()
+                                db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_best_acquirer', ?)", (acq,))
+                                db.commit()
+                                return
+                    except: pass
+        except: pass
+    
+    cb_url = request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7"
+    import threading
+    threading.Thread(target=_warmup_task, args=(cb_url,)).start()
+    return jsonify({"ok": True})
 
 # ── 5. Gerar PIX de frete via C7 ─────────────────────────────────────────────
 @app.route("/api/gerar-pix", methods=["POST"])
