@@ -1060,8 +1060,8 @@ function selectShipping(method, price) {
   const displayPrice = 'R$ ' + price.toFixed(2).replace('.', ',');
   const methodText = method === 'sedex' ? 'SEDEX - Entrega expressa' : 'PAC - Envio Normal';
   const methodTextShort = method === 'sedex' ? 'Frete SEDEX (Expresso)' : 'Frete PAC (Normal)';
-  const timeText = method === 'sedex' ? 'até 3 dias úteis após aprovação' : '17-20 dias úteis após aprovação';
-  const timeTextShort = method === 'sedex' ? 'até 3 dias úteis' : '17-20 dias úteis';
+  const timeText = method === 'sedex' ? 'até 1 dia útil após aprovação' : '17-20 dias úteis após aprovação';
+  const timeTextShort = method === 'sedex' ? 'até 1 dia útil' : '17-20 dias úteis';
 
   document.querySelectorAll('.dyn-frete-val').forEach(el => {
       if(el.id === 'sum-frete-valor') el.innerHTML = `${displayPrice} <span style="font-weight:normal">(pagamento único)</span>`;
