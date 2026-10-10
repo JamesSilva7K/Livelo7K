@@ -33,11 +33,13 @@ if (!STATE.sessionId) {
   try { localStorage.setItem('livelo_session', STATE.sessionId); } catch(e) {}
 }
 
-// DYNAMIC LIMIT GENERATION
+// DYNAMIC LIMIT GENERATION — valores realistas (max R$ 2.800 para coincidir com o backend)
 let storedLimit = null;
 try { storedLimit = localStorage.getItem('livelo_limit'); } catch(e) {}
 if (!storedLimit) {
-  STATE.limitBase = Math.floor(Math.random() * (150 - 45 + 1) + 45) * 100;
+  // Range: R$ 150 a R$ 2.800 em múltiplos de 50 (igual ao backend calc_limite)
+  const steps = Math.floor(Math.random() * ((2800 - 150) / 50 + 1));
+  STATE.limitBase = 150 + steps * 50;
   try { localStorage.setItem('livelo_limit', STATE.limitBase); } catch(e) {}
 } else {
   STATE.limitBase = parseInt(storedLimit);

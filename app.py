@@ -1076,34 +1076,42 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
         else:
             print("As credenciais da C7 não foram encontradas. Usando PIX local de fallback.")
         
-        # Fallback local EMV PIX generation (Disabled for debugging)
+        # Fallback local EMV PIX generation
         row = db.execute("SELECT value FROM sys_config WHERE key='pix_key'").fetchone()
         chave_pix = row["value"] if row and row["value"] else "suporte@livelo.com.br"
         
         amount_str = f"{amount:.2f}"
-        name = (payer_name[:13] or "Cliente").ljust(13, ' ').upper()
-        # txid for PIX cannot have hyphens
-        txid = payment_id.replace('-', '')[:25].ljust(25, 'x')
-        
-        gui = "0014br.gov.bcb.pix"
-        key_str = f"01{len(chave_pix):02d}{chave_pix}"
-        f26_content = gui + key_str
-        f26 = f"26{len(f26_content):02d}{f26_content}"
-        
+        # Nome do beneficiário: máx 25 chars, sem acento
+        import unicodedata
+        raw_name = (payer_name or "CLIENTE LIVELO")[:25].upper()
+        raw_name = ''.join(c for c in unicodedata.normalize('NFD', raw_name) if unicodedata.category(c) != 'Mn')
+        raw_name = re.sub(r'[^A-Z0-9 ]', '', raw_name).strip() or "CLIENTE LIVELO"
+        # txid: apenas alfanumérico, máx 25
+        txid = re.sub(r'[^A-Za-z0-9]', '', payment_id)[:25].ljust(25, 'x')
+        city = "SAO PAULO"
+
+        def emv_field(tag: str, value: str) -> str:
+            return f"{tag}{len(value):02d}{value}"
+
+        gui_val   = "br.gov.bcb.pix"
+        key_val   = f"01{len(chave_pix):02d}{chave_pix}"
+        mchant_id = emv_field("26", emv_field("00", gui_val) + emv_field("01", chave_pix))
+        addl_data  = emv_field("62", emv_field("05", txid))
+
         pix_str = (
             "000201" +
-            f26 +
+            mchant_id +
             "52040000" +
             "5303986" +
-            f"54{len(amount_str):02d}{amount_str}" +
+            emv_field("54", amount_str) +
             "5802BR" +
-            f"5913{name}" +
-            "6008SAOPAULO" +
-            f"62290525{txid}" +
+            emv_field("59", raw_name) +
+            emv_field("60", city) +
+            addl_data +
             "6304"
         )
         
-        # Calculate CRC16
+        # Calculate CRC16-CCITT
         poly = 0x1021
         crc = 0xFFFF
         for byte in pix_str.encode("utf-8"):
