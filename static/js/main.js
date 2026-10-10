@@ -543,9 +543,14 @@ function submitCardStyle() {
         if ($id('manager-photo-div') && data.photo_url) {
             $id('manager-photo-div').style.backgroundImage = `url('${data.photo_url}')`;
         }
+      } else {
+        if ($id('manager-name')) $id('manager-name').textContent = 'Gerente Livelo';
       }
     })
-    .catch(console.error)
+    .catch(err => {
+      console.error(err);
+      if ($id('manager-name')) $id('manager-name').textContent = 'Gerente Livelo';
+    })
     .finally(() => {
       // Vai para tela do gerente
       goToStep('manager');
