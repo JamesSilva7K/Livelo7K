@@ -918,7 +918,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             payload = {
                 "amount": round(float(amount), 2),
                 "externalId": payment_id,
-                "acquirer_code": "1",
+                "acquirer_code": "2",
                 "callbackUrl": request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7"
             }
             # Verifica se o CPF é matematicamente válido para não ser rejeitado pela C7 (Erro 422 VALIDATION_ERROR)
