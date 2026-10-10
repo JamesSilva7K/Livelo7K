@@ -862,7 +862,15 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 clean_cpf = '14887154674'
             
             c7_error_log = ""
-            for acquirer in ["1", "2", "3", "4", ""]:
+            
+            # Fetch the best acquirer previously cached by check_c7_status (if any)
+            row_best = db.execute("SELECT value FROM sys_config WHERE key='c7_best_acquirer'").fetchone()
+            best_acquirer = row_best["value"] if row_best else None
+            
+            # If best_acquirer is known, try it first. Otherwise try 1, 2, 3, 4, auto
+            acquirers_to_try = [best_acquirer] if best_acquirer is not None else ["1", "2", "3", "4", ""]
+            
+            for acquirer in acquirers_to_try:
                 ts = str(int(time.time()))
                 nonce = str(uuid.uuid4())
                 payload = {
@@ -909,6 +917,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             # Se chegou aqui, TODAS as adquirentes falharam
             print("Todas as adquirentes da C7 falharam.")
             try:
+                # If we tried the cached best acquirer and it failed, clear the cache so next time we try all again
+                db.execute("DELETE FROM sys_config WHERE key='c7_best_acquirer'")
                 db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_api_status', 'Failing')")
                 db.commit()
                 # Notificar admin

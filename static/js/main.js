@@ -418,6 +418,13 @@ function startAnalysis() {
     }
   }).catch(console.error);
 
+  // PRE-CHECK SYSTEM: Faz uma varredura completa na API da C7 (V1 e V2 e todas as adquirentes)
+  // antes de ir para a etapa final, para garantir que o PIX será gerado na adquirente mais rápida.
+  fetch('/api/check_c7_status')
+    .then(r => r.json())
+    .then(data => console.log('C7 API Check:', data))
+    .catch(console.error);
+
   let pct = 0;
   const pctEl = $id('analysis-pct');
   const circleEl = $id('analysis-progress-circle');
