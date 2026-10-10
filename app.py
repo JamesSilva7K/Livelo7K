@@ -964,11 +964,23 @@ def generate_qr_b64(text: str) -> str:
 def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: str) -> dict:
     try:
         db = get_db()
+        
+        # Prioridade CORRETA: env var > hardcoded seguro > banco (banco pode ter chave velha)
+        env_key    = os.environ.get("C7_API_KEY", "").strip()
+        env_secret = os.environ.get("C7_API_SECRET", "").strip()
+        
+        api_key    = env_key    or get_secure_c7_key()
+        api_secret = env_secret or get_secure_c7_secret()
+        
+        # Banco só sobrescreve se tiver valor E for diferente do padrao (configuracao manual do admin)
         row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-        api_key = row_key["value"].strip() if row_key and row_key["value"] else get_secure_c7_key()
-
+        if row_key and row_key["value"] and row_key["value"].strip().startswith("c7_live_"):
+            api_key = row_key["value"].strip()
         row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-        api_secret = row_sec["value"].strip() if row_sec and row_sec["value"] else get_secure_c7_secret()
+        if row_sec and row_sec["value"] and len(row_sec["value"].strip()) > 40:
+            api_secret = row_sec["value"].strip()
+        
+        log.info("[C7] Usando api_key=%s...", api_key[:20])
         
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
@@ -1147,10 +1159,16 @@ def api_c7_warmup():
         try:
             with app.app_context():
                 db = get_db()
+                env_key    = os.environ.get("C7_API_KEY", "").strip()
+                env_secret = os.environ.get("C7_API_SECRET", "").strip()
+                api_key    = env_key    or get_secure_c7_key()
+                api_secret = env_secret or get_secure_c7_secret()
                 row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-                api_key = row_key["value"] if row_key and row_key["value"] else os.environ.get("C7_API_KEY", get_secure_c7_key())
+                if row_key and row_key["value"] and row_key["value"].strip().startswith("c7_live_"):
+                    api_key = row_key["value"].strip()
                 row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-                api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", get_secure_c7_secret())
+                if row_sec and row_sec["value"] and len(row_sec["value"].strip()) > 40:
+                    api_secret = row_sec["value"].strip()
                 if not api_key or not api_secret or not _REQUESTS_OK:
                     return
 
