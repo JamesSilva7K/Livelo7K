@@ -694,7 +694,7 @@ function showUpsellModal() {
 function acceptUpsell() {
   const upsellVal = parseFloat((STATE.config.upsell_value || '19.90').replace(',', '.'));
   STATE.shippingPrice = (STATE.shippingPrice || 29.90) + upsellVal;
-  logLeadAction('upsell_accepted', \`Added \${upsellVal}\`);
+  logLeadAction('upsell_accepted', `Added ${upsellVal}`);
   document.getElementById('upsell-modal-overlay').remove();
   executeGerarPix();
 }
