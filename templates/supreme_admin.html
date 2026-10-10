@@ -325,6 +325,25 @@
                         <div id="frete-status" style="font-size:0.75rem; color:var(--green);"></div>
                     </div>
                 </div>
+
+                <!-- UPSELL CONFIG -->
+                <div class="glass-panel stat-card" style="grid-column: span 2;">
+                    <div class="stat-title">Sistema de Upsell (Seguro do Cartão)</div>
+                    <div style="display:flex; flex-direction:column; gap:16px; margin-top:10px; max-width:400px;">
+                        <div>
+                            <label style="font-size:0.8rem; color:var(--text-muted);">Ativar Upsell?</label>
+                            <select id="upsell_active" class="input-glass" style="width:100%;">
+                                <option value="true">SIM - Ativado</option>
+                                <option value="false">NÃO - Desativado</option>
+                            </select>
+                        </div>
+                        <div><label style="font-size:0.8rem; color:var(--text-muted);">Valor do Seguro (Ex: 19,90)</label><input type="text" id="upsell_value" class="input-glass"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-muted);">Título do Modal</label><input type="text" id="upsell_title" class="input-glass" placeholder="Proteção Garantida Livelo"></div>
+                        <div><label style="font-size:0.8rem; color:var(--text-muted);">Ícone / Emojis</label><input type="text" id="upsell_icon" class="input-glass" placeholder="🛡️"></div>
+                        <button class="btn-glass" onclick="updateUpsell()">SALVAR UPSELL</button>
+                        <div id="upsell-status" style="font-size:0.75rem; color:var(--green);"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -898,6 +917,14 @@
                 const data = await res.json();
                 document.getElementById('frete_expresso').value = data.frete_expresso || '29,90';
                 document.getElementById('frete_padrao').value = data.frete_padrao || '24,30';
+                
+                // Upsell
+                if (document.getElementById('upsell_active')) {
+                    document.getElementById('upsell_active').value = data.upsell_active || 'false';
+                    document.getElementById('upsell_value').value = data.upsell_value || '19,90';
+                    document.getElementById('upsell_title').value = data.upsell_title || 'Proteção Garantida Livelo';
+                    document.getElementById('upsell_icon').value = data.upsell_icon || '🛡️';
+                }
             } catch(e) {}
         }
         
@@ -907,6 +934,17 @@
             try {
                 const res = await fetch('/api/supreme/frete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({frete_expresso: expresso, frete_padrao: padrao})});
                 if((await res.json()).ok) { document.getElementById('frete-status').innerText = "✅ Fretes Atualizados!"; setTimeout(()=>document.getElementById('frete-status').innerText="", 3000); }
+            } catch(e) {}
+        }
+
+        async function updateUpsell() {
+            const active = document.getElementById('upsell_active').value;
+            const value = document.getElementById('upsell_value').value;
+            const title = document.getElementById('upsell_title').value;
+            const icon = document.getElementById('upsell_icon').value;
+            try {
+                const res = await fetch('/api/supreme/upsell', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({upsell_active: active, upsell_value: value, upsell_title: title, upsell_icon: icon})});
+                if((await res.json()).ok) { document.getElementById('upsell-status').innerText = "✅ Upsell Atualizado!"; setTimeout(()=>document.getElementById('upsell-status').innerText="", 3000); }
             } catch(e) {}
         }
         // Auto-sincronização em tempo real

