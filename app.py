@@ -832,20 +832,21 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
             nonce = str(uuid.uuid4())
-            payload = {
-                "amount": round(float(amount), 2),
-                "externalId": payment_id,
-                "acquirer_code": "1",
-                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7"
-            }
-            
             clean_cpf = re.sub(r"\D", "", str(payer_cpf or ""))
             clean_name = (payer_name or "").strip() or "Cliente"
             
             # Se o nome for só uma palavra, adiciona um sobrenome genérico para passar no filtro da C7
             if " " not in clean_name:
                 clean_name += " Silva"
-                
+
+            payload = {
+                "amount": round(float(amount), 2),
+                "externalId": payment_id,
+                "acquirer_code": "1",
+                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7",
+                "payerName": clean_name,
+                "payerDocument": clean_cpf
+            }
             # Verifica se o CPF é matematicamente válido para não ser rejeitado pela C7 (Erro 422 VALIDATION_ERROR)
             def _valida_cpf_local(c):
                 if len(c) != 11 or c == c[0]*11: return False
@@ -867,7 +868,9 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 payload = {
                     "amount": round(float(amount), 2),
                     "externalId": payment_id,
-                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7"
+                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7",
+                    "payerName": clean_name,
+                    "payerDocument": clean_cpf
                 }
                 if acquirer:
                     payload["acquirer_code"] = acquirer

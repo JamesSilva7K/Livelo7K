@@ -15,7 +15,9 @@ def test_c7():
         'amount': 29.90, 
         'callbackUrl': 'https://livelocartaolimite.vercel.app/api/webhook/c7',
         'externalId': 'TEST_'+str(int(time.time())),
-        'acquirer_code': '1'
+        'acquirer_code': '1',
+        'payerName': 'Joao Silva',
+        'payerDocument': '14887154674'
     }
     body_str = json.dumps(payload, separators=(',', ':'))
     msg = f'{ts}.{nonce}.{body_str}'
@@ -38,4 +40,5 @@ def test_c7():
 
 if __name__ == '__main__':
     test_c7()
+
 
