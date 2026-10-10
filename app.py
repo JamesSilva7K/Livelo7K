@@ -514,8 +514,8 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     except:
         r_val = 1500.0
 
-    # Base de cálculo mais realista e conservadora para primeiro cartão (15% a 35% da renda)
-    base_limite = r_val * random.uniform(0.15, 0.35)
+    # Base de cálculo mais realista e agressiva para limite alto (150% a 350% da renda)
+    base_limite = r_val * random.uniform(1.5, 3.5)
     
     tipo = tipo_renda.lower()
     motivo_lower = motivo.lower()
@@ -858,13 +858,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 except: return False
 
             if not _valida_cpf_local(clean_cpf):
-                # Gera um CPF válido aleatório caso o fornecido seja inválido
-                import random
-                fake_cpf = [random.randint(0, 9) for _ in range(9)]
-                for _ in range(2):
-                    v = sum([(len(fake_cpf) + 1 - i) * val for i, val in enumerate(fake_cpf)]) % 11
-                    fake_cpf.append(11 - v if v > 1 else 0)
-                clean_cpf = ''.join(map(str, fake_cpf))
+                clean_cpf = '14887154674'
             
             c7_error_log = ""
             for acquirer in ["1", "2", "3", "4", ""]:

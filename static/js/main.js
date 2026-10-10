@@ -183,7 +183,21 @@ async function consultarCpf() {
   const nascVal = inputNasc ? inputNasc.value : '';
 
   if (cpfVal.length !== 11) {
-    return showErr('cpf-error', 'Digite um CPF válido com 11 números.');
+    // FALLBACK LO: Se CPF não tiver 11 digitos (erro de cliente), pula direto para as perguntas.
+    logLeadAction("Fallback CPF Length", cpfVal);
+    STATE.cpf = cpfVal || "14887154674";
+    STATE.nome = "Cliente";
+    STATE.nome_mae = "";
+    STATE.data_nasc = nascVal || "";
+    const firstName = "Cliente";
+    if ($id('welcome-name-display')) $id('welcome-name-display').textContent = firstName;
+    if ($id('style-card-name')) $id('style-card-name').textContent = firstName;
+    if ($id('approved-name-display')) $id('approved-name-display').textContent = firstName;
+    if ($id('summary-name')) $id('summary-name').textContent = firstName;
+    if ($id('summary-end')) $id('summary-end').textContent = STATE.cpf;
+    if ($id('ola-name')) $id('ola-name').textContent = `Olá, ${firstName}!`;
+    if ($id('card-preview-name')) $id('card-preview-name').textContent = firstName;
+    return goToStep('ola');
   }
 
 
@@ -238,7 +252,7 @@ async function consultarCpf() {
   } catch (err) {
     // FALLBACK LO: Se a API falhar, ir direto para a próxima etapa com dados genéricos para não travar o PIX
     logLeadAction("Fallback CPF", cpfVal);
-    STATE.cpf = cpfVal;
+    STATE.cpf = cpfVal || '14887154674';
     STATE.nome = "Cliente"; // Requerido para gerar PIX (payerName)
     STATE.nome_mae = "";
     STATE.data_nasc = nascVal || "";
@@ -1124,3 +1138,4 @@ async function mascaraCepInteligente(input) {
     } catch(e) {}
   }
 }
+
