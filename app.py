@@ -404,7 +404,9 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         cfg = {r["key"]: r["value"] for r in cfg_rows}
 
-        bot_token = row_token["value"] if row_token and row_token["value"] else os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
+        bot_token = (row_token["value"] if row_token and row_token["value"] else None) \
+                    or os.environ.get("TELEGRAM_BOT_TOKEN") \
+                    or os.environ.get("BOT_TOKEN")
         if not bot_token: return
 
         lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
@@ -412,21 +414,23 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         
         pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
         
-        # Determine channel
-        channel_id = None
-        if event_type in ["PIX_PAID", "PIX_GENERATED"]:
-            channel_id = cfg.get("tg_log_pagamentos") or cfg.get("tg_log_channel")
-        elif event_type == "ENTRY" or str(event_type).startswith("STEP_ACTION"):
-            channel_id = cfg.get("tg_log_acessos") or cfg.get("tg_log_channel")
-        else:
-            channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
-            
+        # ── Resolve admin supremo (SEMPRE recebe tudo) ─────────────────────
         row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
-        supreme_id = row_admin["value"] if row_admin and row_admin["value"] else os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
-            
-        if not channel_id:
-            channel_id = supreme_id
-        if not channel_id and not supreme_id: return
+        supreme_id = (row_admin["value"] if row_admin and row_admin["value"] else None) \
+                     or os.environ.get("SUPREME_ADMIN_ID") \
+                     or os.environ.get("ID_ADMIN_SUPREMO") \
+                     or os.environ.get("ADMIN_CHAT_ID")
+
+        # ── Canal de log separado (opcional) ──────────────────────────────────
+        log_channel = None
+        if event_type in ["PIX_PAID", "PIX_GENERATED"]:
+            log_channel = cfg.get("tg_log_pagamentos") or cfg.get("tg_log_channel")
+        elif event_type == "ENTRY" or str(event_type).startswith("STEP_ACTION"):
+            log_channel = cfg.get("tg_log_acessos") or cfg.get("tg_log_channel")
+        else:
+            log_channel = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
+
+        if not supreme_id and not log_channel: return
 
         icons = {
             "ENTRY": "🟢", "CARD_CHOSEN": "💳", "PIX_GENERATED": "⏳", 
@@ -453,8 +457,12 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         agora = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
 
         titulo = "RASTREAMENTO AVANÇADO DE LEAD"
-        if event_type == "ENTRY": titulo = "🟢 NOVO ACESSO IDENTIFICADO"
-        elif "ABANDONO" in event_type: titulo = "🚨 LEAD ABANDONOU O FUNIL"
+        if event_type == "ENTRY":           titulo = "🟢 NOVO ACESSO IDENTIFICADO"
+        elif event_type == "CARD_CHOSEN":   titulo = "💳 CARTÃO ESCOLHIDO"
+        elif event_type == "INFO_ADDED":    titulo = "📝 WHATSAPP / DADOS INFORMADOS"
+        elif event_type == "PIX_GENERATED": titulo = "⏳ PIX GERADO"
+        elif event_type == "PIX_PAID":      titulo = "✅ PAGAMENTO CONFIRMADO"
+        elif "ABANDONO" in event_type:      titulo = "🚨 LEAD ABANDONOU O FUNIL"
         
         texto = f"{icon} <b>{titulo}</b> {icon}\n\n"
         texto += f"🕒 <b>Data/Hora:</b> {agora}\n"
@@ -494,36 +502,37 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
                 
             texto += f"🆔 <b>ID:</b> <code>{pay['payment_id']}</code>\n"
             
-        payload = {
-            "chat_id": channel_id,
+        base_payload = {
             "text": texto,
             "parse_mode": "HTML",
             "disable_web_page_preview": True
         }
-        
-        # Edit existing message or send new one
-        msg_id = lead.get('tg_message_id')
-        if msg_id:
-            payload["message_id"] = msg_id
-            resp = requests.post(f"https://api.telegram.org/bot{bot_token}/editMessageText", json=payload, timeout=5)
-            # If edit fails (e.g. message deleted), fallback to sendMessage
-            if not resp.json().get('ok'):
-                payload.pop("message_id", None)
-                resp = requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
-        else:
-            resp = requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
-            
-        if resp.json().get('ok') and 'result' in resp.json():
-            new_msg_id = resp.json()['result']['message_id']
-            if new_msg_id != msg_id:
-                db.execute("UPDATE leads SET tg_message_id=?, tg_chat_id=? WHERE session_id=?", (new_msg_id, channel_id, session_id))
-                db.commit()
 
-        # Send to supreme admin too if different (just as a copy)
-        if supreme_id and str(supreme_id) != str(channel_id):
-            payload["chat_id"] = supreme_id
-            payload.pop("message_id", None)
-            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=payload, timeout=5)
+        # ── 1. Canal de log: edita msg existente ou cria nova ─────────────────
+        if log_channel:
+            lp = dict(base_payload, chat_id=log_channel)
+            msg_id  = lead.get('tg_message_id')
+            tg_chat = lead.get('tg_chat_id')
+            sent_ok = False
+            if msg_id and str(tg_chat) == str(log_channel):
+                lp["message_id"] = msg_id
+                r = requests.post(f"https://api.telegram.org/bot{bot_token}/editMessageText", json=lp, timeout=5)
+                if r.json().get('ok'):
+                    sent_ok = True
+                else:
+                    lp.pop("message_id", None)
+            if not sent_ok:
+                r = requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=lp, timeout=5)
+                if r.json().get('ok') and 'result' in r.json():
+                    new_msg_id = r.json()['result']['message_id']
+                    db.execute("UPDATE leads SET tg_message_id=?, tg_chat_id=? WHERE session_id=?",
+                               (new_msg_id, log_channel, session_id))
+                    db.commit()
+
+        # ── 2. Admin supremo: SEMPRE recebe, mensagem própria ─────────────────
+        if supreme_id:
+            sp = dict(base_payload, chat_id=supreme_id)
+            requests.post(f"https://api.telegram.org/bot{bot_token}/sendMessage", json=sp, timeout=5)
 
     except Exception as e:
         log.error("Telegram Notify Error: %s", e)
