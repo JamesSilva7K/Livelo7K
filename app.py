@@ -145,6 +145,15 @@ def get_secure_json():
             return {}
     return data
 
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  DATABASE
 # ══════════════════════════════════════════════════════════════════════════════
@@ -154,9 +163,12 @@ def get_db() -> sqlite3.Connection:
         conn.row_factory = sqlite3.Row
         try:
             conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+            conn.execute("PRAGMA temp_store=MEMORY")
+            conn.execute("PRAGMA mmap_size=3000000000")
         except Exception:
             pass
-        conn.execute("PRAGMA busy_timeout=4000")
+        conn.execute("PRAGMA busy_timeout=10000")
         g.db = conn
     return g.db
 
