@@ -1,15 +1,21 @@
 import sqlite3, os, hmac, hashlib, time, uuid, json, requests
+from dotenv import load_dotenv
 
 def test_c7():
+    load_dotenv()
+    api_key = os.environ.get("C7_API_KEY")
+    api_secret = os.environ.get("C7_API_SECRET")
+    
+    print(f"Loaded KEY from .env: {api_key[:15]}...")
+    
     db = sqlite3.connect('livelo.db')
-    db.row_factory = sqlite3.Row
-    row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-    api_key = row_key['value'] if row_key else None
-    row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-    api_secret = row_sec['value'] if row_sec else None
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_api_key', ?)", (api_key,))
+    db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES ('c7_api_secret', ?)", (api_secret,))
+    db.commit()
+
     if not api_key: return
 
-    for acq in ['1', '2', '3', '4', '']:
+    for acq in ['1', '2', '']:
         ts = str(int(time.time()))
         nonce = str(uuid.uuid4())
         payload = {

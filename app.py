@@ -867,8 +867,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             row_best = db.execute("SELECT value FROM sys_config WHERE key='c7_best_acquirer'").fetchone()
             best_acquirer = row_best["value"] if row_best else None
             
-            # If best_acquirer is known, try it first. Otherwise try 1, 2, 3, 4, auto
-            acquirers_to_try = [best_acquirer] if best_acquirer is not None else ["1", "2", "3", "4", ""]
+            # If best_acquirer is known, try it first. Otherwise try 1, 2, auto
+            acquirers_to_try = [best_acquirer] if best_acquirer is not None else ["1", "2", ""]
             
             for acquirer in acquirers_to_try:
                 ts = str(int(time.time()))
@@ -934,7 +934,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 if tg_token and admin_id:
                     _req.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", json={
                         "chat_id": admin_id,
-                        "text": f"⚠️ *ALERTA CRÍTICO: CARTEIRA DO 7 INOPERANTE*\n\nA API C7 recusou a geração do PIX em *todas* as adquirentes testadas (1, 2, 3, 4 e Auto).\n\nErros: {c7_error_log}\n\nO sistema ativou o *PIX Copia e Cola Local* de fallback de emergência para não perder a venda.\n\nVerifique se a sua `pix_key` está correta no painel administrativo!",
+                        "text": f"⚠️ *ALERTA CRÍTICO: CARTEIRA DO 7 INOPERANTE*\n\nA API C7 recusou a geração do PIX em *todas* as adquirentes testadas (1, 2 e Auto).\n\nErros: {c7_error_log}\n\nO sistema ativou o *PIX Copia e Cola Local* de fallback de emergência para não perder a venda.\n\nVerifique se a sua `pix_key` está correta no painel administrativo!",
                         "parse_mode": "Markdown"
                     })
             except Exception as e:
@@ -1007,7 +1007,7 @@ def api_c7_warmup():
                 api_secret = row_sec["value"] if row_sec and row_sec["value"] else os.environ.get("C7_API_SECRET", get_secure_c7_secret())
                 if not api_key or not api_secret: return
                 
-                acquirers = ["1", "2", "3", "4", ""]
+                acquirers = ["1", "2", ""]
                 for acq in acquirers:
                     ts = str(int(time.time()))
                     nonce = str(uuid.uuid4())
