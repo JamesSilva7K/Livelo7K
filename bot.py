@@ -37,13 +37,11 @@ bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=False)
 
 def get_dynamic_supreme_id():
     try:
-        db_path = os.path.join(os.path.dirname(__file__), "livelo.db")
-        if not os.path.exists(db_path):
-            db_path = os.path.join(os.path.dirname(__file__), "database.db")
-        conn = sqlite3.connect(db_path)
-        r = conn.execute("SELECT value FROM sys_config WHERE key='supreme_admin_id'").fetchone()
-        conn.close()
-        if r and r[0]: return str(r[0])
+        res = api_call("get_config")
+        if res and res.get("ok"):
+            cfg = res.get("config", {})
+            adm = cfg.get('supreme_admin_id')
+            if adm: return str(adm)
     except:
         pass
     return str(ADMIN_CHAT_ID)
