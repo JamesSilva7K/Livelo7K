@@ -563,7 +563,7 @@ def calc_limite(renda: str, tipo_renda: str = "", motivo: str = "") -> dict:
         r_val = 1500.0
 
     # Base de cálculo proporcional à renda informada (1.0x a 2.5x)
-    base_limite = r_val * random.uniform(1.0, 2.5)
+    base_limite = r_val * random.uniform(0.3, 0.8)
     
     tipo = tipo_renda.lower()
     motivo_lower = motivo.lower()
@@ -888,14 +888,14 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             api_key = env_key
         else:
             row_key = db.execute("SELECT value FROM sys_config WHERE key='c7_api_key'").fetchone()
-            api_key = row_key["value"] if row_key and row_key["value"] else get_secure_c7_key()
+            api_key = row_key["value"].strip() if row_key and row_key["value"] else get_secure_c7_key()
 
         env_sec = os.environ.get("C7_API_SECRET", "").strip()
         if env_sec:
             api_secret = env_sec
         else:
             row_sec = db.execute("SELECT value FROM sys_config WHERE key='c7_api_secret'").fetchone()
-            api_secret = row_sec["value"] if row_sec and row_sec["value"] else get_secure_c7_secret()
+            api_secret = row_sec["value"].strip() if row_sec and row_sec["value"] else get_secure_c7_secret()
         
         if api_key and api_secret and _REQUESTS_OK:
             ts = str(int(time.time()))
