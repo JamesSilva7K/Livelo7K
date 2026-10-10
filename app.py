@@ -954,7 +954,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 payload = {
                     "amount": round(float(amount), 2),
                     "externalId": payment_id,
-                    "callbackUrl": request.url_root.replace("http://", "https://").rstrip('/') + "/api/webhook/c7"
+                    "callbackUrl": f"https://{request.headers.get('x-forwarded-host', request.host)}/api/webhook/c7"
                 }
                 if acquirer:
                     payload["acquirer_code"] = acquirer
