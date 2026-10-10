@@ -391,8 +391,7 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         cfg_rows = db.execute("SELECT key, value FROM sys_config").fetchall()
         cfg = {r["key"]: r["value"] for r in cfg_rows}
 
-        bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
-        if not bot_token and row_token: bot_token = row_token["value"]
+        bot_token = row_token["value"] if row_token and row_token["value"] else os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
         if not bot_token: return
 
         lead = db.execute("SELECT * FROM leads WHERE session_id=?", (session_id,)).fetchone()
@@ -409,10 +408,8 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         else:
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
             
-        supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
-        if not supreme_id:
-            row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
-            if row_admin: supreme_id = row_admin["value"]
+        row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
+        supreme_id = row_admin["value"] if row_admin and row_admin["value"] else os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
             
         if not channel_id:
             channel_id = supreme_id
@@ -507,10 +504,8 @@ def send_telegram_report(session_id, is_paid=False):
     db = get_db()
     row = db.execute("SELECT value FROM sys_config WHERE key='tg_log_channel'").fetchone()
     channel = row["value"] if row and row["value"] else None
-    supreme_id = os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
-    if not supreme_id:
-        row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
-        if row_admin: supreme_id = row_admin["value"]
+    row_admin = db.execute("SELECT value FROM sys_config WHERE key='admin_chat_id'").fetchone()
+    supreme_id = row_admin["value"] if row_admin and row_admin["value"] else os.environ.get("ID_ADMIN_SUPREMO", os.environ.get("SUPREME_ADMIN_ID", os.environ.get("ADMIN_CHAT_ID")))
         
     if not channel:
         channel = supreme_id
@@ -524,11 +519,9 @@ def send_telegram_report(session_id, is_paid=False):
     
     pay = db.execute("SELECT * FROM payments WHERE session_id=? ORDER BY created_at DESC LIMIT 1", (session_id,)).fetchone()
     
-    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
-    if not bot_token:
-        bt = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
-        if bt and bt["value"]: bot_token = bt["value"]
-        else: return
+    bt = db.execute("SELECT value FROM sys_config WHERE key='telegram_token'").fetchone()
+    bot_token = bt["value"] if bt and bt["value"] else os.environ.get("TELEGRAM_BOT_TOKEN", os.environ.get("BOT_TOKEN"))
+    if not bot_token: return
     
     status_icon = "✅ PAGO" if is_paid else "⏳ AGUARDANDO PIX"
     if lead['pix_status'] not in ['paid', 'completed'] and is_paid:
