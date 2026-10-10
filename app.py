@@ -1204,18 +1204,60 @@ def api_manager():
 
 
 
+from urllib.parse import parse_qsl
+
+def verify_telegram_web_app_data(init_data: str, bot_token: str) -> bool:
+    try:
+        parsed_data = dict(parse_qsl(init_data))
+        if 'hash' not in parsed_data:
+            return False
+        received_hash = parsed_data.pop('hash')
+        data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
+        secret_key = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+        calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+        return calculated_hash == received_hash
+    except:
+        return False
+
 @app.route("/api/tg_auth", methods=["POST"])
 def api_tg_auth():
     data = request.get_json() or {}
-    user = data.get("user", {})
+    init_data = data.get("initData", "")
+    
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not bot_token or not verify_telegram_web_app_data(init_data, bot_token):
+        return jsonify({"ok": False, "error": "Invalid Telegram Signature. Acesso negado."}), 403
+
+    # If signature is valid, we can trust the user object parsed from initData
+    parsed_data = dict(parse_qsl(init_data))
+    user = json.loads(parsed_data.get("user", "{}"))
     tg_id = str(user.get("id", ""))
     
     if not tg_id:
         return jsonify({"ok": False, "error": "No Telegram ID"}), 400
 
-    supreme_id = os.environ.get("ADMIN_CHAT_ID", "")
+    supreme_id = os.environ.get("SUPREME_ADMIN_ID", "")
+    group_id = os.environ.get("SUPREME_GROUP_ID", supreme_id) # Falls back to supreme ID if no group
+
     is_supreme = (tg_id == supreme_id)
+    is_basic = False
     
+    # Verificação inteligente de permissões usando o grupo do Telegram (se configurado)
+    if bot_token and group_id and not is_supreme:
+        try:
+            r = _req.get(f"https://api.telegram.org/bot{bot_token}/getChatMember?chat_id={group_id}&user_id={tg_id}", timeout=5).json()
+            if r.get("ok"):
+                member_status = r.get("result", {}).get("status", "")
+                if member_status in ["creator", "administrator"]:
+                    is_supreme = True
+                elif member_status in ["member", "restricted"]:
+                    is_basic = True
+        except Exception as e:
+            print("Erro ao checar grupo:", e)
+    
+    if not is_supreme and not is_basic:
+        return jsonify({"ok": False, "error": "Acesso negado. Você não pertence ao grupo administrativo."}), 403
+
     first_name = user.get("first_name", "")
     username = user.get("username", "")
     photo_url = user.get("photo_url", "")
@@ -1560,12 +1602,26 @@ def api_bot_gateway():
 
 @app.route("/api/admin/advanced-config", methods=["POST"])
 def api_admin_advanced_config():
-    data = request.get_json()
+    data = request.get_json() or {}
+    init_data = data.get("initData", "")
+    bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    
+    if not bot_token or not verify_telegram_web_app_data(init_data, bot_token):
+        return jsonify({"ok": False, "error": "Invalid Telegram Signature"}), 403
+
+    parsed_data = dict(parse_qsl(init_data))
+    user = json.loads(parsed_data.get("user", "{}"))
+    tg_id = str(user.get("id", ""))
+    
     db = get_db()
+    row = db.execute("SELECT role FROM telegram_admins WHERE tg_id=?", (tg_id,)).fetchone()
+    
+    if not row or row["role"] != "supreme":
+        return jsonify({"ok": False, "error": "Only Supreme Admin can change system configs"}), 403
     
     # Save generic configs
     for key in ['mgr_name', 'mgr_years', 'mgr_avatar', 'favicon', 'pixel_code', 'cpf_token', 'frete_expresso', 'frete_padrao', 'wa_text']:
-        if key in data:
+        if key in data and data[key]:
             db.execute("INSERT OR REPLACE INTO sys_config (key, value) VALUES (?, ?)", (key, data[key]))
             
     db.commit()
@@ -1608,22 +1664,14 @@ def check_admin_lock(db):
     locked = db.execute("SELECT value FROM sys_config WHERE key='admin_locked'").fetchone()
     return locked and locked[0] == 'true'
 
-@app.route("/10072601verao")
-@app.route("/nexus-supreme/<port_id>")
-@app.route("/nexus-admin/<port_id>")
-def supreme_admin_gate(port_id="painel-estatico"):
+@app.route("/admin")
+@app.route("/tg-nexus")
+def tg_nexus():
+    """Única porta de entrada blindada, exclusiva via Telegram Web App"""
     db = get_db()
     if check_admin_lock(db):
-        return render_template("supreme_admin.html", port_id=port_id, error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
-    
-    # Check if port_id is valid in our DB (optional visual check, we still require PIN)
-    try:
-        otp = db.execute("SELECT role FROM otp_tokens WHERE port_id = ? AND used = 0", (port_id,)).fetchone()
-        role_type = otp['role'] if otp else "unknown"
-    except:
-        role_type = "unknown"
-        
-    return render_template("supreme_admin.html", port_id=port_id, role_type=role_type)
+        return render_template("tg_webapp.html", error="SISTEMA BLOQUEADO. O Administrador Supremo precisa liberar via Bot do Telegram usando /liberar.")
+    return render_template("tg_webapp.html")
 
 @app.route("/api/supreme/auth", methods=["POST"])
 def supreme_auth():

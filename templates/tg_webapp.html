@@ -20,42 +20,35 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
     body { background: var(--bg); color: var(--text); overflow-x: hidden; }
     
-    /* Splash */
     #splash { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s; }
     .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     
-    /* Header */
     .header { padding: 24px; background: var(--bg-card); display: flex; align-items: center; gap: 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
     .avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: 0 0 10px rgba(229,20,122,0.3); }
     .profile-info { flex: 1; }
     .profile-name { font-weight: 800; font-size: 1.15rem; margin-bottom: 4px; }
     .profile-role { font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 4px; background: rgba(229,20,122,0.1); padding: 4px 8px; border-radius: 6px; }
     
-    /* Tabs */
     .tabs-wrap { display: flex; background: var(--bg-card); overflow-x: auto; border-bottom: 1px solid var(--border); }
     .tabs-wrap::-webkit-scrollbar { display: none; }
     .tab { flex: 1; padding: 16px; text-align: center; color: var(--text-dim); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.3s; white-space: nowrap; border-bottom: 3px solid transparent; }
     .tab.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(229,20,122,0.05); }
     
-    /* Content */
     .tab-content { display: none; padding: 24px; animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     .tab-content.active { display: block; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Stats */
     .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
     .metric-card { background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
     .metric-val { font-size: 1.8rem; font-weight: 800; margin-bottom: 4px; }
     .metric-lbl { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 600; }
     
-    /* Filter */
     .filters { display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 8px; }
     .filters::-webkit-scrollbar { display: none; }
     .filter-btn { padding: 8px 16px; border-radius: 20px; background: var(--bg-card); color: var(--text-dim); font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); white-space: nowrap; }
     .filter-btn.active { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
     
-    /* Lead List */
     .lead-list { display: flex; flex-direction: column; gap: 12px; }
     .lead-card { background: var(--bg-card); border-radius: 16px; padding: 16px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; transition: 0.2s; }
     .lead-card:active { transform: scale(0.98); }
@@ -65,7 +58,6 @@
     .badge.paid { background: rgba(16, 185, 129, 0.15); color: var(--success); }
     .badge.pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
     
-    /* Config form */
     .form-group { margin-bottom: 20px; }
     .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; }
     .form-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 14px; border-radius: 12px; font-size: 0.9rem; transition: 0.2s; }
@@ -73,13 +65,15 @@
     .btn { width: 100%; background: var(--primary); color: var(--primary-text); padding: 16px; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; margin-top: 10px; cursor: pointer; transition: 0.2s; }
     .btn:active { transform: scale(0.98); opacity: 0.9; }
 
-    /* SVG Icons */
     .svg-icon { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    
+    .config-section { background: var(--bg-card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .config-section h3 { font-size: 1rem; font-weight: 800; margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
   </style>
 </head>
 <body>
 
-  <div id="splash"><div class="spinner"></div><div style="font-size:0.8rem;font-weight:600;margin-top:16px;color:var(--text-dim)">Autenticando Supremacia...</div></div>
+  <div id="splash"><div class="spinner"></div><div style="font-size:0.8rem;font-weight:600;margin-top:16px;color:var(--text-dim)">Blindagem Telegram...</div></div>
 
   <div id="app" style="display: none;">
     <div class="header">
@@ -91,42 +85,76 @@
     </div>
 
     <div class="tabs-wrap">
-      <div class="tab active" onclick="switchTab('tab-leads', this)">Leads</div>
-      <div class="tab" id="nav-configs" onclick="switchTab('tab-configs', this)" style="display:none;">Configura√ß√µes</div>
+      <div class="tab active" onclick="switchTab('tab-leads', this)">Dashboard</div>
+      <div class="tab" id="nav-configs" onclick="switchTab('tab-configs', this)" style="display:none;">Sistema</div>
     </div>
 
     <!-- LEADS TAB -->
     <div id="tab-leads" class="tab-content active">
       <div class="metrics" id="metrics-grid" style="display:none;">
-        <div class="metric-card"><div class="metric-val" id="m-total">0</div><div class="metric-lbl">Total Leads</div></div>
-        <div class="metric-card"><div class="metric-val" id="m-pagos" style="color:var(--success)">0</div><div class="metric-lbl">Vendas Pagas</div></div>
-      </div>
-      
-      <div class="filters">
-        <div class="filter-btn active" onclick="filterLeads('all', this)">Todos</div>
-        <div class="filter-btn" onclick="filterLeads('paid', this)">Pagos</div>
-        <div class="filter-btn" onclick="filterLeads('pending', this)">Pendentes</div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-pagos" style="color:var(--success)">0</div>
+          <div class="metric-lbl">Pix Pagos</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-total">0</div>
+          <div class="metric-lbl">Total Leads</div>
+        </div>
       </div>
 
-      <div class="lead-list" id="lead-list"></div>
+      <div class="filters">
+        <button class="filter-btn active" onclick="filterLeads('all', this)">Todos</button>
+        <button class="filter-btn" onclick="filterLeads('paid', this)">Apenas Pagos</button>
+        <button class="filter-btn" onclick="filterLeads('pending', this)">Aguardando</button>
+      </div>
+
+      <div id="lead-list" class="lead-list"></div>
     </div>
 
-    <!-- CONFIGS TAB -->
+    <!-- CONFIGS TAB (Only for SUPREME) -->
     <div id="tab-configs" class="tab-content">
-      <h3 style="margin-bottom: 24px;">Notifica√ß√µes do Bot (Telegram)</h3>
-      <div class="form-group">
-        <label class="form-label">Bot Token (BotFather)</label>
-        <input type="password" id="bot-token" class="form-input" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11">
+      
+      <div class="config-section">
+        <h3>Identidade & Gerente</h3>
+        <div class="form-group">
+          <label class="form-label">Favicon URL (Õcone da Aba)</label>
+          <input type="text" id="cfg-favicon" class="form-input" placeholder="https://exemplo.com/icon.png">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto do Gerente (URL)</label>
+          <input type="text" id="cfg-mgr-avatar" class="form-input" placeholder="https://exemplo.com/foto.jpg">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do Gerente</label>
+          <input type="text" id="cfg-mgr-name" class="form-input" placeholder="Ex: Roberto Silva">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ano de Entrada (Tempo de Empresa)</label>
+          <input type="number" id="cfg-mgr-years" class="form-input" placeholder="Ex: 2018">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">ID do Canal/Grupo (-100...)</label>
-        <input type="text" id="bot-channel" class="form-input" placeholder="-100123456789">
+
+      <div class="config-section">
+        <h3>Financeiro & OperaÁ„o</h3>
+        <div class="form-group">
+          <label class="form-label">Valor Frete Padr„o (R$)</label>
+          <input type="text" id="cfg-frete-padrao" class="form-input" placeholder="29.90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Valor Frete Expresso (R$)</label>
+          <input type="text" id="cfg-frete-expresso" class="form-input" placeholder="49.90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp Suporte</label>
+          <input type="text" id="cfg-whatsapp" class="form-input" placeholder="5511999999999">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Token CPF Hub</label>
+          <input type="text" id="cfg-cpf-token" class="form-input" placeholder="Token da API...">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">ID do T√≥pico (Thread ID)</label>
-        <input type="number" id="bot-topic" class="form-input" placeholder="Opcional. Ex: 42">
-      </div>
-      <button class="btn" onclick="saveBotConfig()">Salvar Configura√ß√µes</button>
+
+      <button class="btn" onclick="saveSystemConfig()">Salvar ConfiguraÁıes</button>
     </div>
   </div>
 
@@ -134,37 +162,45 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
     tg.ready();
-    
-    let MY_ROLE = 'basic';
-    let ALL_LEADS = [];
 
-    async function initApp() {
+    let ALL_LEADS = [];
+    let MY_ROLE = '';
+
+    window.onload = async () => {
       const initData = tg.initData || '';
-      const user = tg.initDataUnsafe?.user || { id: "123", first_name: "Local Test" };
       
       try {
         const res = await fetch('/api/tg_auth', {
           method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ initData, user })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ 
+            initData: initData,
+            user: tg.initDataUnsafe?.user || { id: "000", first_name: "DevTest" }
+          })
         });
         const data = await res.json();
         
+        if(!data.ok) {
+           tg.showAlert("Erro: " + (data.error || "Acesso Negado"));
+           return;
+        }
+
         document.getElementById('splash').style.opacity = '0';
         setTimeout(() => document.getElementById('splash').style.display = 'none', 400);
         document.getElementById('app').style.display = 'block';
         
-        document.getElementById('my-avatar').src = user.photo_url || `https://ui-avatars.com/api/?background=E5147A&color=fff&name=${user.first_name}`;
+        const user = tg.initDataUnsafe?.user || { first_name: "DevTest", photo_url: "" };
+        document.getElementById('my-avatar').src = user.photo_url || https://ui-avatars.com/api/?background=E5147A&color=fff&name=;
         document.getElementById('my-name').textContent = user.first_name;
         
         MY_ROLE = data.role || 'basic';
         if(MY_ROLE === 'supreme') {
-          document.getElementById('my-role').innerHTML = `<svg class="svg-icon"><path d="M12 2l3 6 6 1-4 4 1 6-6-3-6 3 1-6-4-4 6-1 3-6z"/></svg> Supremo`;
+          document.getElementById('my-role').innerHTML = <svg class="svg-icon"><path d="M12 2l3 6 6 1-4 4 1 6-6-3-6 3 1-6-4-4 6-1 3-6z"/></svg> Supremo;
           document.getElementById('nav-configs').style.display = 'block';
           document.getElementById('metrics-grid').style.display = 'grid';
-          loadBotConfig();
+          loadSystemConfig();
         } else {
-          document.getElementById('my-role').innerHTML = `<svg class="svg-icon"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/></svg> Suporte T√©cnico`;
+          document.getElementById('my-role').innerHTML = <svg class="svg-icon"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/></svg> Admin Local;
           document.getElementById('my-role').style.background = 'rgba(155,161,166,0.1)';
           document.getElementById('my-role').style.color = 'var(--text-dim)';
         }
@@ -182,33 +218,45 @@
       }
     }
     
-    async function loadBotConfig() {
+    async function loadSystemConfig() {
       try {
-        const res = await fetch('/api/admin/bot-config');
+        const res = await fetch('/api/config');
         const cfg = await res.json();
         if(cfg) {
-          document.getElementById('bot-token').value = cfg.telegram_token || '';
-          document.getElementById('bot-channel').value = cfg.tg_log_channel || '';
-          document.getElementById('bot-topic').value = cfg.tg_log_thread_id || '';
+          document.getElementById('cfg-favicon').value = cfg.favicon || '';
+          document.getElementById('cfg-mgr-avatar').value = cfg.mgr_avatar || '';
+          document.getElementById('cfg-mgr-name').value = cfg.mgr_name || '';
+          document.getElementById('cfg-mgr-years').value = cfg.mgr_years || '';
+          document.getElementById('cfg-frete-padrao').value = cfg.frete_padrao || '';
+          document.getElementById('cfg-frete-expresso').value = cfg.frete_expresso || '';
         }
       } catch(e) {}
     }
 
-    async function saveBotConfig() {
+    async function saveSystemConfig() {
       tg.HapticFeedback.impactOccurred('medium');
-      const token = document.getElementById('bot-token').value;
-      const channel = document.getElementById('bot-channel').value;
-      const topic = document.getElementById('bot-topic').value;
+      const payload = {
+        initData: tg.initData,
+        favicon: document.getElementById('cfg-favicon').value,
+        mgr_avatar: document.getElementById('cfg-mgr-avatar').value,
+        mgr_name: document.getElementById('cfg-mgr-name').value,
+        mgr_years: document.getElementById('cfg-mgr-years').value,
+        frete_padrao: document.getElementById('cfg-frete-padrao').value,
+        frete_expresso: document.getElementById('cfg-frete-expresso').value,
+        cpf_token: document.getElementById('cfg-cpf-token').value,
+        wa_text: document.getElementById('cfg-whatsapp').value
+      };
       
       try {
-        const res = await fetch('/api/admin/bot-config', {
+        const res = await fetch('/api/admin/advanced-config', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({ token, channel, topic })
+          body: JSON.stringify(payload)
         });
-        if(res.ok) tg.showAlert("Configura√ß√µes salvas com sucesso!");
-        else tg.showAlert("Erro ao salvar.");
-      } catch(e) { tg.showAlert("Falha na conex√£o."); }
+        const r = await res.json();
+        if(r.ok) tg.showAlert("Salvo com sucesso!");
+        else tg.showAlert("Erro: " + r.error);
+      } catch(e) { tg.showAlert("Falha na conex„o."); }
     }
 
     function switchTab(id, el) {
@@ -233,26 +281,24 @@
     function renderLeads(list) {
       const cont = document.getElementById('lead-list');
       if(!list.length) {
-        cont.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:32px;">Nenhum lead encontrado.</div>`;
+        cont.innerHTML = <div style="text-align:center;color:var(--text-dim);padding:32px;">Nenhum lead encontrado.</div>;
         return;
       }
       cont.innerHTML = list.map(l => {
         let st = l.pix_status === 'paid' ? 'paid' : (l.pix_status === 'pending' ? 'pending' : '');
         let stTxt = l.pix_status === 'paid' ? 'PAGO' : (l.pix_status === 'pending' ? 'AGUARDANDO' : l.pix_status);
-        return `
-          <div class="lead-card" onclick="tg.showAlert('CPF: ${l.cpf}\nNome: ${l.nome}\nWhatsApp: ${l.whatsapp || '-'}\nIP: ${l.ip || '-'}\nGeo: ${l.location || '-'}')">
+        return 
+          <div class="lead-card" onclick="tg.showAlert('CPF: \\nNome: \\nWhatsApp: \\nIP: \\nGeo: ')">
             <div>
-              <div class="l-name">${l.nome}</div>
-              <div class="l-doc">${l.cpf} ‚Ä¢ R$ ${l.renda || '0'}</div>
-              <div style="font-size:0.65rem; color:var(--text-dim); margin-top:4px;">üìç ${l.location || l.ip || 'Sem Localiza√ß√£o'}</div>
+              <div class="l-name"></div>
+              <div class="l-doc"> ï R$ </div>
+              <div style="font-size:0.65rem; color:var(--text-dim); margin-top:4px;">?? </div>
             </div>
-            <div class="badge ${st}">${stTxt}</div>
+            <div class="badge "></div>
           </div>
-        `;
+        ;
       }).join('');
     }
-
-    initApp();
   </script>
 </body>
 </html>
