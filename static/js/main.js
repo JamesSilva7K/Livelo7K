@@ -101,6 +101,22 @@ function logLeadAction(action, details='') {
   }).catch(()=>{});
 }
 
+// Rastreamento de Abandono (quando o usuário sai da página ou minimiza)
+let hasAbandoned = false;
+function trackAbandonment() {
+  if (!STATE.sessionId || hasAbandoned || STATE.pixGenerated) return;
+  hasAbandoned = true;
+  // Use sendBeacon as it's more reliable when closing tabs
+  const payload = JSON.stringify({ session_id: STATE.sessionId, action: 'ABANDONO', details: 'Lead saiu da página antes de concluir' });
+  navigator.sendBeacon('/api/log-action', payload);
+}
+
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') trackAbandonment();
+});
+window.addEventListener('pagehide', trackAbandonment);
+window.addEventListener('beforeunload', trackAbandonment);
+
 // UTILITÁRIOS
 // ============================================================================
 function $id(id) { return document.getElementById(id); }

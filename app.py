@@ -415,7 +415,7 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
         channel_id = None
         if event_type in ["PIX_PAID", "PIX_GENERATED"]:
             channel_id = cfg.get("tg_log_pagamentos") or cfg.get("tg_log_channel")
-        elif event_type in ["ENTRY", "STEP_ACTION"]:
+        elif event_type == "ENTRY" or str(event_type).startswith("STEP_ACTION"):
             channel_id = cfg.get("tg_log_acessos") or cfg.get("tg_log_channel")
         else:
             channel_id = cfg.get("tg_log_leads") or cfg.get("tg_log_channel")
@@ -429,9 +429,13 @@ def send_telegram_notify(session_id, event_type="ENTRY"):
 
         icons = {
             "ENTRY": "🟢", "CARD_CHOSEN": "💳", "PIX_GENERATED": "⏳", 
-            "PIX_PAID": "✅", "INFO_ADDED": "📝", "STEP_ACTION": "🖱️"
+            "PIX_PAID": "✅", "INFO_ADDED": "📝"
         }
         icon = icons.get(event_type, "ℹ️")
+        if str(event_type).startswith("STEP_ACTION"):
+            icon = "🖱️"
+            if "ABANDONO" in event_type:
+                icon = "🚨"
         
         # Generate Geolocation link
         geo_link = "N/A"
