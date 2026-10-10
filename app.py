@@ -937,16 +937,8 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
             
             c7_error_log = ""
             
-            # Fetch the best acquirer previously cached by check_c7_status (if any)
-            row_best = db.execute("SELECT value FROM sys_config WHERE key='c7_best_acquirer'").fetchone()
-            best_acquirer = row_best["value"] if row_best else None
-            
-            # Prioriza a 2, depois 1, depois auto ("")
-            default_acq = ["2", "1", ""]
-            if best_acquirer is not None:
-                acquirers_to_try = [best_acquirer] + [a for a in default_acq if a != best_acquirer]
-            else:
-                acquirers_to_try = default_acq
+            # Forçar sempre a ordem: 2 -> 1 -> Auto (Conforme pedido)
+            acquirers_to_try = ["2", "1", ""]
             
             for acquirer in acquirers_to_try:
                 ts = str(int(time.time()))
