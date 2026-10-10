@@ -836,7 +836,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 "amount": round(float(amount), 2),
                 "externalId": payment_id,
                 "acquirer_code": "1",
-                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/pix"
+                "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7"
             }
             
             clean_cpf = re.sub(r"\D", "", str(payer_cpf or ""))
@@ -867,9 +867,7 @@ def c7_create_pix(amount: float, payer_name: str, payer_cpf: str, payment_id: st
                 payload = {
                     "amount": round(float(amount), 2),
                     "externalId": payment_id,
-                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/pix",
-                    "payerName": clean_name,
-                    "payerDocument": clean_cpf
+                    "callbackUrl": request.url_root.rstrip('/') + "/api/webhook/c7"
                 }
                 if acquirer:
                     payload["acquirer_code"] = acquirer

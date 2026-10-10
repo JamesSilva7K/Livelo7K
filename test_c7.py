@@ -13,9 +13,8 @@ def test_c7():
     nonce = str(uuid.uuid4())
     payload = {
         'amount': 29.90, 
+        'callbackUrl': 'https://livelocartaolimite.vercel.app/api/webhook/c7',
         'externalId': 'TEST_'+str(int(time.time())),
-        'payerName': 'Joao da Silva',
-        'payerDocument': '61611099042',
         'acquirer_code': '1'
     }
     body_str = json.dumps(payload, separators=(',', ':'))
@@ -29,12 +28,14 @@ def test_c7():
         'X-C7-Signature': sig,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
     }
+    print("Sending C7 Request...")
     try:
         resp = requests.post('https://api.carteirado7.com/v2/payment/create', data=body_str, headers=headers, timeout=10)
-        print('STATUS:', resp.status_code)
-        print('BODY:', resp.text[:300])
+        print('C7 STATUS:', resp.status_code)
+        print('C7 BODY:', resp.text[:300])
     except Exception as e:
-        print('EXCEPTION:', str(e))
+        print('C7 EXCEPTION:', str(e))
 
 if __name__ == '__main__':
     test_c7()
+
